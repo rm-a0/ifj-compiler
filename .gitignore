@@ -45,4 +45,4 @@
 *.json
 
 main
-build
+build/
