@@ -1,29 +1,27 @@
 CC = gcc
-CFFLAGS = -std=c11 -Wall -Wextra -pedantic
-SRCDIR = src
-INCDIR = inc
-BUILDDIR = build
+CFLAGS = -I$(INC_DIR) -Wall -Wextra -g -O3 -pedantic -fsanitize=address
 
-SRCS = $(wildcard $(SRCDIR)/*.c)
-OBJS = $(patsubst $(SRCDIR)/%.c,$(BUILDDIR)/%.o,$(SRCS))
+SRC_DIR = src
+INC_DIR = inc
 
 TARGET = main
 
+SRC_FILES = $(SRC_DIR)/main.c
+INC_FILES = $(INC_DIR)/main.h
+
+# Rules
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
-	$(CC) $(OBJS) -o $(TARGET) $(LDFLAGS)
-
-$(BUILDDIR)/%.o: $(SRCDIR)/%.c | $(BUILDDIR)
-	$(CC) $(CFLAGS) -I$(INCDIR) -c $< -o $@
-
-$(BUILDDIR):
-	mkdir -p $(BUILDDIR)
+$(TARGET): $(SRC_FILES)
+	$(CC) $(CFLAGS) $(SRC_FILES) -o $(TARGET)
 
 run: $(TARGET)
 	./$(TARGET)
 
 clean:
-	rm -rf $(BUILDDIR) $(TARGET)
+	rm -f $(TARGET)
 
-.PHONY: all run clean
+zip:
+	zip -r ifj.zip $(SRC_DIR) $(INC_DIR)
+
+.PHONY: all run clean zip
