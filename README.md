@@ -17,12 +17,11 @@ git push -u origin branch_name
 
 Now you can commit and push to new branch
 
-> [!IMPORTANT]
+> [!WARNING]
 > Switch to your branch at the start of new session or before pushing
 >  ```
 > git checkout branch_name
 > ```
-
 
 ## IFJ Compiler
 
