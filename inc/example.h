@@ -15,6 +15,6 @@
  * void: description
 */
 
-void funcition_name(int argument);
+void function_name(int argument);
 
 #endif // EXAMPLE_H
