@@ -3,7 +3,7 @@
 
 void function_name(int argument) {
     if (argument < 0) {
-        function_name(argument - 1);
+        function_name(argument - 1);    
     }
     else {
         return;
@@ -11,6 +11,7 @@ void function_name(int argument) {
 }
 
 int main() {
+    name_t custom_name;
     function_name(9);
     return 0;
 }
