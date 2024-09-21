@@ -13,10 +13,10 @@
  * @param value description of value
  * @note If necessary
  */
-typedef struct name {
-    char* content;
+typedef struct {
+    char *content;
     int value;
-} name_t;
+} StructName;
 
 /**
  * @brief What does the function do

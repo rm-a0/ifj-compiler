@@ -11,7 +11,7 @@ void function_name(int argument) {
 }
 
 int main() {
-    name_t custom_name;
+    StructName custom_name;
     function_name(9);
     return 0;
 }
