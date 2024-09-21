@@ -6,8 +6,8 @@ INC_DIR = inc
 
 TARGET = main
 
-SRC_FILES = $(SRC_DIR)/main.c
-INC_FILES = $(INC_DIR)/main.h
+SRC_FILES = $(SRC_DIR)/example.c
+INC_FILES = $(INC_DIR)/example.h
 
 # Rules
 all: $(TARGET)
