@@ -1,3 +1,9 @@
+/**
+ * @file token.c
+ * @brief Description of a file
+ * @authors Author (xlogin)
+*/
+
 #include <stdio.h>
 #include "example.h"
 
