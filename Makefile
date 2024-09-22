@@ -1,25 +1,39 @@
+# Compiler and Flags
 CC = gcc
 CFLAGS = -I$(INC_DIR) -Wall -Wextra -g -O3 -pedantic -fsanitize=address
 
+# Directories
 SRC_DIR = src
 INC_DIR = inc
+BUILD_DIR = build
 
+# Target
 TARGET = main
 
-SRC_FILES = $(SRC_DIR)/example.c
-INC_FILES = $(INC_DIR)/example.h
+# Source and Include Files
+SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
+INC_FILES = $(wildcard $(INC_DIR)/*.h)
+
+# Object Files
+OBJ_FILES = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_FILES))
 
 # Rules
-all: $(TARGET)
+all: $(BUILD_DIR) $(TARGET)
 
-$(TARGET): $(SRC_FILES)
-	$(CC) $(CFLAGS) $(SRC_FILES) -o $(TARGET)
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+$(TARGET): $(OBJ_FILES)
+	$(CC) $(CFLAGS) $(OBJ_FILES) -o $(TARGET)
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(INC_FILES)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 run: $(TARGET)
 	./$(TARGET)
 
 clean:
-	rm -f $(TARGET)
+	rm -rf $(TARGET) $(BUILD_DIR)
 
 zip:
 	zip -r ifj.zip $(SRC_DIR) $(INC_DIR)
