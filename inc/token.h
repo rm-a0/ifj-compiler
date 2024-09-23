@@ -65,4 +65,3 @@ typedef struct {
 Token get_token();
 
 #endif // TOKEN_H
-
