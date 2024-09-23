@@ -7,8 +7,8 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "token.h"  /// < Include definiton of Token struct
-#include "ast.h"    ///< Include definition of ASTNode
+#include "token.h"  // Include definiton of Token struct
+#include "ast.h"    // Include definition of ASTNode
 
 /** 
  * @fn ASTNode* parse_tokens(Token* tokens, int token_count)
