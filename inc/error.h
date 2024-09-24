@@ -23,7 +23,7 @@
  * @param SEMANTIC_ERROR_UNUSED_VAR         Unused variable within its scope (9).
  * @param OTHER_SEMANTIC_ERROR              Other unspecified semantic errors (10).
  * @param INTERNAL_ERROR                    Internal compiler error, not affected by input program (99).
- */
+*/
 enum ErrorType { 
     NO_ERROR = 0,
     LEXICAL_ERROR = 1,
