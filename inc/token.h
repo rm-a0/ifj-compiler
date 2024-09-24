@@ -25,7 +25,9 @@
  * @param TOKEN_VOID            Constant for 'void' keyword.
  * @param TOKEN_WHILE           Constant for 'while' keyword.
  * @param TOKEN_IDENTIFIER      Constant for identifier.
- */
+ * @param TOKEN_L_PAREN         Constant for left parenthesis
+ * @param TOKEN_R_PAREN         Constant for right parenthesis 
+*/
 typedef enum {
     TOKEN_CONST,
     TOKEN_ELSE,
@@ -41,15 +43,17 @@ typedef enum {
     TOKEN_VOID,
     TOKEN_WHILE,
     TOKEN_IDENTIFIER,
+    TOKEN_L_PAREN,
+    TOKEN_R_PAREN
 } TokenType;
 
 /**
  * @struct Token
- * @brief Struct containing Token info
+ * @brief Struct containing informations about token 
  * 
  * @param token_type type of token
  * @param value token value
- */
+*/
 typedef struct {
     TokenType token_type;
     char* value;
