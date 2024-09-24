@@ -18,7 +18,7 @@
  * 
  * @note The caller is responsible for freeing the memory allocated 
  * for the tokens, as well as managing the memory for the generated AST.
- */
+*/
 ASTNode* parse_tokens();
 
 #endif // PARSER_H
