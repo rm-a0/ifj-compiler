@@ -46,5 +46,5 @@
 
 main
 build/
-docs/
+dox_output/
 *.zip
