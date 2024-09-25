@@ -1,6 +1,6 @@
 /**
  * @file token.h
- * @brief Header file for token.c
+ * @brief Contains constants and utilities for token management
  * @authors Michal Repcik (xrepcim00)
 */
 
@@ -60,12 +60,25 @@ typedef struct {
 } Token;
 
 /**
- * @fn Token get_token()
- * @brief Returns token
+ * @fn Token* create_token(TokenType token_type, size_t lenght, const char* value)
+ * @brief Allocates and initializes Token struct
  * 
- * @param[in] None
- * @return Token
+ * @param[in] toke_type Type of token
+ * @param[in] length Length of string that that is passed as value
+ * @param[in] value String that is assigned as token value
+ * @return Returns pointer to a token
+ * 
+ * @note When function is called with length set to 0, memory for value
+ * wont be allocated and char* value in Token will be set to NULL pointer
 */
-Token get_token();
+Token* create_token(TokenType token_type, size_t lenght, const char* value);
+
+/**
+ * @fn void free_token(Token *token)
+ * @brief Frees memory allocated for Token struct
+ * 
+ * @param[in] token Pointer to a token
+*/
+void free_token(Token *token);
 
 #endif // TOKEN_H
