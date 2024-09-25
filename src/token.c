@@ -36,3 +36,12 @@ Token* create_token(TokenType type, size_t length, const char* value) {
 
     return token;
 }
+
+void free_token(Token *token) {
+    if (token) {
+        if (token->value) {
+            free(token->value);
+        }
+        free(token);
+    }
+}

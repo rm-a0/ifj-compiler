@@ -25,8 +25,21 @@
  * @param TOKEN_VOID            Constant for 'void' keyword.
  * @param TOKEN_WHILE           Constant for 'while' keyword.
  * @param TOKEN_IDENTIFIER      Constant for identifier.
- * @param TOKEN_L_PAREN         Constant for left parenthesis
- * @param TOKEN_R_PAREN         Constant for right parenthesis 
+ * @param TOKEN_STRING          Constant for string.
+ * @param TOKEN_L_PAREN         Constant for '(' character.
+ * @param TOKEN_R_PAREN         Constant for ')' character.
+ * @param TOKEN_L_BRACE         Constant for '{' character.
+ * @param TOKEN_R_BRACE         Constant for '}' character.
+ * @param TOKEN_DOT             Constant for '.' character.
+ * @param TOKEN_COMA            Constant for ',' character.
+ * @param TOKEN_COLON           Constant for ':' character.
+ * @param TOKEN_SEMICOLON       Constant for ';' character.
+ * @param TOKEN_PIPE            Constant for '|' character.
+ * @param TOKEN_PLUS            Constant for '+' character.
+ * @param TOKEN_MINUS           Constant for '-' character.
+ * @param TOKEN_MULT            Constant for '*' character.
+ * @param TOKEN_DIV             Constant for '/' character.
+ * @param TOKEN_ASSIGN          Constant for '=' character.
 */
 typedef enum {
     TOKEN_CONST,
@@ -43,8 +56,21 @@ typedef enum {
     TOKEN_VOID,
     TOKEN_WHILE,
     TOKEN_IDENTIFIER,
+    TOKEN_STRING,
     TOKEN_L_PAREN,
-    TOKEN_R_PAREN
+    TOKEN_R_PAREN,
+    TOKEN_L_BRACE,
+    TOKEN_R_BRACE,
+    TOKEN_DOT,
+    TOKEN_COMA,
+    TOKEN_COLON,
+    TOKEN_SEMICOLON,
+    TOKEN_PIPE,
+    TOKEN_PLUS,
+    TOKEN_MINUS,
+    TOKEN_MULT,
+    TOKEN_DIV,
+    TOKEN_ASSIGN
 } TokenType;
 
 /**
