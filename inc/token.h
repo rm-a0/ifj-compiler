@@ -11,6 +11,7 @@
  * @enum TokenType
  * @brief Constants for different token types
  * 
+ * @param INVALID               Constant for invalid tokens.
  * @param TOKEN_CONST           Constant for 'const' keyword.
  * @param TOKEN_ELSE            Constant for 'else' keyword.
  * @param TOKEN_FN              Constant for 'fn' keyword.
@@ -42,6 +43,7 @@
  * @param TOKEN_ASSIGN          Constant for '=' character.
 */
 typedef enum {
+    INVALID,
     TOKEN_CONST,
     TOKEN_ELSE,
     TOKEN_FN,

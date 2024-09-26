@@ -7,13 +7,12 @@
 #ifndef ASCII_LOOKUP_H
 #define ASCII_LOOKUP_H
 
-#include "token.h"
-
 #define ASCII_CHARS 128
 
 /**
  * @typedef int LookupTable[ASCII_CHARS]
  * @brief Lookup table with fixed size
+ * (ASCII_CHARS == 128)
  * 
  * @note Provides a clear and consistent interface for 
  * creating lookup tables indexed by ASCII characters. 
