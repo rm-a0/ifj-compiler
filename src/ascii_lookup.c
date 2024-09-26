@@ -12,7 +12,7 @@
 #include "token.h"
 
 void init_lookup_table(LookupTable table) {
-    memset(table, INVALID, sizeof(table));
+    memset(table, INVALID, sizeof(LookupTable));
 
     table['('] = TOKEN_L_PAREN;
     table[')'] = TOKEN_R_PAREN;
