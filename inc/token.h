@@ -27,6 +27,8 @@
  * @param TOKEN_WHILE           Constant for 'while' keyword.
  * @param TOKEN_IDENTIFIER      Constant for identifier.
  * @param TOKEN_STRING          Constant for string
+ * @param TOKEN_INTEGER         Constant for integer (whole number).
+ * @param TOKEN_FLOAT           Constant for float (decimal numbter).
  * @param TOKEN_SLICE           Constant for slice '[]'.
  * @param TOKEN_L_PAREN         Constant for '(' character.
  * @param TOKEN_R_PAREN         Constant for ')' character.
@@ -60,6 +62,8 @@ typedef enum {
     TOKEN_WHILE,
     TOKEN_IDENTIFIER,
     TOKEN_STRING,
+    TOKEN_INTEGER,
+    TOKEN_FLOAT,
     TOKENS_SLICE,
     TOKEN_L_PAREN,
     TOKEN_R_PAREN,
