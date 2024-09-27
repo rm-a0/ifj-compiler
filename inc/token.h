@@ -26,7 +26,8 @@
  * @param TOKEN_VOID            Constant for 'void' keyword.
  * @param TOKEN_WHILE           Constant for 'while' keyword.
  * @param TOKEN_IDENTIFIER      Constant for identifier.
- * @param TOKEN_STRING          Constant for string.
+ * @param TOKEN_STRING          Constant for string
+ * @param TOKEN_SLICE           Constant for slice '[]'.
  * @param TOKEN_L_PAREN         Constant for '(' character.
  * @param TOKEN_R_PAREN         Constant for ')' character.
  * @param TOKEN_L_BRACE         Constant for '{' character.
@@ -59,6 +60,7 @@ typedef enum {
     TOKEN_WHILE,
     TOKEN_IDENTIFIER,
     TOKEN_STRING,
+    TOKENS_SLICE,
     TOKEN_L_PAREN,
     TOKEN_R_PAREN,
     TOKEN_L_BRACE,
