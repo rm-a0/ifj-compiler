@@ -11,6 +11,25 @@
 #include "token.h"
 #include "ascii_lookup.h"
 
+typedef enum {
+    START,
+    ID_OR_KEY,
+    FWD_SLASH,
+    COMMENT,
+    Q_MARK,
+    UNDERSCORE,
+    KEYWORD,
+    L_SQ_BRACKET,
+    R_SQ_BRACKET,
+    STRING,
+    ESC_SEQ,
+    ZERO,
+    INTEGER,
+    FLOAT,
+    EXPONENT,
+    SIGN
+} LexerState;
+
 /**
  * @struct Lexer
  * @brief Struct containing context for lexer
@@ -23,6 +42,7 @@ typedef struct {
     FILE* src;
     Token* predefined_tokens;
     LookupTable ascii_l_table;
+    LexerState state;
 } Lexer;
 
 /**
