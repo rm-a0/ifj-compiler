@@ -4,12 +4,16 @@
  * @authors Michal Repcik (xrepcim00)
 */
 #include <ctype.h>
+#include <stdlib.h>
 
 #include "lexer.h"
 #include "ascii_lookup.h"
 #include "keyword_htab.h"
 #include "error.h"
 
+int isescseq(int c) {
+    return (c == 'n' || c == 't' || c == 'r' || c == '"' || c == '\\');
+}
 
 int init_lexer(Lexer* lexer, const char* filename) {
     if (lexer == NULL) {
@@ -49,7 +53,7 @@ Token* get_token(Lexer* lexer) {
                     case ' ':
                     case '\t':
                     case '\n':
-                        break;
+                        break; // Continue in START state
                     case '/':
                         lexer->state = FWD_SLASH;
                         break;
@@ -81,15 +85,14 @@ Token* get_token(Lexer* lexer) {
                             return create_token(lexer->ascii_l_table[c], 1, (char)c);
                         }
                         else {
-                            // If we encounter unexpected character
-                            exit(LEXICAL_ERROR);
+                            exit(LEXICAL_ERROR); // Invalid character
                         }
                         break;
                 }
                 break;
             case ID_OR_KEY:
                 if (isalnum(c) || isalpha(c) || c == '_') {
-                    break;
+                    break; // Continue in ID_OR_KEY state
                 }
                 else if (isspace(c)) {
                     // return either id or keyword
@@ -97,11 +100,64 @@ Token* get_token(Lexer* lexer) {
                     lexer->state = START;
                 }
                 else {
-                    // invalid identifier
-                    exit(LEXICAL_ERROR);
+                    exit(LEXICAL_ERROR); // Invalid identifier
                 }
                 break;
             case STRING:
+                if (c == '"') {
+                    lexer->state = START;
+                    // return string token
+                }
+                if (c == '\\') {
+                    lexer->state = ESC_SEQ;
+                }
+                else if (c == '\n') {
+                    exit(LEXICAL_ERROR); // Invalid string character
+                }
+                else {
+                    break; // Continue in STRING state
+                }
+                break;
+            case ESC_SEQ:
+                if (isescseq(c)) {
+                    lexer->state = STRING;
+                }
+                else {
+                    exit(LEXICAL_ERROR); // Invalid escape sequence
+                }
+                break;
+            case UNDERSCORE:
+                if (c == '_') {
+                    break; // Countinue in UNDERSCORE state
+                }
+                else if (isalnum(c) || isalpha(c)) {
+                    lexer->state = ID_OR_KEY;
+                }
+                else {
+                    exit(LEXICAL_ERROR); // Probably cant have multiple '_' (fix later?)
+                }
+                break;
+            case ZERO:
+                break;
+            case INTEGER:
+                break;
+            case FLOAT:
+                break;
+            case EXPONENT:
+                break;
+            case SIGN:
+                break;
+            case FWD_SLASH:
+                break;
+            case COMMENT:
+                break;
+            case Q_MARK:
+                break;
+            case KEYWORD:
+                break;
+            case L_SQ_BRACKET:
+                break;
+            case R_SQ_BRACKET:
                 break;
         }
 
