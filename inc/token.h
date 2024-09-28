@@ -41,6 +41,7 @@ typedef enum {
     TOKEN_VOID,
     TOKEN_WHILE,
     TOKEN_IDENTIFIER,
+    TOKEN_EOF,
 } TokenType;
 
 /**
