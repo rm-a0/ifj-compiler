@@ -37,9 +37,46 @@ int main(int argc, char** argv) {
         exit(INTERNAL_ERROR);
     }
 
+    const char* tok_name[] = {
+    "INVALID",
+    "TOKEN_CONST",
+    "TOKEN_ELSE",
+    "TOKEN_FN",
+    "TOKEN_IF",
+    "TOKEN_I32",
+    "TOKEN_F64",
+    "TOKEN_NULL",
+    "TOKEN_PUB",
+    "TOKEN_RETURN",
+    "TOKEN_U8",
+    "TOKEN_VAR",
+    "TOKEN_VOID",
+    "TOKEN_WHILE",
+    "TOKEN_IDENTIFIER",
+    "TOKEN_STRING",
+    "TOKEN_INTEGER",
+    "TOKEN_FLOAT",
+    "TOKENS_SLICE",
+    "TOKEN_L_PAREN",
+    "TOKEN_R_PAREN",
+    "TOKEN_L_BRACE",
+    "TOKEN_R_BRACE",
+    "TOKEN_DOT",
+    "TOKEN_COMA",
+    "TOKEN_COLON",
+    "TOKEN_SEMICOLON",
+    "TOKEN_PIPE",
+    "TOKEN_PLUS",
+    "TOKEN_MINUS",
+    "TOKEN_MULT",
+    "TOKEN_DIV",
+    "TOKEN_ASSIGN",
+    "TOKEN_Q_MARK"
+    };
+
     Token* token;
     while((token = get_token(&lexer)) != NULL) {
-        fprintf(stderr, "lessgo");
+        fprintf(stdout, "Token type: %s\n", tok_name[token->token_type]);
         free_token(token);
     }
 

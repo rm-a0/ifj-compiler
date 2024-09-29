@@ -218,7 +218,7 @@ Token* get_token(Lexer* lexer) {
                 }
                 break;
             case EXPONENT_NUM:
-                if (c >= '0' || c <= '9') {
+                if (c >= '0' && c <= '9') {
                     break; // Continue in EXPONENT_NUM state
                 }
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) {
