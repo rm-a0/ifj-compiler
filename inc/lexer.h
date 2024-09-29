@@ -23,10 +23,12 @@ typedef enum {
     R_SQ_BRACKET,
     STRING,
     ESC_SEQ,
+    HEX_NUM,
     ZERO,
     INTEGER,
     FLOAT,
     EXPONENT,
+    EXPONENT_NUM,
     SIGN
 } LexerState;
 
@@ -45,20 +47,26 @@ typedef struct {
     LexerState state;
 } Lexer;
 
+int isvalid(int c, LookupTable table);
+
+int ishexnum(int c);
+
+int isescseq(int c);
+
 /**
  * @fn int init_lexer(Lexer* lexer, const char* file)
  * @brief Initializes src, predefined tokens and ascii lookup
  * table inside Lexer struct.
  * 
  * @param[out] lexer Pointer to lexer struct
- * @param[in] file Name of the file
+ * @param[in] fp Pointer to a file/stding
  * @return Returns 0 when everything went succesfully, otherwise returns 1-
  * 
  * @note fopen was used in this function, dont forget to close the file.
  * Other elements were not allocated using malloc so there is no need to
  * free memory.
 */
-int init_lexer(Lexer* lexer, const char* file);
+int init_lexer(Lexer* lexer, FILE* fp);
 
 Token* get_token(Lexer* lexer);
 
