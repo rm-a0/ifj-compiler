@@ -42,6 +42,7 @@ int init_lexer(Lexer* lexer, FILE* fp) {
 Token* get_token(Lexer* lexer) {
     int c;
     int hex_cnt = 0;
+    char buff [128];
 
     while ((c = fgetc(lexer->src)) != EOF) {
         switch (lexer->state) {
