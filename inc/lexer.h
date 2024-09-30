@@ -72,7 +72,7 @@ int init_lexer(Lexer* lexer, FILE* fp);
  * @fn Token* get_token(Lexer* lexer)
  * @brief Scans source code and extracts token using FSM
  * 
- * @param[in/out] lexer Pointer to lexer struct
+ * @param[in, out] lexer Pointer to lexer struct
  * @return Pointer to a token struct or NULL if the token is invalid (Lexical error)
 */
 Token* get_token(Lexer* lexer);
