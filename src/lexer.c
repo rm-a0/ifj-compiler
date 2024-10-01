@@ -80,7 +80,8 @@ Token* get_token(Lexer* lexer) {
                         }
                         else if (isvalid(c, lexer->ascii_l_table)) {
                             // precreate tokens for single characters
-                            return create_token(lexer->ascii_l_table[c], 1, (char)c);
+                            buff[0] = (char)c;
+                            return create_token(lexer->ascii_l_table[c], 1, buff);
                         }
                         else {
                             return NULL; // Invalid character

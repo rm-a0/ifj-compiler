@@ -12,4 +12,6 @@ int parse_tokens(Lexer* lexer) {
     while ((next_tok = get_token(lexer)) != NULL) {
         // do something (implement LL grammar and table)
     }
+
+    return NO_ERROR;
 }
