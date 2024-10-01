@@ -80,8 +80,7 @@ Token* get_token(Lexer* lexer) {
                         }
                         else if (isvalid(c, lexer->ascii_l_table)) {
                             // precreate tokens for single characters
-                            buff[0] = (char)c;
-                            return create_token(lexer->ascii_l_table[c], 1, buff);
+                            return create_token(lexer->ascii_l_table[c], 0, NULL);
                         }
                         else {
                             return NULL; // Invalid character
@@ -235,6 +234,11 @@ Token* get_token(Lexer* lexer) {
             case FWD_SLASH:
                 if (c == '/') {
                     lexer->state = COMMENT;
+                }
+                else if (isspace(c) || isvalid(c, lexer->ascii_l_table) || isalnum(c)) {
+                    lexer->state = START;
+                    ungetc(c, lexer->src);
+                    return create_token(TOKEN_DIV, 0, NULL);
                 }
                 else {
                     return NULL;
