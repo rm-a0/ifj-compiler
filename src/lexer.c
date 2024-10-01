@@ -95,7 +95,7 @@ Token* get_token(Lexer* lexer) {
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) {
                     ungetc(c, lexer->src); // Put c back to stream
                     lexer->state = START;
-                    return create_token(TOKEN_IDENTIFIER, 0, NULL);
+                    return create_token(TOKEN_IDENTIFIER, 0, NULL); // TODO
                     // return either id or keyword
                     // implement hashtable for keywords
                 }
@@ -106,7 +106,7 @@ Token* get_token(Lexer* lexer) {
             case STRING:
                 if (c == '"') {
                     lexer->state = START;
-                    // return string token
+                    return create_token(TOKEN_STRING, 0, NULL); // TODO
                 }
                 if (c == '\\') {
                     lexer->state = ESC_SEQ;
@@ -177,7 +177,7 @@ Token* get_token(Lexer* lexer) {
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) { // is dot valid?
                     lexer->state = START;
                     ungetc(c, lexer->src); // Put c back to stream
-                    return create_token(TOKEN_INTEGER, 0, NULL);
+                    return create_token(TOKEN_INTEGER, 0, NULL); // TODO
                 }
                 else {
                     return NULL; // Invalid integer
@@ -193,7 +193,7 @@ Token* get_token(Lexer* lexer) {
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) { // is dot valid?
                     lexer->state = START;
                     ungetc(c, lexer->src);
-                    return create_token(TOKEN_FLOAT, 0, NULL);
+                    return create_token(TOKEN_FLOAT, 0, NULL); // TODO
                 }
                 else {
                     return NULL; // Invalid float
@@ -225,7 +225,7 @@ Token* get_token(Lexer* lexer) {
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) {
                     lexer->state = START;
                     ungetc(c, lexer->src);
-                    return create_token(TOKEN_FLOAT, 0, NULL);
+                    return create_token(TOKEN_FLOAT, 0, NULL); // TODO
                 }
                 else {
                     return NULL;
@@ -267,7 +267,7 @@ Token* get_token(Lexer* lexer) {
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) {
                     lexer->state = START;
                     ungetc(c, lexer->src);
-                    return create_token(INVALID, 0, NULL);
+                    return create_token(INVALID, 0, NULL); // TODO
                 }
                 else {
                     return NULL;

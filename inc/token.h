@@ -45,6 +45,9 @@
  * @param TOKEN_DIV             Constant for '/' character.
  * @param TOKEN_ASSIGN          Constant for '=' character.
  * @param TOKEN_Q_MARK          Constant for '?' character.
+ * @param TOKEN_AT              Constant for '@ character
+ * @param TOKEN_LESS            Constant for '< character
+ * @param TOKEN_GREATER         Constant for '> character
 */
 typedef enum {
     INVALID,
@@ -80,7 +83,10 @@ typedef enum {
     TOKEN_MULT,
     TOKEN_DIV,
     TOKEN_ASSIGN,
-    TOKEN_Q_MARK
+    TOKEN_Q_MARK,
+    TOKEN_AT,
+    TOKEN_LESS,
+    TOKEN_GREATER
 } TokenType;
 
 /**

@@ -71,7 +71,10 @@ int main(int argc, char** argv) {
     "TOKEN_MULT",
     "TOKEN_DIV",
     "TOKEN_ASSIGN",
-    "TOKEN_Q_MARK"
+    "TOKEN_Q_MARK",
+    "TOKEN_AT",
+    "TOKEN_LESS",
+    "TOKEN_GREATER"
     };
 
     Token* token;
