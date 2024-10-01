@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
 
     Token* token;
     while((token = get_token(&lexer)) != NULL) {
-        fprintf(stdout, "Token type: %s \t Token value: %s\n", tok_name[token->token_type], token->value);
+        fprintf(stdout, "Token type: %-25s | Token value: %s\n", tok_name[token->token_type], token->value);
         free_token(token);
     }
 

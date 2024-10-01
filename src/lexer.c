@@ -41,7 +41,7 @@ int init_lexer(Lexer* lexer, FILE* fp) {
 
 Token* get_token(Lexer* lexer) {
     int c;
-    int hex_cnt = 0;
+    int hex_cnt = 0; // counts how many hexadecimal numbers are in '\xdd' esc sequence
     char buff [128];
 
     while ((c = fgetc(lexer->src)) != EOF) {
@@ -211,7 +211,7 @@ Token* get_token(Lexer* lexer) {
                 }
                 break;
             case SIGN:
-                if (c >= '0' || c <= '9') {
+                if (c >= '0' && c <= '9') {
                     lexer->state = EXPONENT_NUM;
                 }
                 else {
