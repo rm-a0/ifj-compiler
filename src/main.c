@@ -83,5 +83,7 @@ int main(int argc, char** argv) {
         free_token(token);
     }
 
+    fclose(fp);
+
     return NO_ERROR; 
 }

@@ -29,11 +29,8 @@ int init_lexer(Lexer* lexer, FILE* fp) {
     }
 
     lexer->src = fp; // Initialize file/stdin pointer
-
     init_lookup_table(lexer->ascii_l_table); // Initialize lookup table
-
     lexer->predefined_tokens = NULL; // Initialize predefined tokens
-
     lexer->state = START; // Set state to start
 
     return 0;
