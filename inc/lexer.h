@@ -55,10 +55,6 @@ typedef struct {
  * @param[out] lexer Pointer to lexer struct
  * @param[in] fp Pointer to a file/stding
  * @return Returns 0 when everything went succesfully, otherwise returns 1-
- * 
- * @note fopen was used in this function, dont forget to close the file.
- * Other elements were not allocated using malloc so there is no need to
- * free memory.
 */
 int init_lexer(Lexer* lexer, FILE* fp);
 
