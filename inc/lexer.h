@@ -47,12 +47,6 @@ typedef struct {
     LexerState state;
 } Lexer;
 
-int isvalid(int c, LookupTable table);
-
-int ishexnum(int c);
-
-int isescseq(int c);
-
 /**
  * @fn int init_lexer(Lexer* lexer, const char* file)
  * @brief Initializes src, predefined tokens and ascii lookup
@@ -70,8 +64,8 @@ int init_lexer(Lexer* lexer, FILE* fp);
 
 /**
  * @fn Token* get_token(Lexer* lexer)
- * @brief Scans source code and extracts token using FSM
- * 
+ * @brief Scans source code and extracts tokens using FSM
+ *
  * @param[in, out] lexer Pointer to lexer struct
  * @return Pointer to a token struct or NULL if the token is invalid (Lexical error)
 */

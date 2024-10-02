@@ -11,15 +11,18 @@
 #include "keyword_htab.h"
 #include "error.h"
 
-int isvalid(int c, LookupTable table) {
+// checkes if a character is valid based on the lookup table (implementation in ascii_lookup.c)
+static inline int isvalid(int c, LookupTable table) {
     return (c < 128 && table[c] != INVALID);
 }
 
-int ishexnum(int c) {
+// checks if character is valid hexadecimal digit (0-9, a-f, A-F)
+static inline int ishexnum(int c) {
     return ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || (c >= '0' && c <= '9'));
 }
 
-int isescseq(int c) {
+// checks if character is valid escape sequence ('n', 't', 'r', '"', '\')
+static inline int isescseq(int c) {
     return (c == 'n' || c == 't' || c == 'r' || c == '"' || c == '\\');
 }
 
@@ -38,8 +41,9 @@ int init_lexer(Lexer* lexer, FILE* fp) {
 
 Token* get_token(Lexer* lexer) {
     int c;
-    int hex_cnt = 0; // counts how many hexadecimal numbers are in '\xdd' esc sequence
-    char buff [128];
+    int hex_cnt = 0; // Counts how many hexadecimal numbers are in '\xdd' esc sequence
+    char buff [128]; // Buffer for storing token value of identifiers, strings and numbers
+    char idx = 0;   
 
     while ((c = fgetc(lexer->src)) != EOF) {
         switch (lexer->state) {

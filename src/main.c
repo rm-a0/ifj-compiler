@@ -4,6 +4,7 @@
  * @authors Michal Repcik (xrepcim00)
  */
 #include <stdlib.h>
+#include <time.h>
 
 #include "lexer.h"
 #include "error.h"
@@ -28,8 +29,10 @@ FILE* process_file(int argc, char**  argv) {
 }
 
 int main(int argc, char** argv) {
-    Lexer lexer;
+    clock_t start, end;
+    start = clock();
 
+    Lexer lexer;
     FILE* fp;
     fp = process_file(argc, argv); 
 
@@ -84,6 +87,9 @@ int main(int argc, char** argv) {
     }
 
     fclose(fp);
+
+    end = clock();
+    fprintf(stderr, "Time: %.3g\n", (double)(clock()-start)/CLOCKS_PER_SEC);
 
     return NO_ERROR; 
 }
