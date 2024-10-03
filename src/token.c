@@ -20,7 +20,7 @@ Token* create_token(TokenType type, size_t length, const char* value) {
 
     token->token_type = type;
 
-    if (length > 0 && value != NULL) {
+    if (value != NULL) {
         token->value = malloc(length + 1);
         if (!token->value) {
             free(token);

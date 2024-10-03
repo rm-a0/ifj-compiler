@@ -11,39 +11,79 @@
 #include "keyword_htab.h"
 #include "error.h"
 
-// checkes if a character is valid based on the lookup table (implementation in ascii_lookup.c)
+#define BUFFER_LENGTH 128
+
+// Checkes if a character is valid based on the lookup table (implementation in ascii_lookup.c)
 static inline int isvalid(int c, LookupTable table) {
     return (c < 128 && table[c] != INVALID);
 }
 
-// checks if character is valid hexadecimal digit (0-9, a-f, A-F)
+// Checks if character is valid hexadecimal digit (0-9, a-f, A-F)
 static inline int ishexnum(int c) {
     return ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || (c >= '0' && c <= '9'));
 }
 
-// checks if character is valid escape sequence ('n', 't', 'r', '"', '\')
+// Checks if character is valid escape sequence ('n', 't', 'r', '"', '\')
 static inline int isescseq(int c) {
     return (c == 'n' || c == 't' || c == 'r' || c == '"' || c == '\\');
+}
+
+// Appneds character to a buffer, increments index and resizes buffer if needed 
+static inline void append(Lexer* lexer, int* idx, int c) {
+    if (*idx >= lexer->buff_len - 1) { // If buffer is too small double its length
+        lexer->buff_len *= 2;
+        lexer->buff = realloc(lexer->buff, lexer->buff_len);
+        if (lexer->buff == NULL) {
+            fprintf(stderr, "Failed to reallocate memory for buffer in lexer");
+            exit(INTERNAL_ERROR);
+        }
+    }
+
+    lexer->buff[*idx] = (char)c; // Append c
+    (*idx)++; // Increment index
+    lexer->buff[*idx] = '\0'; // Null terminate the string
+
 }
 
 int init_lexer(Lexer* lexer, FILE* fp) {
     if (lexer == NULL) {
         return -1;
     }
+    // Allocate memory for buffer used in get_token function
+    lexer->buff = malloc(BUFFER_LENGTH * sizeof(char));
+    if (lexer->buff == NULL) {
+        return -1;
+    }
 
+    lexer->buff_len = BUFFER_LENGTH; // Set length of buffer
     lexer->src = fp; // Initialize file/stdin pointer
     init_lookup_table(lexer->ascii_l_table); // Initialize lookup table
-    lexer->predefined_tokens = NULL; // Initialize predefined tokens
     lexer->state = START; // Set state to start
 
     return 0;
 }
 
+void destroy_lexer(Lexer* lexer) {
+    if (lexer == NULL) {
+        return;
+    }
+
+    if (lexer->buff != NULL) {
+        free(lexer->buff);
+        lexer->buff = NULL;
+    }
+
+    if (lexer->src != NULL) {
+        fclose(lexer->src);
+        lexer->src = NULL;
+    }
+}
+
 Token* get_token(Lexer* lexer) {
     int c;
     int hex_cnt = 0; // Counts how many hexadecimal numbers are in '\xdd' esc sequence
-    char buff [128]; // Buffer for storing token value of identifiers, strings and numbers
-    char idx = 0;   
+    int exp_flag = 0; // Flag for exponent value to prevent empty exponents
+    int idx = 0; // Index for indexing buffer for token values
 
     while ((c = fgetc(lexer->src)) != EOF) {
         switch (lexer->state) {
@@ -61,6 +101,7 @@ Token* get_token(Lexer* lexer) {
                         break;
                     case '0':
                         lexer->state = ZERO;
+                        append(lexer, &idx, c);
                         break;
                     case '?':
                         lexer->state = Q_MARK;
@@ -68,6 +109,7 @@ Token* get_token(Lexer* lexer) {
                         break;
                     case '_':
                         lexer->state = UNDERSCORE;
+                        append(lexer, &idx, c);
                         break;
                     case '[':
                         lexer->state = L_SQ_BRACKET;
@@ -75,9 +117,11 @@ Token* get_token(Lexer* lexer) {
                     default:
                         if (isalpha(c)) {
                             lexer->state = ID_OR_KEY;
+                            append(lexer, &idx, c);
                         }
                         else if (c > '0' && c <= '9') {
                             lexer->state = INTEGER;
+                            append(lexer, &idx, c);
                         }
                         else if (isvalid(c, lexer->ascii_l_table)) {
                             // precreate tokens for single characters
@@ -91,12 +135,13 @@ Token* get_token(Lexer* lexer) {
                 break;
             case ID_OR_KEY:
                 if (isalnum(c) || c == '_') {
+                    append(lexer, &idx, c);
                     break; // Continue in ID_OR_KEY state
                 }
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) {
                     ungetc(c, lexer->src); // Put c back to stream
                     lexer->state = START;
-                    return create_token(TOKEN_IDENTIFIER, 0, NULL); // TODO
+                    return create_token(TOKEN_IDENTIFIER, idx, lexer->buff);
                     // return either id or keyword
                     // implement hashtable for keywords
                 }
@@ -107,24 +152,28 @@ Token* get_token(Lexer* lexer) {
             case STRING:
                 if (c == '"') {
                     lexer->state = START;
-                    return create_token(TOKEN_STRING, 0, NULL); // TODO
+                    return create_token(TOKEN_STRING, idx, lexer->buff);
                 }
                 if (c == '\\') {
                     lexer->state = ESC_SEQ;
+                    append(lexer, &idx, c);
                 }
                 else if (c == '\n') {
                     return NULL; // Invalid string character
                 }
                 else {
+                    append(lexer, &idx, c);
                     break; // Continue in STRING state
                 }
                 break;
             case ESC_SEQ:
                 if (isescseq(c)) {
                     lexer->state = STRING;
+                    append(lexer, &idx, c);
                 }
                 else if (c == 'x') {
                     lexer->state = HEX_NUM;
+                    append(lexer, &idx, c);
                 }
                 else {
                     return NULL; // Invalid escape sequence
@@ -133,9 +182,10 @@ Token* get_token(Lexer* lexer) {
             case HEX_NUM:
                 if (ishexnum(c) && hex_cnt < 2) {
                     hex_cnt++;
-                }
-                else if (hex_cnt == 2) {
-                    lexer->state = STRING;
+                    append(lexer, &idx, c);
+                    if (hex_cnt == 2) {
+                        lexer->state = STRING;
+                    }
                 }
                 else {
                     return NULL;
@@ -143,18 +193,21 @@ Token* get_token(Lexer* lexer) {
                 break;
             case UNDERSCORE:
                 if (c == '_') {
+                    append(lexer, &idx, c);
                     break; // Countinue in UNDERSCORE state
                 }
                 else if (isalnum(c)) {
                     lexer->state = ID_OR_KEY;
+                    append(lexer, &idx, c);
                 }
                 else {
-                    return NULL; // Probably cant have multiple '_' (fix later?)
+                    return NULL;
                 }
                 break;
             case ZERO:
                 if (c == '.') {
                     lexer->state = FLOAT;
+                    append(lexer, &idx, c);
                 }
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) { // is dot valid?
                     lexer->state = START;
@@ -168,17 +221,20 @@ Token* get_token(Lexer* lexer) {
             case INTEGER:
                 if (c == '.') {
                     lexer->state = FLOAT;
+                    append(lexer, &idx, c);
                 }
                 else if (c == 'e' || c == 'E') {
                     lexer->state = EXPONENT;
+                    append(lexer, &idx, c);
                 }
                 else if (c >= '0' && c <= '9') {
+                    append(lexer, &idx, c);
                     break; // Continue in INTEGER state 
                 }
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) { // is dot valid?
                     lexer->state = START;
                     ungetc(c, lexer->src); // Put c back to stream
-                    return create_token(TOKEN_INTEGER, 0, NULL); // TODO
+                    return create_token(TOKEN_INTEGER, idx, lexer->buff);
                 }
                 else {
                     return NULL; // Invalid integer
@@ -186,15 +242,17 @@ Token* get_token(Lexer* lexer) {
                 break;
             case FLOAT:
                 if (c >= '0' && c <= '9') {
+                    append(lexer, &idx, c);
                     break; // Continue in FLOAT state
                 }
                 else if (c == 'e' || c == 'E') {
                     lexer->state = EXPONENT;
+                    append(lexer, &idx, c);
                 }
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) { // is dot valid?
                     lexer->state = START;
                     ungetc(c, lexer->src);
-                    return create_token(TOKEN_FLOAT, 0, NULL); // TODO
+                    return create_token(TOKEN_FLOAT, idx, lexer->buff); // TODO
                 }
                 else {
                     return NULL; // Invalid float
@@ -203,9 +261,11 @@ Token* get_token(Lexer* lexer) {
             case EXPONENT:
                 if (c == '+' || c == '-') {
                     lexer->state = SIGN;
+                    append(lexer, &idx, c);
                 }
-                else if (c >= '0' && c <= '9') { // what about chained exponents ?
+                else if (c >= '0' && c <= '9') {
                     lexer->state = EXPONENT_NUM;
+                    append(lexer, &idx, c);
                 }
                 else {
                     return NULL;
@@ -213,7 +273,9 @@ Token* get_token(Lexer* lexer) {
                 break;
             case SIGN:
                 if (c >= '0' && c <= '9') {
+                    exp_flag = 1; // Set exponent flag
                     lexer->state = EXPONENT_NUM;
+                    append(lexer, &idx, c);
                 }
                 else {
                     return NULL;
@@ -221,12 +283,14 @@ Token* get_token(Lexer* lexer) {
                 break;
             case EXPONENT_NUM:
                 if (c >= '0' && c <= '9') {
+                    exp_flag = 1; // Set exponent flag
+                    append(lexer, &idx, c);
                     break; // Continue in EXPONENT_NUM state
                 }
-                else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) {
+                else if ((isspace(c) || isvalid(c, lexer->ascii_l_table)) && exp_flag) {
                     lexer->state = START;
                     ungetc(c, lexer->src);
-                    return create_token(TOKEN_FLOAT, 0, NULL); // TODO
+                    return create_token(TOKEN_FLOAT, idx, lexer->buff);
                 }
                 else {
                     return NULL;
@@ -256,6 +320,7 @@ Token* get_token(Lexer* lexer) {
                 }
                 else if (isalpha(c)) {
                     lexer->state = KEYWORD;
+                    append(lexer, &idx, c);
                 }
                 else {
                     return NULL;
@@ -263,12 +328,13 @@ Token* get_token(Lexer* lexer) {
                 break;
             case KEYWORD:
                 if (isalnum(c)) {
+                    append(lexer, &idx, c);
                     break; // Continue in KEYWORD state
                 }
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) {
                     lexer->state = START;
                     ungetc(c, lexer->src);
-                    return create_token(INVALID, 0, NULL); // TODO
+                    return create_token(INVALID, idx, lexer->buff); // TODO
                 }
                 else {
                     return NULL;
@@ -286,6 +352,7 @@ Token* get_token(Lexer* lexer) {
             case R_SQ_BRACKET:
                 if (isalpha(c)) {
                     lexer->state = KEYWORD;
+                    append(lexer, &idx, c);
                 }
                 else {
                     return NULL;

@@ -37,26 +37,38 @@ typedef enum {
  * @brief Struct containing context for lexer
  * 
  * @param src Pointer to source file or stdin
- * @param predefined_tokens Array of predefined tokensA
  * @param ascii_l_table Lookup table for validating ascii characters
+ * @param state State of the lexer
+ * @param buff Buffer that holds value of last created token
+ * @param buff_len Length of buffer
 */
 typedef struct {
     FILE* src;
-    Token* predefined_tokens;
     LookupTable ascii_l_table;
     LexerState state;
+    char* buff;
+    int buff_len;
 } Lexer;
 
 /**
  * @fn int init_lexer(Lexer* lexer, const char* file)
- * @brief Initializes src, predefined tokens and ascii lookup
- * table inside Lexer struct.
+ * @brief Initializes src, ascii lookup table and allocates buffer
+ * for storing token values inside lexer struct.
  * 
  * @param[out] lexer Pointer to lexer struct
  * @param[in] fp Pointer to a file/stding
  * @return Returns 0 when everything went succesfully, otherwise returns 1-
 */
 int init_lexer(Lexer* lexer, FILE* fp);
+
+/**
+ * @fn destroy_lexer(Lexer* lexer)
+ * @brief frees all allocated memory inside lexer struct
+ * 
+ * @param[in, out] lexer Pointer to a lexer struct
+ * @return void
+*/
+void destroy_lexer(Lexer* lexer);
 
 /**
  * @fn Token* get_token(Lexer* lexer)

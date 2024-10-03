@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
         free_token(token);
     }
 
-    fclose(fp);
+    destroy_lexer(&lexer);
 
     end = clock();
     fprintf(stderr, "Time: %.3g\n", (double)(clock()-start)/CLOCKS_PER_SEC);
