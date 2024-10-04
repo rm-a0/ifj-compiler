@@ -29,7 +29,7 @@ FILE* process_file(int argc, char**  argv) {
 }
 
 int main(int argc, char** argv) {
-    clock_t start, end;
+    clock_t start;
     start = clock();
 
     Lexer lexer;
@@ -77,7 +77,12 @@ int main(int argc, char** argv) {
     "TOKEN_Q_MARK",
     "TOKEN_AT",
     "TOKEN_LESS",
-    "TOKEN_GREATER"
+    "TOKEN_GREATER",
+    "TOKEN_EXCM",
+    "TOKEN_LESS_EQU",
+    "TOKEN_GREATER_EQU",
+    "TOKEN_NOT_EQU",
+    "TOKEN_EQU"
     };
 
     Token* token;
@@ -88,7 +93,6 @@ int main(int argc, char** argv) {
 
     destroy_lexer(&lexer);
 
-    end = clock();
     fprintf(stderr, "Time: %.3g\n", (double)(clock()-start)/CLOCKS_PER_SEC);
 
     return NO_ERROR; 

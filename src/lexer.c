@@ -113,7 +113,14 @@ Token* get_token(Lexer* lexer) {
                         break;
                     case '[':
                         lexer->state = L_SQ_BRACKET;
-                        break;  
+                        break;
+                    case '>':
+                    case '<':
+                    case '=':
+                    case '!':
+                        lexer->state = MULTI_OP;
+                        append(lexer, &idx, c);
+                        break;
                     default:
                         if (isalpha(c)) {
                             lexer->state = ID_OR_KEY;
@@ -131,6 +138,31 @@ Token* get_token(Lexer* lexer) {
                             return NULL; // Invalid character
                         }
                         break;
+                }
+                break;
+            case MULTI_OP:
+                if (c == '=') {
+                    lexer->state = START;
+                    switch ((int)lexer->buff[0]) {
+                        case '<' :
+                            return create_token(TOKEN_LESS_EQU, 0, NULL);
+                        case '>':
+                            return create_token(TOKEN_GREATER_EQU, 0, NULL);
+                        case '!':
+                            return create_token(TOKEN_NOT_EQU, 0, NULL);
+                        case '=':
+                            return create_token(TOKEN_EQU, 0, NULL);
+                        default:
+                            break;
+                    }
+                }
+                else if (isvalid(c, lexer->ascii_l_table) || isspace(c)) {
+                    lexer->state = START;
+                    ungetc(c, lexer->src);
+                    return create_token(lexer->ascii_l_table[(int)lexer->buff[0]], 0, NULL);
+                }
+                else {
+                    return NULL;
                 }
                 break;
             case ID_OR_KEY:

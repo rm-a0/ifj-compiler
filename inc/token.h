@@ -45,9 +45,14 @@
  * @param TOKEN_DIV             Constant for '/' character.
  * @param TOKEN_ASSIGN          Constant for '=' character.
  * @param TOKEN_Q_MARK          Constant for '?' character.
- * @param TOKEN_AT              Constant for '@ character
- * @param TOKEN_LESS            Constant for '< character
- * @param TOKEN_GREATER         Constant for '> character
+ * @param TOKEN_AT              Constant for '@' character
+ * @param TOKEN_LESS            Constant for '<' character
+ * @param TOKEN_GREATER         Constant for '>' character
+ * @param TOKEN_EXCM            Constant for '!' character
+ * @param TOKEN_LESS_EQU        Constant for '<=' operator 
+ * @param TOKEN_GREATER_EQU     Constant for '>=' operator
+ * @param TOKEN_NOT_EQU         Constant for '!=' operator
+ * @param TOKEN_EQU             Constant for '==' operator 
 */
 typedef enum {
     INVALID,
@@ -86,7 +91,12 @@ typedef enum {
     TOKEN_Q_MARK,
     TOKEN_AT,
     TOKEN_LESS,
-    TOKEN_GREATER
+    TOKEN_GREATER,
+    TOKEN_EXCM,
+    TOKEN_LESS_EQU,
+    TOKEN_GREATER_EQU,
+    TOKEN_NOT_EQU,
+    TOKEN_EQU
 } TokenType;
 
 /**

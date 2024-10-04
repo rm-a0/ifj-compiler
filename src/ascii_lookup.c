@@ -23,6 +23,7 @@ void init_lookup_table(LookupTable table) {
     table[':'] = TOKEN_COLON;
     table[';'] = TOKEN_SEMICOLON;
     table['|'] = TOKEN_PIPE;
+    table['!'] = TOKEN_EXCM;
     table['='] = TOKEN_ASSIGN;
     table['/'] = TOKEN_DIV;
     table['*'] = TOKEN_MULT;

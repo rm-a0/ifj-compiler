@@ -29,7 +29,8 @@ typedef enum {
     FLOAT,
     EXPONENT,
     EXPONENT_NUM,
-    SIGN
+    SIGN,
+    MULTI_OP
 } LexerState;
 
 /**
