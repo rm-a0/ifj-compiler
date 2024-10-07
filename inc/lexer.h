@@ -10,7 +10,32 @@
 #include <stdio.h>
 #include "token.h"
 #include "ascii_lookup.h"
+#include "keyword_htab.h"
 
+/**
+ * @enum LexerState
+ * @brief Constants for FSM states
+ * 
+ * @param START
+ * @param ID_OR_KEY 
+ * @param FWD_SLASH
+ * @param COMMENT 
+ * @param Q_MARK
+ * @param UNDERSCORE
+ * @param KEYWORD
+ * @param L_SQ_BRACKET
+ * @param R_SQ_BRACKET
+ * @param STRING
+ * @param ESC_SEQ
+ * @param HEX_NUM
+ * @param ZERO
+ * @param INTEGER
+ * @param FLOAT
+ * @param EXPONENT
+ * @param EXPONENT_NUM
+ * @param SIGN
+ * @param MULTI_OP
+*/
 typedef enum {
     START,
     ID_OR_KEY,
@@ -39,6 +64,7 @@ typedef enum {
  * 
  * @param src Pointer to source file or stdin
  * @param ascii_l_table Lookup table for validating ascii characters
+ * @param keyword_htab Hash table holding with keywords stored inside
  * @param state State of the lexer
  * @param buff Buffer that holds value of last created token
  * @param buff_len Length of buffer
@@ -46,6 +72,7 @@ typedef enum {
 typedef struct {
     FILE* src;
     LookupTable ascii_l_table;
+    KeywordHtab* keyword_htab;
     LexerState state;
     char* buff;
     int buff_len;
@@ -64,7 +91,7 @@ int init_lexer(Lexer* lexer, FILE* fp);
 
 /**
  * @fn destroy_lexer(Lexer* lexer)
- * @brief frees all allocated memory inside lexer struct
+ * @brief Closes src, destroys keyword_htab, frees buffer and sets all pointers to NULL
  * 
  * @param[in, out] lexer Pointer to a lexer struct
  * @return void

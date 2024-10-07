@@ -58,6 +58,8 @@ int init_lexer(Lexer* lexer, FILE* fp) {
     lexer->buff_len = BUFFER_LENGTH; // Set length of buffer
     lexer->src = fp; // Initialize file/stdin pointer
     init_lookup_table(lexer->ascii_l_table); // Initialize lookup table
+    lexer->keyword_htab = create_keyword_htab(OPTIMAL_SIZE); // Allocate memory for hash table
+    init_keyword_htab(lexer->keyword_htab); // Fill hash table with keywords
     lexer->state = START; // Set state to start
 
     return 0;
@@ -76,6 +78,11 @@ void destroy_lexer(Lexer* lexer) {
     if (lexer->src != NULL) {
         fclose(lexer->src);
         lexer->src = NULL;
+    }
+
+    if (lexer->keyword_htab != NULL) {
+        destroy_keyword_htab(lexer->keyword_htab);
+        lexer->keyword_htab = NULL;
     }
 }
 
@@ -173,9 +180,8 @@ Token* get_token(Lexer* lexer) {
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) {
                     ungetc(c, lexer->src); // Put c back to stream
                     lexer->state = START;
-                    return create_token(TOKEN_IDENTIFIER, idx, lexer->buff);
-                    // return either id or keyword
-                    // implement hashtable for keywords
+                    // find_keyword uses hash function to look for string in hash table and returns coresponding token
+                    return create_token(find_keyword(lexer->keyword_htab, lexer->buff), idx, lexer->buff);
                 }
                 else {
                     return NULL; // Invalid identifier
@@ -366,7 +372,8 @@ Token* get_token(Lexer* lexer) {
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) {
                     lexer->state = START;
                     ungetc(c, lexer->src);
-                    return create_token(INVALID, idx, lexer->buff); // TODO
+                    // return corresponding token stored in hash table
+                    return create_token(find_keyword(lexer->keyword_htab, lexer->buff), idx, lexer->buff);
                 }
                 else {
                     return NULL;
