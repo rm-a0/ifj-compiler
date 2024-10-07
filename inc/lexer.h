@@ -14,7 +14,7 @@
 
 /**
  * @enum LexerState
- * @brief Constants for FSM states
+ * @brief Constants for FSM states.
  * 
  * @param START
  * @param ID_OR_KEY 
@@ -60,11 +60,11 @@ typedef enum {
 
 /**
  * @struct Lexer
- * @brief Struct containing context for lexer
+ * @brief Struct containing context for lexer.
  * 
  * @param src Pointer to source file or stdin
  * @param ascii_l_table Lookup table for validating ascii characters
- * @param keyword_htab Hash table holding with keywords stored inside
+ * @param keyword_htab Hash table for fast keyword access
  * @param state State of the lexer
  * @param buff Buffer that holds value of last created token
  * @param buff_len Length of buffer
@@ -85,13 +85,13 @@ typedef struct {
  * 
  * @param[out] lexer Pointer to lexer struct
  * @param[in] fp Pointer to a file/stding
- * @return Returns 0 when everything went succesfully, otherwise returns 1-
+ * @return Returns 0 when everything went succesfully, otherwise returns -1
 */
 int init_lexer(Lexer* lexer, FILE* fp);
 
 /**
  * @fn destroy_lexer(Lexer* lexer)
- * @brief Closes src, destroys keyword_htab, frees buffer and sets all pointers to NULL
+ * @brief Closes src, destroys keyword_htab, frees buffer and sets all pointers to NULL.
  * 
  * @param[in, out] lexer Pointer to a lexer struct
  * @return void
@@ -100,7 +100,7 @@ void destroy_lexer(Lexer* lexer);
 
 /**
  * @fn Token* get_token(Lexer* lexer)
- * @brief Scans source code and extracts tokens using FSM
+ * @brief Scans source code and extracts tokens using FSM.
  *
  * @param[in, out] lexer Pointer to lexer struct
  * @return Pointer to a token struct or NULL if the token is invalid (Lexical error)

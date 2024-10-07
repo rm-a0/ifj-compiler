@@ -42,14 +42,6 @@ int insert_keyword_htab(KeywordHtab* htab, const char* keyword, TokenType token)
     unsigned long hash = hash_keyword(keyword);
     int idx = hash % htab->size;
 
-    while (htab->items[idx].keyword != NULL) {
-        if (strcmp(htab->items[idx].keyword, keyword) == 0) {
-            htab->items[idx].keyword_token = token;
-            return 0;
-        }
-        idx = (idx + 1) % htab->size; // Probe insert
-    }
-
     htab->items[idx].keyword = strdup(keyword);
     if (htab->items[idx].keyword == NULL) {
         fprintf(stderr, "Memory allocation for keyword failed\n");

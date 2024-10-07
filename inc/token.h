@@ -9,7 +9,7 @@
 
 /**
  * @enum TokenType
- * @brief Constants for different token types
+ * @brief Constants for different token types.
  * 
  * @param INVALID               Constant for invalid tokens.
  * @param TOKEN_CONST           Constant for 'const' keyword.
@@ -101,7 +101,7 @@ typedef enum {
 
 /**
  * @struct Token
- * @brief Struct containing informations about token 
+ * @brief Struct containing informations about token.
  * 
  * @param token_type type of token
  * @param value token value
@@ -113,7 +113,7 @@ typedef struct {
 
 /**
  * @fn Token* create_token(TokenType token_type, size_t lenght, const char* value)
- * @brief Allocates and initializes Token struct
+ * @brief Allocates and initializes Token struct.
  * 
  * @param[in] toke_type Type of token
  * @param[in] length Length of string that that is passed as value
@@ -121,13 +121,13 @@ typedef struct {
  * @return Returns pointer to a token
  * 
  * @note When function is called with length set to 0, memory for value
- * wont be allocated and char* value in Token will be set to NULL pointer
+ * wont be allocated and char* value in Token will be set to NULL pointer.
 */
 Token* create_token(TokenType token_type, size_t lenght, const char* value);
 
 /**
  * @fn void free_token(Token *token)
- * @brief Frees memory allocated for Token struct
+ * @brief Frees memory allocated for Token struct.
  * 
  * @param[in] token Pointer to a token
 */

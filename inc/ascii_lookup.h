@@ -11,7 +11,7 @@
 
 /**
  * @typedef int LookupTable[ASCII_CHARS]
- * @brief Lookup table with fixed size
+ * @brief Lookup table with fixed size.
  * (ASCII_CHARS == 128)
  * 
  * @note Provides a clear and consistent interface for 
@@ -28,6 +28,7 @@ typedef int LookupTable[ASCII_CHARS];
  * and all valid elements to its TokeType.
  * 
  * @param[out] table Lookup table
+ * @return void
  * 
  * @note This function should be used only by lexer for checking
  * validity of single characters while scanning input.
