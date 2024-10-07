@@ -9,6 +9,10 @@
 #include "lexer.h"
 #include "error.h"
 
+#define RESET   "\x1b[0m"
+#define GREEN   "\x1b[32m"
+#define BOLD_GREEN "\x1b[1;32m"
+
 FILE* process_file(int argc, char**  argv) {
     FILE *fp = NULL;
     if (argc > 2) {
@@ -87,7 +91,11 @@ int main(int argc, char** argv) {
 
     Token* token;
     while((token = get_token(&lexer)) != NULL) {
-        fprintf(stdout, "Token type: %-25s | Token value: %s\n", tok_name[token->token_type], token->value);
+        fprintf(stdout, "Token type: ");
+        fprintf(stdout, BOLD_GREEN "%-25s" RESET, tok_name[token->token_type]);
+
+        fprintf(stdout, "Token value: ");
+        fprintf(stdout, BOLD_GREEN " %s\n" RESET, token->value);
         free_token(token);
     }
 

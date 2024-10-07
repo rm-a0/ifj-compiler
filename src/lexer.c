@@ -180,8 +180,14 @@ Token* get_token(Lexer* lexer) {
                 else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) {
                     ungetc(c, lexer->src); // Put c back to stream
                     lexer->state = START;
-                    // find_keyword uses hash function to look for string in hash table and returns coresponding token
-                    return create_token(find_keyword(lexer->keyword_htab, lexer->buff), idx, lexer->buff);
+                    // find token in hash table
+                    TokenType token = find_keyword(lexer->keyword_htab, lexer->buff);
+                    if (token == TOKEN_IDENTIFIER) {
+                        return create_token(token, idx, lexer->buff); // create token for identifier
+                    }
+                    else {
+                        return create_token(token, 0, NULL); // create token for specific keyword
+                    }
                 }
                 else {
                     return NULL; // Invalid identifier
@@ -373,7 +379,7 @@ Token* get_token(Lexer* lexer) {
                     lexer->state = START;
                     ungetc(c, lexer->src);
                     // return corresponding token stored in hash table
-                    return create_token(find_keyword(lexer->keyword_htab, lexer->buff), idx, lexer->buff);
+                    return create_token(find_keyword(lexer->keyword_htab, lexer->buff), 0, NULL);
                 }
                 else {
                     return NULL;
