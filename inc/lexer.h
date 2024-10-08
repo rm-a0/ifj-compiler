@@ -35,6 +35,7 @@
  * @param EXPONENT_NUM
  * @param SIGN
  * @param MULTI_OP
+ * @param IMPORT
 */
 typedef enum {
     START,
@@ -55,7 +56,8 @@ typedef enum {
     EXPONENT,
     EXPONENT_NUM,
     SIGN,
-    MULTI_OP
+    MULTI_OP,
+    IMPORT
 } LexerState;
 
 /**

@@ -29,7 +29,6 @@ void init_lookup_table(LookupTable table) {
     table['*'] = TOKEN_MULT;
     table['-'] = TOKEN_MINUS;
     table['+'] = TOKEN_PLUS;
-    table['@'] = TOKEN_AT;
     table['<'] = TOKEN_LESS;
     table['>'] = TOKEN_GREATER;
 }

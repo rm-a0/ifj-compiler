@@ -103,6 +103,9 @@ Token* get_token(Lexer* lexer) {
                     case '/':
                         lexer->state = FWD_SLASH;
                         break;
+                    case '@':
+                        lexer->state = IMPORT;
+                        break;
                     case '"':
                         lexer->state = STRING;
                         break;
@@ -145,6 +148,25 @@ Token* get_token(Lexer* lexer) {
                             return NULL; // Invalid character
                         }
                         break;
+                }
+                break;
+            case IMPORT:
+                if (idx < 5) {
+                    append(lexer, &idx, c);
+                    break; // Continue in import state
+                }
+                else if (idx == 5) { 
+                    append(lexer, &idx, c);
+                    if (strcmp(lexer->buff, "import") == 0) {
+                        lexer->state = START;
+                        return create_token(TOKEN_IMPORT, 0, NULL);
+                    }
+                    else {
+                        return NULL;
+                    }
+                }
+                else {
+                    return NULL;
                 }
                 break;
             case MULTI_OP:
