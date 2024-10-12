@@ -1,6 +1,6 @@
 /**
- * @file grammar.txt
- * @brief File containing LL grammar for FIJ24 language
+ * @file grammar.go
+ * @brief File containing LL grammar for IFJ24 language
  * @authors Michal Repcik (xrepcim00)
 */
 
