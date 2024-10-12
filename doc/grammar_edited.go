@@ -20,7 +20,7 @@
 <identifier> 		::= [a-zA-Z] [_a-zA-Z0-9]*
 <integer> 			::= [0-9]+
 <float>				::= <integer> "." [("e" | "E") ("+" | "-")] <integer>
-<string_literal>    ::= [^*]* // anything can be inside string
+<string_literal>    ::= [^]* // anything can be inside string
 <data_type> 		::= ["?"] ("void" | "u8" | "i32" | "f64" | "[]u8") // optional '?' with every use of data type
 
 // Hardcoded prolog
@@ -52,7 +52,7 @@
 <fn_call>			::= (<built_in_fn> | <identifier>) "(" [<expression> ("," <expression>)*] ")"
 // Built in function call
 
-// Funcion call statement (variant with ; terminator at the end)
+// Function call statement (variant with ; terminator at the end)
 <fn_call_statement> ::= (<built_in_fn> | <identifier>) "(" [<expression> ("," <expression>)*] ")" ";"
 
 // Built in functions
