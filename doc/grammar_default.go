@@ -7,7 +7,6 @@
 <program>               := <statement>*
 <statement>             := <declaration> | <expression> | <if> | <while> | <block> | <return>
 
-/* complete zig grammar */
 <program>               ::= <statement>*
 <statement>             ::= <declaration> | <expression_statement> | <if_statement> | <while_statement> | <return_statement> | <block_statement>
 <declaration>           ::= <var_declaration> | <func_declaration>
