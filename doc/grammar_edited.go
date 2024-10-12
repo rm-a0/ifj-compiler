@@ -18,8 +18,8 @@
 
 // Most used main components
 <identifier> 		::= [a-zA-Z] [_a-zA-Z0-9]*
-<integer> 			::= [0-9]
-<float>				::= <integer> "." [e | E] [+ | -] <integer>
+<integer> 			::= [0-9]+
+<float>				::= <integer> "." [("e" | "E") ("+" | "-")] <integer>
 <data_type> 		::= "void" | "u8" | "i32" | "f64"
 
 // Hardcoded prolog
