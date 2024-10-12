@@ -21,7 +21,7 @@
 <integer> 			::= [0-9]+
 <float>				::= <integer> "." [("e" | "E") ("+" | "-")] <integer>
 <string_literal>    ::= [^*]* // anything can be inside string
-<data_type> 		::= "void" | "u8" | "i32" | "f64" | "[]u8"
+<data_type> 		::= ["?"] ("void" | "u8" | "i32" | "f64" | "[]u8") // optional '?' with every use of data type
 
 // Hardcoded prolog
 <prolog> 			::= "const" "ifj" "=" "@import" "(" "ifj24.zig" ")" ";"
@@ -49,10 +49,14 @@
 <assignment> 		::= <identifier> "=" <expression> ";"
 
 // Function call (varaint used inside expressions)
-<fn_call>			::= <identifier> "(" [<expression> ("," <expression>)*] ")"
+<fn_call>			::= (<built_in_fn> | <identifier>) "(" [<expression> ("," <expression>)*] ")"
+// Built in function call
 
 // Funcion call statement (variant with ; terminator at the end)
-<fn_call_statement> ::= <identifier> "(" [<expression> ("," <expression>)*] ")" ";"
+<fn_call_statement> ::= (<built_in_fn> | <identifier>) "(" [<expression> ("," <expression>)*] ")" ";"
+
+// Built in functions
+<built_in_fn> 		::= "ifj" "." ("write" | "readstr" | "readi32" | "readf64" | "i2f" | "f2i" | "string" | "length" | "concat" | "substring" | "strcmp" | "ord" | "chr")
 
 // If statement
 <if_statement>		::= "if" "(" <expression> [<binary_operator> <expression>] ")" ["|" <identifier> "|"] <block> ["else" <block>]
