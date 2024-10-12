@@ -9,7 +9,7 @@
 
 /**
  * @enum ErrorType
- * @brief Constants for different error types
+ * @brief Constants for different error types.
  * 
  * @param NO_ERROR                          No error occurred (0).
  * @param LEXICAL_ERROR                     Error occurred during lexical analysis (1).

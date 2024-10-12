@@ -1,6 +1,6 @@
 /**
  * @file token.h
- * @brief Header file for token.c
+ * @brief Contains constants and utilities for token management
  * @authors Michal Repcik (xrepcim00)
 */
 
@@ -9,8 +9,9 @@
 
 /**
  * @enum TokenType
- * @brief Constants for different token types
+ * @brief Constants for different token types.
  * 
+ * @param INVALID               Constant for invalid tokens.
  * @param TOKEN_CONST           Constant for 'const' keyword.
  * @param TOKEN_ELSE            Constant for 'else' keyword.
  * @param TOKEN_FN              Constant for 'fn' keyword.
@@ -25,10 +26,36 @@
  * @param TOKEN_VOID            Constant for 'void' keyword.
  * @param TOKEN_WHILE           Constant for 'while' keyword.
  * @param TOKEN_IDENTIFIER      Constant for identifier.
- * @param TOKEN_L_PAREN         Constant for left parenthesis
- * @param TOKEN_R_PAREN         Constant for right parenthesis 
+ * @param TOKEN_STRING          Constant for string.
+ * @param TOKEN_INTEGER         Constant for integer (whole number).
+ * @param TOKEN_FLOAT           Constant for float (decimal numbter).
+ * @param TOKEN_SLICE           Constant for slice '[]'.
+ * @param TOKEN_L_PAREN         Constant for '(' character.
+ * @param TOKEN_R_PAREN         Constant for ')' character.
+ * @param TOKEN_L_BRACE         Constant for '{' character.
+ * @param TOKEN_R_BRACE         Constant for '}' character.
+ * @param TOKEN_DOT             Constant for '.' character.
+ * @param TOKEN_COMA            Constant for ',' character.
+ * @param TOKEN_COLON           Constant for ':' character.
+ * @param TOKEN_SEMICOLON       Constant for ';' character.
+ * @param TOKEN_PIPE            Constant for '|' character.
+ * @param TOKEN_PLUS            Constant for '+' character.
+ * @param TOKEN_MINUS           Constant for '-' character.
+ * @param TOKEN_MULT            Constant for '*' character.
+ * @param TOKEN_DIV             Constant for '/' character.
+ * @param TOKEN_ASSIGN          Constant for '=' character.
+ * @param TOKEN_Q_MARK          Constant for '?' character.
+ * @param TOKEN_LESS            Constant for '<' character
+ * @param TOKEN_GREATER         Constant for '>' character
+ * @param TOKEN_EXCM            Constant for '!' character
+ * @param TOKEN_LESS_EQU        Constant for '<=' operator 
+ * @param TOKEN_GREATER_EQU     Constant for '>=' operator
+ * @param TOKEN_NOT_EQU         Constant for '!=' operator
+ * @param TOKEN_EQU             Constant for '==' operator 
+ * @param TOKEN_IMPORT          Constant for '@import' directive.
 */
 typedef enum {
+    INVALID,
     TOKEN_CONST,
     TOKEN_ELSE,
     TOKEN_FN,
@@ -43,13 +70,38 @@ typedef enum {
     TOKEN_VOID,
     TOKEN_WHILE,
     TOKEN_IDENTIFIER,
+    TOKEN_STRING,
+    TOKEN_INTEGER,
+    TOKEN_FLOAT,
+    TOKENS_SLICE,   
     TOKEN_L_PAREN,
-    TOKEN_R_PAREN
+    TOKEN_R_PAREN,
+    TOKEN_L_BRACE,
+    TOKEN_R_BRACE,
+    TOKEN_DOT,
+    TOKEN_COMA,
+    TOKEN_COLON,
+    TOKEN_SEMICOLON,
+    TOKEN_PIPE,
+    TOKEN_PLUS,
+    TOKEN_MINUS,
+    TOKEN_MULT,
+    TOKEN_DIV,
+    TOKEN_ASSIGN,
+    TOKEN_Q_MARK,
+    TOKEN_LESS,
+    TOKEN_GREATER,
+    TOKEN_EXCM,
+    TOKEN_LESS_EQU,
+    TOKEN_GREATER_EQU,
+    TOKEN_NOT_EQU,
+    TOKEN_EQU,
+    TOKEN_IMPORT
 } TokenType;
 
 /**
  * @struct Token
- * @brief Struct containing informations about token 
+ * @brief Struct containing informations about token.
  * 
  * @param token_type type of token
  * @param value token value
@@ -60,12 +112,25 @@ typedef struct {
 } Token;
 
 /**
- * @fn Token get_token()
- * @brief Returns token
+ * @fn Token* create_token(TokenType token_type, size_t lenght, const char* value)
+ * @brief Allocates and initializes Token struct.
  * 
- * @param[in] None
- * @return Token
+ * @param[in] toke_type Type of token
+ * @param[in] length Length of string that that is passed as value
+ * @param[in] value String that is assigned as token value
+ * @return Returns pointer to a token
+ * 
+ * @note When function is called with length set to 0, memory for value
+ * wont be allocated and char* value in Token will be set to NULL pointer.
 */
-Token get_token();
+Token* create_token(TokenType token_type, size_t lenght, const char* value);
+
+/**
+ * @fn void free_token(Token *token)
+ * @brief Frees memory allocated for Token struct.
+ * 
+ * @param[in] token Pointer to a token
+*/
+void free_token(Token *token);
 
 #endif // TOKEN_H

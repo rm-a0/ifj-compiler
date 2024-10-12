@@ -1,11 +1,17 @@
-/**
- * @file parser.c
- * @brief File containing definitions of functions declared in parser.h
- * @authors Michal Repcik (xrepcim00)
-*/
+#include "lexer.h"
+#include "error.h"
 
-#include "parser.h"
+int parse_tokens(Lexer* lexer) {
+    Token* cur_tok = get_token(lexer);
+    Token* next_tok = NULL;
 
-ASTNode* parse_tokens() {
+    if (cur_tok == NULL) {
+        return NO_ERROR; // idk (empty code aallowed ?)
+    }
 
+    while ((next_tok = get_token(lexer)) != NULL) {
+        // do something (implement LL grammar and table)
+    }
+
+    return NO_ERROR;
 }
