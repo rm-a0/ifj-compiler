@@ -7,20 +7,21 @@
 /*
 	"" 	- terminal
 	<> 	- non-terminal
-	[] 	- mandatory
-	* 	- repetition
+	[] 	- optional
+	* 	- repetition (0 or more (optional))
 	|  	- or
 */
 
 // Root grammat definitions
-<program> 			::= <top_level_decl>
+<program> 			::= <top_level_decl>*
 <top_level_decl> 	::= <fn_decl> | <const_decl> | <var_decl> | <prolog>
 
 // Most used main components
 <identifier> 		::= [a-zA-Z] [_a-zA-Z0-9]*
 <integer> 			::= [0-9]+
 <float>				::= <integer> "." [("e" | "E") ("+" | "-")] <integer>
-<data_type> 		::= "void" | "u8" | "i32" | "f64"
+<string_literal>    ::= [^*]* // anything can be inside string
+<data_type> 		::= "void" | "u8" | "i32" | "f64" | "[]u8"
 
 // Hardcoded prolog
 <prolog> 			::= "const" "ifj" "=" "@import" "(" "ifj24.zig" ")" ";"
@@ -30,9 +31,37 @@
 <param_list>		::= <param> ("," <param>)* // after last param there can be ','
 <param>				::= <identifier> ":" <data_type>
 
-// Constant variable declaration
+// Constant and variable declaration
 <const_decl> 		::= "const" <identifier> [":" <data_type>] "=" <expression> ";"
+<var_decl>			::= "var" <identifier> [":" <data_type>] "=" <expression> ";"
+
+// Expression (probably the most crucial part)
 <expression>        ::= <term> (("+" | "-") <term>)*
 <term>              ::= <factor> (("*" | "/") <factor>)*
-<factor>            ::= <number> | <identifier> | "(" <expression> ")"
+<factor>            ::= <number> | <identifier> | <fn_call> | <string_literal> | "(" <expression> ")"
 <number>			::= <integer> | <float>
+
+// Block
+<block>				::= "{" <statement>* "}"
+<statement> 		::=	<const_decl> | <var_decl> | <assignment> | <fn_call_statement> | <if_statement> | <while_statement> | <return_statement>
+
+// Assignment
+<assignment> 		::= <identifier> "=" <expression> ";"
+
+// Function call (varaint used inside expressions)
+<fn_call>			::= <identifier> "(" [<expression> ("," <expression>)*] ")"
+
+// Funcion call statement (variant with ; terminator at the end)
+<fn_call_statement> ::= <identifier> "(" [<expression> ("," <expression>)*] ")" ";"
+
+// If statement
+<if_statement>		::= "if" "(" <expression> [<binary_operator> <expression>] ")" ["|" <identifier> "|"] <block> ["else" <block>]
+
+// While statement
+<while_statement> 	::= "while" "(" <expression> [<binary_operator> <expression>] ")" ["|" <identifier> "|"] <block>
+
+// Return statement
+<return_statement> 	::= "return" [<expression>] ";"
+
+// Binary operators
+<binary_operator> 	::= "==" | "!=" | "<=" | ">=" | ">" | "<"
