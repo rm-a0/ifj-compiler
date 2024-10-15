@@ -50,7 +50,7 @@
 
 // Function call (inside expression) and function call statement (inside block)
 <fn_call>			::= <fn_identifier> "(" [<arg_list>] ")"
-<fn_call_statement> ::= <fn_identifier> "(" [<arg_list>] ")" ";"
+<fn_call_statement> ::= <fn_call> ";"
 <fn_identifier> 	::= <built_in_fn> | <identifier>
 <arg_list>			::= <expression> ("," <expression>)*
 <built_in_fn> 		::= "ifj" "." ("write" | "readstr" | "readi32" | "readf64" | "i2f" | "f2i" | "string" | "length" | "concat" | "substring" | "strcmp" | "ord" | "chr")
