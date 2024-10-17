@@ -4,7 +4,6 @@
  * for creation and manipulation of ascii lookup tables
  * @author Michal Repcik (xrepcim00)
 */
-
 #include <stdio.h>
 #include <string.h>
 
