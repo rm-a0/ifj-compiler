@@ -20,7 +20,8 @@ typedef enum {
     AST_ARG,
     AST_WHILE,
     AST_IF_ELSE,
-    AST_BIN_OP
+    AST_BIN_OP,
+
 } ASTNodeType;
 
 typedef enum {
@@ -30,6 +31,19 @@ typedef enum {
     AST_VAR,
     AST_VOID 
 } DataType;
+
+typedef enum {
+    AST_PLUS,
+    AST_MINUS,
+    AST_MUL,
+    AST_DIV,
+    AST_GREATER,
+    AST_GREATER_EQU,
+    AST_LESS,
+    AST_LESS_EQU,
+    AST_EQU,
+    AST_NOT_EQU
+} OperatorType;
 
 /**
  * @struct ASTNode
@@ -105,6 +119,7 @@ typedef struct {
         } Return;
 
         struct {
+            OperatorType operator;  ///< Type of operator
             ASTNode* left;          ///< Left child node (can be expression/id/num)
             ASTNode* right;         ///< Right child node (can be expression/id/num)
         } BinaryOperator;
