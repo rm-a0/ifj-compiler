@@ -19,7 +19,7 @@ void init_lookup_table(LookupTable table) {
     table['{'] = TOKEN_L_BRACE;
     table['}'] = TOKEN_R_BRACE;
     table['.'] = TOKEN_DOT;
-    table[','] = TOKEN_COMA;
+    table[','] = TOKEN_COMMA;
     table[':'] = TOKEN_COLON;
     table[';'] = TOKEN_SEMICOLON;
     table['|'] = TOKEN_PIPE;

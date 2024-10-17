@@ -10,105 +10,59 @@
 /**
  * @enum TokenType
  * @brief Constants for different token types.
- * 
- * @param INVALID               Constant for invalid tokens.
- * @param TOKEN_CONST           Constant for 'const' keyword.
- * @param TOKEN_ELSE            Constant for 'else' keyword.
- * @param TOKEN_FN              Constant for 'fn' keyword.
- * @param TOKEN_IF              Constant for 'if' keyword.
- * @param TOKEN_I32             Constant for 'i32' keyword.
- * @param TOKEN_F64             Constant for 'f64' keyword.
- * @param TOKEN_NULL            Constant for 'null' keyword.
- * @param TOKEN_PUB             Constant for 'pub' keyword.
- * @param TOKEN_RETURN          Constant for 'return' keyword.
- * @param TOKEN_U8              Constant for 'u8' keyword.
- * @param TOKEN_VAR             Constant for 'var' keyword.
- * @param TOKEN_VOID            Constant for 'void' keyword.
- * @param TOKEN_WHILE           Constant for 'while' keyword.
- * @param TOKEN_IDENTIFIER      Constant for identifier.
- * @param TOKEN_STRING          Constant for string.
- * @param TOKEN_INTEGER         Constant for integer (whole number).
- * @param TOKEN_FLOAT           Constant for float (decimal numbter).
- * @param TOKEN_SLICE           Constant for slice '[]'.
- * @param TOKEN_L_PAREN         Constant for '(' character.
- * @param TOKEN_R_PAREN         Constant for ')' character.
- * @param TOKEN_L_BRACE         Constant for '{' character.
- * @param TOKEN_R_BRACE         Constant for '}' character.
- * @param TOKEN_DOT             Constant for '.' character.
- * @param TOKEN_COMA            Constant for ',' character.
- * @param TOKEN_COLON           Constant for ':' character.
- * @param TOKEN_SEMICOLON       Constant for ';' character.
- * @param TOKEN_PIPE            Constant for '|' character.
- * @param TOKEN_PLUS            Constant for '+' character.
- * @param TOKEN_MINUS           Constant for '-' character.
- * @param TOKEN_MULT            Constant for '*' character.
- * @param TOKEN_DIV             Constant for '/' character.
- * @param TOKEN_ASSIGN          Constant for '=' character.
- * @param TOKEN_Q_MARK          Constant for '?' character.
- * @param TOKEN_LESS            Constant for '<' character
- * @param TOKEN_GREATER         Constant for '>' character
- * @param TOKEN_EXCM            Constant for '!' character
- * @param TOKEN_LESS_EQU        Constant for '<=' operator 
- * @param TOKEN_GREATER_EQU     Constant for '>=' operator
- * @param TOKEN_NOT_EQU         Constant for '!=' operator
- * @param TOKEN_EQU             Constant for '==' operator 
- * @param TOKEN_IMPORT          Constant for '@import' directive.
-*/
+ */
 typedef enum {
-    INVALID,
-    TOKEN_CONST,
-    TOKEN_ELSE,
-    TOKEN_FN,
-    TOKEN_IF,
-    TOKEN_I32,
-    TOKEN_F64,
-    TOKEN_NULL,
-    TOKEN_PUB,
-    TOKEN_RETURN,
-    TOKEN_U8,
-    TOKEN_VAR,
-    TOKEN_VOID,
-    TOKEN_WHILE,
-    TOKEN_IDENTIFIER,
-    TOKEN_STRING,
-    TOKEN_INTEGER,
-    TOKEN_FLOAT,
-    TOKENS_SLICE,   
-    TOKEN_L_PAREN,
-    TOKEN_R_PAREN,
-    TOKEN_L_BRACE,
-    TOKEN_R_BRACE,
-    TOKEN_DOT,
-    TOKEN_COMA,
-    TOKEN_COLON,
-    TOKEN_SEMICOLON,
-    TOKEN_PIPE,
-    TOKEN_PLUS,
-    TOKEN_MINUS,
-    TOKEN_MULT,
-    TOKEN_DIV,
-    TOKEN_ASSIGN,
-    TOKEN_Q_MARK,
-    TOKEN_LESS,
-    TOKEN_GREATER,
-    TOKEN_EXCM,
-    TOKEN_LESS_EQU,
-    TOKEN_GREATER_EQU,
-    TOKEN_NOT_EQU,
-    TOKEN_EQU,
-    TOKEN_IMPORT
+    INVALID,              ///< Constant for invalid tokens.
+    TOKEN_CONST,          ///< Constant for 'const' keyword.
+    TOKEN_ELSE,           ///< Constant for 'else' keyword.
+    TOKEN_FN,             ///< Constant for 'fn' keyword.
+    TOKEN_IF,             ///< Constant for 'if' keyword.
+    TOKEN_I32,            ///< Constant for 'i32' keyword.
+    TOKEN_F64,            ///< Constant for 'f64' keyword.
+    TOKEN_NULL,           ///< Constant for 'null' keyword.
+    TOKEN_PUB,            ///< Constant for 'pub' keyword.
+    TOKEN_RETURN,         ///< Constant for 'return' keyword.
+    TOKEN_U8,             ///< Constant for 'u8' keyword.
+    TOKEN_VAR,            ///< Constant for 'var' keyword.
+    TOKEN_VOID,           ///< Constant for 'void' keyword.
+    TOKEN_WHILE,          ///< Constant for 'while' keyword.
+    TOKEN_IDENTIFIER,     ///< Constant for identifier.
+    TOKEN_STRING,         ///< Constant for string.
+    TOKEN_INTEGER,        ///< Constant for integer (whole number).
+    TOKEN_FLOAT,          ///< Constant for float (decimal number).
+    TOKEN_SLICE,          ///< Constant for slice '[]'.
+    TOKEN_L_PAREN,        ///< Constant for '(' character.
+    TOKEN_R_PAREN,        ///< Constant for ')' character.
+    TOKEN_L_BRACE,        ///< Constant for '{' character.
+    TOKEN_R_BRACE,        ///< Constant for '}' character.
+    TOKEN_DOT,            ///< Constant for '.' character.
+    TOKEN_COMMA,          ///< Constant for ',' character.
+    TOKEN_COLON,          ///< Constant for ':' character.
+    TOKEN_SEMICOLON,      ///< Constant for ';' character.
+    TOKEN_PIPE,           ///< Constant for '|' character.
+    TOKEN_PLUS,           ///< Constant for '+' character.
+    TOKEN_MINUS,          ///< Constant for '-' character.
+    TOKEN_MULT,           ///< Constant for '*' character.
+    TOKEN_DIV,            ///< Constant for '/' character.
+    TOKEN_ASSIGN,         ///< Constant for '=' character.
+    TOKEN_Q_MARK,         ///< Constant for '?' character.
+    TOKEN_LESS,           ///< Constant for '<' character.
+    TOKEN_GREATER,        ///< Constant for '>' character.
+    TOKEN_EXCM,           ///< Constant for '!' character.
+    TOKEN_LESS_EQU,       ///< Constant for '<=' operator.
+    TOKEN_GREATER_EQU,    ///< Constant for '>=' operator.
+    TOKEN_NOT_EQU,        ///< Constant for '!=' operator.
+    TOKEN_EQU,            ///< Constant for '==' operator.
+    TOKEN_IMPORT          ///< Constant for '@import' directive.
 } TokenType;
 
 /**
  * @struct Token
  * @brief Struct containing informations about token.
- * 
- * @param token_type type of token
- * @param value token value
 */
 typedef struct {
-    TokenType token_type;
-    char* value;
+    TokenType token_type;   ///< Type of token
+    char* value;            ///< Token value 
 } Token;
 
 /**

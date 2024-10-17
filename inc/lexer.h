@@ -14,70 +14,45 @@
 
 /**
  * @enum LexerState
- * @brief Constants for FSM states.
- * 
- * @param START
- * @param ID_OR_KEY 
- * @param FWD_SLASH
- * @param COMMENT 
- * @param Q_MARK
- * @param UNDERSCORE
- * @param KEYWORD
- * @param L_SQ_BRACKET
- * @param R_SQ_BRACKET
- * @param STRING
- * @param ESC_SEQ
- * @param HEX_NUM
- * @param ZERO
- * @param INTEGER
- * @param FLOAT
- * @param EXPONENT
- * @param EXPONENT_NUM
- * @param SIGN
- * @param MULTI_OP
- * @param IMPORT
+ * @brief Constants for finite state machine (FSM) states in the lexer.
 */
 typedef enum {
-    START,
-    ID_OR_KEY,
-    FWD_SLASH,
-    COMMENT,
-    Q_MARK,
-    UNDERSCORE,
-    KEYWORD,
-    L_SQ_BRACKET,
-    R_SQ_BRACKET,
-    STRING,
-    ESC_SEQ,
-    HEX_NUM,
-    ZERO,
-    INTEGER,
-    FLOAT,
-    EXPONENT,
-    EXPONENT_NUM,
-    SIGN,
-    MULTI_OP,
-    IMPORT
+    START,              ///< Initial state of the lexer, ready to begin tokenization.
+    ID_OR_KEY,          ///< State for identifying either an identifier or a keyword.
+    FWD_SLASH,          ///< State after encountering a forward slash '/'.
+    COMMENT,            ///< State for processing comments.
+    Q_MARK,             ///< State for processing a question mark '?'.
+    UNDERSCORE,         ///< State for processing underscores '_'.
+    KEYWORD,            ///< State for processing keywords.
+    L_SQ_BRACKET,       ///< State for processing the left square bracket '['.
+    R_SQ_BRACKET,       ///< State for processing the right square bracket ']'.
+    STRING,             ///< State for processing string literals.
+    ESC_SEQ,            ///< State for processing escape sequences.
+    HEX_NUM,            ///< State for processing hexadecimal numbers.
+    ZERO,               ///< State for processing the integer zero.
+    INTEGER,            ///< State for processing integer literals.
+    FLOAT,              ///< State for processing floating-point literals.
+    EXPONENT,           ///< State for processing exponent parts of numbers.
+    EXPONENT_NUM,       ///< State for processing numbers in the exponent.
+    SIGN,               ///< State for processing a sign (+ or -) in numeric literals.
+    MULTI_OP,           ///< State for processing multi-character operators.
+    IMPORT              ///< State for processing the '@import' directive.
 } LexerState;
 
 /**
  * @struct Lexer
- * @brief Struct containing context for lexer.
+ * @brief Struct containing context for the lexer.
  * 
- * @param src Pointer to source file or stdin
- * @param ascii_l_table Lookup table for validating ascii characters
- * @param keyword_htab Hash table for fast keyword access
- * @param state State of the lexer
- * @param buff Buffer that holds value of last created token
- * @param buff_len Length of buffer
+ * This structure maintains actual state of FSM and important
+ * context information used for code tokeniziation.
 */
 typedef struct {
-    FILE* src;
-    LookupTable ascii_l_table;
-    KeywordHtab* keyword_htab;
-    LexerState state;
-    char* buff;
-    int buff_len;
+    FILE* src;                     ///< Pointer to the source file or stdin.
+    LookupTable ascii_l_table;     ///< Lookup table for validating ASCII characters.
+    KeywordHtab* keyword_htab;     ///< Hash table for fast keyword access.
+    LexerState state;              ///< Current state of the lexer.
+    char* buff;                    ///< Buffer that holds the value of the last created token.
+    int buff_len;                  ///< Length of the buffer.
 } Lexer;
 
 /**
