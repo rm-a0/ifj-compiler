@@ -61,7 +61,20 @@ typedef struct {
 
         struct {
             ASTNode** nodes;        ///< Array of pointer to nodes (delcaration or statements)
-        } Body;
+        } Block;
+
+        struct {
+            ASTNode* expression;    ///< Expression controlling cycle
+            char* element_bind;     ///< Ellement bind (optional)
+            ASTNode* block;         ///< Pointer to a node encapsulating while cycle
+        } WhileCycle;
+
+        struct {
+            ASTNode* expression;    ///< Expression controlling cycle
+            char* element_bind;     ///< Ellement bind (optional)
+            ASTNode* if_block;      ///< Pointer to a node encapsulating if block
+            ASTNode* else_block;    ///< Pointer to a node encapsulating else block
+        } IfElse;
     };
 } ASTNode;
 
