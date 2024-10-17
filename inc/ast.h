@@ -13,15 +13,22 @@ typedef enum {
     AST_PROGRAM,
     AST_FN_DECL,
     AST_VAR_DECL,
-    AST_CONST_DECL
+    AST_CONST_DECL,
+    AST_BLOCK,
+    AST_FN_CALL,
+    AST_PARAM,
+    AST_ARG,
+    AST_WHILE,
+    AST_IF_ELSE,
+    AST_BIN_OP
 } ASTNodeType;
 
 typedef enum {
-    DT_U8,
-    DT_I32,
-    DT_F64,
-    DT_VAR,
-    DT_VOID 
+    AST_U8,
+    AST_I32,
+    AST_F64,
+    AST_VAR,
+    AST_VOID 
 } DataType;
 
 /**
@@ -36,6 +43,7 @@ typedef struct {
     union {
         struct {
             bool has_prolog;        ///< Flag for prolog (@import)
+            int decl_count;         ///< Number of top level declarations
             ASTNode** declarations; ///< Top level declaration (fn, var, const)
         } Program;                  ///< Program node (root of AST)
  
@@ -48,18 +56,24 @@ typedef struct {
         } FnDecl;
 
         struct {
+            DataType data_type;     ///< Expected data type
+            char* identifier;       ///< Name of varaible used in function
+        } Param;
+
+        struct {
             char* var_name;         ///< Variable name
             DataType data_type;     ///< Data type (optional)
-            ASTNode* expression;    ///< TODO
+            ASTNode* expression;    ///< Expression/identifier/number
         } VarDecl;
 
         struct {
             char* const_name;       ///< Constant name
             DataType data_type;     ///< Data type (optional)
-            ASTNode* expression;    ///< TODO
+            ASTNode* expression;    ///< Expression/identifier/number
         } ConstDecl;
 
         struct {
+            int node_count;         ///< Number of nodes;
             ASTNode** nodes;        ///< Array of pointer to nodes (delcaration or statements)
         } Block;
 
@@ -75,6 +89,41 @@ typedef struct {
             ASTNode* if_block;      ///< Pointer to a node encapsulating if block
             ASTNode* else_block;    ///< Pointer to a node encapsulating else block
         } IfElse;
+
+        struct {
+            char* fn_name;          ///< Function name
+            int arg_count;          ///< Number of arguments
+            ASTNode** args;         ///< Array of pointers to function arguments
+        } FnCall;
+
+        struct {
+            ASTNode* expression;    ///< Expression/identifier/number used as function argument
+        } Argument;
+
+        struct {
+            ASTNode* expression;    ///< Expression/identifier/number that is returned
+        } Return;
+
+        struct {
+            ASTNode* left;          ///< Left child node (can be expression/id/num)
+            ASTNode* right;         ///< Right child node (can be expression/id/num)
+        } BinaryOperator;
+
+        struct {
+            float number;           ///< Node for float (leaf)
+        } Float;
+
+        struct {
+            int number;             ///< Node for integer (leaf)
+        } Integer;
+
+        struct {
+            char* string;           ///< String node
+        } String;
+
+        struct {
+            char* identifier;       ///< Identifier node (used in binary expressions)
+        } Identifier;
     };
 } ASTNode;
 
