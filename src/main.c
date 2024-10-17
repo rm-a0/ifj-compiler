@@ -2,7 +2,7 @@
  * @file main.c
  * @brief Main program
  * @authors Michal Repcik (xrepcim00)
- */
+*/
 #include <stdlib.h>
 #include <time.h>
 

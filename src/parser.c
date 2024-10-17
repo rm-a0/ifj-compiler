@@ -1,3 +1,8 @@
+/** 
+ * @file parser.c
+ * @brief Implementation of a parser (syntax analysis)
+ * @authors Michal Repcik (xrepcim00)
+*/
 #include "lexer.h"
 #include "error.h"
 
