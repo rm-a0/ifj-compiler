@@ -13,30 +13,30 @@
 
 #include "token.h"
 
-#define OPTIMAL_SIZE 113 // Optimal size to ensure perfect hashing and 0(1) complexity for keywords
+#define OPTIMAL_SIZE 113 ///< Optimal size to ensure perfect hashing and O(1) complexity for keywords.
 
 /**
  * @struct KeywordHtabItem
- * @brief Struct containing keyword and corresponding token.
+ * @brief Struct containing a keyword and its corresponding token.
  * 
- * @param keyword Valid keyword
- * @param keyword_token Token for given keyword
+ * This structure represents a single entry in the keyword hash table,
+ * mapping a valid keyword to its associated token type.
 */
 typedef struct {
-    const char* keyword;
-    TokenType keyword_token;
+    const char* keyword;         ///< Valid keyword string.
+    TokenType keyword_token;     ///< Token for the given keyword.
 } KeywordHtabItem;
 
 /**
  * @struct KeywordHtab
- * @brief Struct containing items and size of hash table.
+ * @brief Struct containing items and size of the hash table.
  * 
- * @param size Number of buckets (number of items)
- * @param items Pointer to array of items
+ * This structure represents the keyword hash table, which stores 
+ * keywords and their corresponding token types for efficient lookup.
 */
 typedef struct {
-    int size;
-    KeywordHtabItem* items;
+    int size;                    ///< Number of buckets (total number of items).
+    KeywordHtabItem* items;      ///< Pointer to the array of items in the hash table.
 } KeywordHtab;
 
 

@@ -7,36 +7,61 @@
 #ifndef AST_H
 #define AST_H
 
+#include <stdbool.h>
+
 typedef enum {
     AST_PROGRAM,
-    AST_DECL,
-    AST_ASSIGN,
-    AST_FN_DEF,
-    AST_FN_CALL,
-    AST_IF,
-    AST_WHILE,
-    AST_RETURN,
-    AST_BLOCK, // inside {}
-    AST_TYPE_ANOT, // var x: i32 = 0; i32 is typa anot for variable x
-    AST_BIN_OP // = - == != <= ...
-    // add more
+    AST_FN_DECL,
+    AST_VAR_DECL,
+    AST_CONST_DECL
 } ASTNodeType;
+
+typedef enum {
+    DT_U8,
+    DT_I32,
+    DT_F64,
+    DT_VAR,
+    DT_VOID 
+} DataType;
 
 /**
  * @struct ASTNode
- * @brief TODO
+ * @brief Representation of a node in Abstract Syntax Tree
+ * 
+ * @param type Type of node
+ * @union Encapsulates different types of substructures for nodes (declarations, statements, expression)
 */
 typedef struct {
     ASTNodeType type;
     union {
         struct {
-            char* name;
-        } identifier;
+            bool has_prolog;        ///< Flag for prolog (@import)
+            ASTNode** declarations; ///< Top level declaration (fn, var, const)
+        } Program;                  ///< Program node (root of AST)
+ 
+        struct {
+            char* fn_name;          ///< Function name
+            int param_count;        ///< Number of parameters
+            ASTNode** params;       ///< Array of pointers to function parameters
+            ASTNode* block;         ///< Pointer to node encapsulating content of the function
+            DataType return_type;   ///< Return type
+        } FnDecl;
 
         struct {
-            int value;
-        } number_literal;
-        // add more        
+            char* var_name;         ///< Variable name
+            DataType data_type;     ///< Data type (optional)
+            ASTNode* expression;    ///< TODO
+        } VarDecl;
+
+        struct {
+            char* const_name;       ///< Constant name
+            DataType data_type;     ///< Data type (optional)
+            ASTNode* expression;    ///< TODO
+        } ConstDecl;
+
+        struct {
+            ASTNode** nodes;        ///< Array of pointer to nodes (delcaration or statements)
+        } Body;
     };
 } ASTNode;
 

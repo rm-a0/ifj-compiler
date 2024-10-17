@@ -410,7 +410,7 @@ Token* get_token(Lexer* lexer) {
             case L_SQ_BRACKET:
                 if (c == ']') {
                     lexer->state = R_SQ_BRACKET;
-                    return create_token(TOKENS_SLICE, 0, NULL);
+                    return create_token(TOKEN_SLICE, 0, NULL);
                 }
                 else {
                     return NULL;
