@@ -37,10 +37,11 @@ typedef enum {
  * @brief Enumeration for different data types
 */
 typedef enum {
+    AST_VOID,            ///< 'void' (void data type)
     AST_U8,             ///< 'u8' (unsigend 8 bit int)
+    AST_SLICE,          ///< 'u8' (unsigend 8 bit int)
     AST_I32,            ///< 'i32' (32 bit integer)
-    AST_F64,            ///< 'f64' (64 bit float)
-    AST_VOID            ///< 'void' (void data type)
+    AST_F64            ///< 'f64' (64 bit float)
 } DataType;
 
 /**
@@ -67,7 +68,8 @@ typedef enum {
  * @param type Type of node
  * @union Encapsulates different types of substructures for nodes (declarations, statements, expression)
 */
-typedef struct {
+typedef struct ASTNode ASTNode;     ///< Forward declaration to ensure ASTNode is defined before its usage
+struct ASTNode{
     ASTNodeType type;
     union {
         struct {
@@ -165,13 +167,45 @@ typedef struct {
             // Not necessary
         } Expression;
     };
-} ASTNode;
+};
 
+/**
+ * @fn ASTNode* create_program_node()
+ * @brief Function that creates program (root) node for AST
+ *  
+ * Node type is set to AST_PROGRAM, Program structs values are set to default
+ * and array of declaration pointers is pre-allocated for DEFAULT_PROGRAM_DECL_CNT
+ * nodes. Decalaration capacity is set to the same value.
+ *  
+ * @return Returns pointer to ASTNode or null if memory allocation failed
+*/
 ASTNode* create_program_node();
 
-ASTNode* create_fn_decl_node();
+/**
+ * @fn ASTNode* create_fn_decl_node(char* fn_name)
+ * @brief Function that creates function declaration node
+ * 
+ * Node type is set to AST_FN_DECL, Function declaration struct values are set to default
+ * (return type = void, block = NULL) and array of parameter pointers is pre-allocated for
+ * DEFAULT_FN_PARAM_CNT nodes. Parameter capacity is set to the same value.
+ * 
+ * @param[in] fn_name Name of the function (identifier)
+ * @return Returns pointer to ASTNode or null if memory allocation failed
+*/
+ASTNode* create_fn_decl_node(char* fn_name);
 
-ASTNode* create_param_node();
+/**
+ * @fn ASTNode* create_param_node(DataType data_type, char* identifier)
+ * @brief Function that creates parameter node
+ * 
+ * Node type is set to AST_PARAM, Parameter struct values are set 
+ * based on the arguments (data_type, identifier).
+ * 
+ * @param[in] data_type Data type of the identifier
+ * @param[in] identifier Name of the variable (identifier)
+ * @return Returns pointer to ASTNode or null if memory allocation failed
+*/
+ASTNode* create_param_node(DataType data_type, char* identifier);
 
 ASTNode* create_return_node();
 

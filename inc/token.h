@@ -84,6 +84,7 @@ Token* create_token(TokenType token_type, size_t lenght, const char* value);
  * @brief Frees memory allocated for Token struct.
  * 
  * @param[in] token Pointer to a token
+ * @return void
 */
 void free_token(Token *token);
 
