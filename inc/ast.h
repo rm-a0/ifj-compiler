@@ -1,6 +1,6 @@
 /**
- * @file parser.h
- * @brief Header file for parser.c
+ * @file ast.h
+ * @brief Header file for ast.c
  * @authors Michal Repcik (xrepcim00)
 */
 
@@ -9,40 +9,55 @@
 
 #include <stdbool.h>
 
+/**
+ * @enum ASTNodeType
+ * @brief Enumeration for different AST node types
+*/
 typedef enum {
-    AST_PROGRAM,
-    AST_FN_DECL,
-    AST_VAR_DECL,
-    AST_CONST_DECL,
-    AST_BLOCK,
-    AST_FN_CALL,
-    AST_PARAM,
-    AST_ARG,
-    AST_WHILE,
-    AST_IF_ELSE,
-    AST_BIN_OP,
-
+    AST_PROGRAM,        ///< Root program node
+    AST_FN_DECL,        ///< Node for function declarations
+    AST_PARAM,          ///< Node for function parameter
+    AST_VAR_DECL,       ///< Node for variable declaration
+    AST_CONST_DECL,     ///< Node for constant declaration
+    AST_BLOCK,          ///< Node for block
+    AST_FN_CALL,        ///< Node for function call
+    AST_ARG,            ///< Node for function arguments
+    AST_WHILE,          ///< Node for while cycle
+    AST_IF_ELSE,        ///< Node for if and else statements
+    AST_BIN_OP,         ///< Node for binary operator
+    AST_INT,            ///< Node for integer
+    AST_FLOAT,          ///< Node for float
+    AST_STRING,         ///< Node for stirg
+    AST_IDENTIFIER,     ///< Node for identifier
+    AST_RETURN          ///< Node for return statement
 } ASTNodeType;
 
+/**
+ * @enum DataType
+ * @brief Enumeration for different data types
+*/
 typedef enum {
-    AST_U8,
-    AST_I32,
-    AST_F64,
-    AST_VAR,
-    AST_VOID 
+    AST_U8,             ///< 'u8' (unsigend 8 bit int)
+    AST_I32,            ///< 'i32' (32 bit integer)
+    AST_F64,            ///< 'f64' (64 bit float)
+    AST_VOID            ///< 'void' (void data type)
 } DataType;
 
+/**
+ * @enum Operator type
+ * @brief Enumeration for different operator types
+*/
 typedef enum {
-    AST_PLUS,
-    AST_MINUS,
-    AST_MUL,
-    AST_DIV,
-    AST_GREATER,
-    AST_GREATER_EQU,
-    AST_LESS,
-    AST_LESS_EQU,
-    AST_EQU,
-    AST_NOT_EQU
+    AST_PLUS,           ///< '+' operator
+    AST_MINUS,          ///< '-' operator
+    AST_MUL,            ///< '*' operator
+    AST_DIV,            ///< '/' operator
+    AST_GREATER,        ///< '>' opeartor
+    AST_GREATER_EQU,    ///< '>= opeartor
+    AST_LESS,           ///< '<' operator
+    AST_LESS_EQU,       ///< '<=' operator
+    AST_EQU,            ///< '=' operator
+    AST_NOT_EQU         ///< '!=' operator
 } OperatorType;
 
 /**
@@ -57,6 +72,7 @@ typedef struct {
     union {
         struct {
             bool has_prolog;        ///< Flag for prolog (@import)
+            int decl_capacity;      ///< Number of allocated pointers to declaration nodes
             int decl_count;         ///< Number of top level declarations
             ASTNode** declarations; ///< Top level declaration (fn, var, const)
         } Program;                  ///< Program node (root of AST)
@@ -64,6 +80,7 @@ typedef struct {
         struct {
             char* fn_name;          ///< Function name
             int param_count;        ///< Number of parameters
+            int param_capacity;     ///< Number of allocated pointers to parameter nodes
             ASTNode** params;       ///< Array of pointers to function parameters
             ASTNode* block;         ///< Pointer to node encapsulating content of the function
             DataType return_type;   ///< Return type
@@ -88,6 +105,7 @@ typedef struct {
 
         struct {
             int node_count;         ///< Number of nodes;
+            int node_capacity;      ///< Number of allocated pointers to nodes
             ASTNode** nodes;        ///< Array of pointer to nodes (delcaration or statements)
         } Block;
 
@@ -107,6 +125,7 @@ typedef struct {
         struct {
             char* fn_name;          ///< Function name
             int arg_count;          ///< Number of arguments
+            int arg_capacity;       ///< Number of allocated pointers to function arguments
             ASTNode** args;         ///< Array of pointers to function arguments
         } FnCall;
 
@@ -139,6 +158,12 @@ typedef struct {
         struct {
             char* identifier;       ///< Identifier node (used in binary expressions)
         } Identifier;
+
+        struct {
+            ASTNode* binary_operator;
+            // Technically just a packer node for binary operator
+            // Not necessary
+        } Expression;
     };
 } ASTNode;
 
