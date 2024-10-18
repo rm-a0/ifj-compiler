@@ -142,6 +142,28 @@ typedef struct {
     };
 } ASTNode;
 
+ASTNode* create_program_node();
+
+ASTNode* create_fn_decl_node();
+
+ASTNode* create_param_node();
+
+ASTNode* create_return_node();
+
+ASTNode* create_var_decl_node();
+
+ASTNode* create_const_decl_node();
+
+ASTNode* create_block_node();
+
+ASTNode* create_while_node();
+
+ASTNode* create_if_node();
+
+ASTNode* create_fn_call_node();
+
+ASTNode* create_arg_node();
+
 /*
  * TODO
  * Create function for allocating and freeing memory for ASTNode
