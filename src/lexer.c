@@ -401,7 +401,8 @@ Token* get_token(Lexer* lexer) {
                     lexer->state = START;
                     ungetc(c, lexer->src);
                     // return corresponding token stored in hash table
-                    return create_token(find_keyword(lexer->keyword_htab, lexer->buff), 0, NULL);
+                    TokenType token = find_keyword(lexer->keyword_htab, lexer->buff);
+                    return create_token(token, 0, NULL);
                 }
                 else {
                     return NULL;
