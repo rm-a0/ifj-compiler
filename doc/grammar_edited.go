@@ -23,9 +23,6 @@
 <string_literal>    ::= [^]* // TOKEN_STRING
 <data_type> 		::= ["?"] ("void" | "u8" | "i32" | "f64" | "[]u8") // optional '?' with every use of data type (fix probably)
 
-// Hardcoded prolog
-<prolog> 			::= "const" "ifj" "=" "@import" "(" "ifj24.zig" ")" ";"
-
 // Funcion declaration
 <fn_decl> 			::= "pub" "fn" <identifier> "(" [<param_list>] ")" <data_type> <block>
 <param_list>		::= <param> ("," <param>)* // after last param there can be ','
@@ -38,12 +35,14 @@
 // Expression (most important part)
 <expression>        ::= <term> (("+" | "-") <term>)*
 <term>              ::= <factor> (("*" | "/") <factor>)*
-<factor>            ::= <number> | <identifier> | <fn_call> | <string_literal> | "(" <expression> ")"
+<factor>            ::= <number> | <identifier> | <string_literal> | "(" <expression> ")"
 <number>			::= <integer> | <float>
 
 // Block
 <block>				::= "{" <statement>* "}"
-<statement> 		::=	<const_decl> | <var_decl> | <assignment> | <fn_call_statement> | <if_statement> | <while_statement> | <return_statement>
+<statement> ::= <identifier> <statement_suffix> | <const_decl> | <var_decl> | <if_statement> | <while_statement> | <return_statement>
+<statement_suffix> ::= "=" <expression> ";"        // Assignment
+                     | "(" [<arg_list>] ")" ";"    // Function Call Statement
 
 // Assignment
 <assignment> 		::= <identifier> "=" <expression> ";"
