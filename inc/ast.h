@@ -69,7 +69,7 @@ typedef enum {
  * @union Encapsulates different types of substructures for nodes (declarations, statements, expression)
 */
 typedef struct ASTNode ASTNode;     ///< Forward declaration to ensure ASTNode is defined before its usage
-struct ASTNode{
+struct ASTNode {
     ASTNodeType type;
     union {
         struct {

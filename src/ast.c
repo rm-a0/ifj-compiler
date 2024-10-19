@@ -52,6 +52,8 @@ ASTNode* create_fn_decl_node(char* fn_name) {
     }
 
     node->FnDecl.param_count = 0;
+
+    // Allocate memory for default parameter count (can be re-allocated later)
     node->FnDecl.param_capacity = DEFAULT_FN_PARAM_CNT;
     node->FnDecl.params = malloc(DEFAULT_FN_PARAM_CNT * sizeof(ASTNode*));
     if (node->FnDecl.params == NULL) {
@@ -62,7 +64,7 @@ ASTNode* create_fn_decl_node(char* fn_name) {
     }
 
     node->FnDecl.block = NULL;
-    node->FnDecl.return_type = AST_VOID;
+    node->FnDecl.return_type = AST_VOID; // Void as deault data type
 
     return node;
 }
