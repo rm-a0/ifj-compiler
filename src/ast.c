@@ -87,3 +87,14 @@ ASTNode* create_param_node(DataType data_type, char* identifier) {
 
     return node;
 }
+
+ASTNode* create_return_node() {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        fprintf(stderr, "Memory allocation for parameter node failed\n");
+        return NULL;
+    }
+
+    node->Return.expression = NULL;
+    return node;
+}
