@@ -34,6 +34,11 @@ ASTNode* create_program_node() {
         return NULL;
     }
 
+    // Set all pointers to NULL
+    for (int i = 0; i < DEFAULT_PROGRAM_DECL_CNT; i++) {
+        node->Program.declarations[i] = NULL;
+    }
+
     return node;
 }
 
@@ -61,6 +66,11 @@ ASTNode* create_fn_decl_node(char* fn_name) {
         free(node);
         fprintf(stderr, "Memroy allocation for paramaeter array in function declaration node failed\n");
         return NULL;
+    }
+
+    // Set all pointers to NULL
+    for (int i = 0; i < DEFAULT_FN_PARAM_CNT; i++) {
+        node->FnDecl.params[i] = NULL;
     }
 
     node->FnDecl.block = NULL;
@@ -91,10 +101,76 @@ ASTNode* create_param_node(DataType data_type, char* identifier) {
 ASTNode* create_return_node() {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
-        fprintf(stderr, "Memory allocation for parameter node failed\n");
+        fprintf(stderr, "Memory allocation for return node failed\n");
+        return NULL;
+    }
+    
+    node->type = AST_RETURN;
+    node->Return.expression = NULL;
+    return node;
+}
+
+ASTNode* create_var_decl_node(DataType data_type, char* var_name) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        fprintf(stderr, "Memory allocation for variable declaration node failed\n");
         return NULL;
     }
 
-    node->Return.expression = NULL;
+    node->type = AST_VAR_DECL;
+    node->VarDecl.data_type = data_type;
+    node->VarDecl.expression = NULL;
+    node->VarDecl.var_name = strdup(var_name);
+    if (node->VarDecl.var_name == NULL) {
+        free(node);
+        fprintf(stderr, "Memory allocation for variable name in variable declaration node failed\n");
+        return NULL;
+    }
+
+    return node;
+}
+
+ASTNode* create_const_decl_node(DataType data_type, char* const_name) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        fprintf(stderr, "Memory allocation for const declaration node failed\n");
+        return NULL;
+    }
+
+    node->type = AST_CONST_DECL;
+    node->ConstDecl.data_type = data_type;
+    node->ConstDecl.expression = NULL;
+    node->ConstDecl.const_name = strdup(const_name);
+    if (node->VarDecl.var_name == NULL) {
+        free(node);
+        fprintf(stderr, "Memory allocation for const name in constant declaration node failed\n");
+        return NULL;
+    }
+
+    return node;
+}
+
+ASTNode* create_block_node() {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        fprintf(stderr, "Memory allocation for block node failed\n");
+        return NULL;
+    }
+
+    node->type = AST_BLOCK;
+    node->Block.node_count = 0;
+    node->Block.node_capacity = DEFAULT_BLOCK_NODE_CNT;
+    node->Block.nodes = malloc(DEFAULT_BLOCK_NODE_CNT * sizeof(ASTNode*));
+    if (node->Block.nodes == NULL) {
+        free(node);
+        fprintf(stderr, "Memory allocation for pointer array in block node failed\n");
+        return NULL;
+    }
+
+    // Set all pointers to NULL
+    for (int i = 0; i < DEFAULT_BLOCK_NODE_CNT; i++) {
+        node->Block.nodes[i] = NULL;
+    }
+
     return node;
 }
