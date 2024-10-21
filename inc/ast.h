@@ -285,7 +285,19 @@ ASTNode* create_while_node();
 */
 ASTNode* create_if_node();
 
-ASTNode* create_fn_call_node();
+/**
+ * @fn ASTNode* create_fn_call_node(char* fn_name)
+ * @brief Function that creates fn call node
+ * 
+ * Node type is set to AST_FN_CALL, Function call struct values
+ * are set to default, memory is pre-allocated for argument array and capacity
+ * is set to DEFAULT_FN_ARG_CNT. Memory for function name is allocaetd using strdup
+ * (must be freed later). All pointers are set to NULL.
+ * 
+ * @param[in] fn_name Identifier of the function
+ * @return Returns pointer to ASTNode or null if memory allocation failed
+*/
+ASTNode* create_fn_call_node(char* fn_name);
 
 ASTNode* create_arg_node();
 

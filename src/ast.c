@@ -205,3 +205,37 @@ ASTNode* create_if_node() {
 
     return node;
 }
+
+ASTNode* create_fn_call_node(char* fn_name) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        fprintf(stderr, "Memory allocation for function call node failed\n");
+        return NULL;
+    }
+
+    node->type = AST_FN_CALL;
+    node->FnCall.fn_name = strdup(fn_name);
+    if (node->FnCall.fn_name == NULL) {
+        free(node);
+        fprintf(stderr, "Memory allocation for function name in function call node failed\n");
+        return NULL;
+    }
+
+    node->FnCall.arg_count = 0;
+
+    // Allocate memory for default arguemnt count (can be re-allocated later)
+    node->FnCall.arg_capacity = DEFAULT_FN_ARG_CNT;
+    node->FnCall.args = malloc(DEFAULT_FN_ARG_CNT * sizeof(ASTNode*));
+    if (node->FnCall.args == NULL) {
+        free(node);
+        fprintf(stderr, "Memory allocation for pointer array in function call node failed\n");
+        return NULL;
+    }
+
+    // Set all pointes to NULL
+    for (int i = 0; i < DEFAULT_FN_ARG_CNT; i++) {
+        node->FnCall.args[i] = NULL;
+    }
+
+    return node;
+}
