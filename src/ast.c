@@ -74,7 +74,7 @@ ASTNode* create_fn_decl_node(char* fn_name) {
     }
 
     node->FnDecl.block = NULL;
-    node->FnDecl.return_type = AST_VOID; // Void as deault data type
+    node->FnDecl.return_type = AST_UNSPECIFIED; // Not specified when creating node
 
     return node;
 }
@@ -171,6 +171,37 @@ ASTNode* create_block_node() {
     for (int i = 0; i < DEFAULT_BLOCK_NODE_CNT; i++) {
         node->Block.nodes[i] = NULL;
     }
+
+    return node;
+}
+
+ASTNode* create_while_node() {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        fprintf(stderr, "Memory allocation for while node failed\n");
+        return NULL;
+    }
+
+    node->type = AST_WHILE;
+    node->WhileCycle.element_bind = NULL;     
+    node->WhileCycle.expression = NULL;
+    node->WhileCycle.block = NULL;
+
+    return node;
+}
+
+ASTNode* create_if_node() {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        fprintf(stderr, "Memory allocation for if/else node failed\n");
+        return NULL;
+    }
+
+    node->type = AST_IF_ELSE;
+    node->IfElse.element_bind = NULL;
+    node->IfElse.if_block = NULL;
+    node->IfElse.else_block = NULL;
+    node->IfElse.expression = NULL;
 
     return node;
 }

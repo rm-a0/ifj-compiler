@@ -188,7 +188,7 @@ ASTNode* create_program_node();
  * @brief Function that creates function declaration node
  * 
  * Node type is set to AST_FN_DECL, Function declaration struct values are set to default
- * (return type = void, block = NULL) and array of parameter pointers is pre-allocated for
+ * (return type = unspecified, block = NULL) and array of parameter pointers is pre-allocated for
  * DEFAULT_FN_PARAM_CNT nodes. Parameter capacity is set to the same value and all
  * pointers to parameter nodes are set to NULL.
  * Memory is allocated for fn_name using strdup (must be freed later).
@@ -263,13 +263,33 @@ ASTNode* create_const_decl_node(DataType data_type, char* const_name);
 */
 ASTNode* create_block_node();
 
+/**
+ * @fn ASTNode* create_while_node()
+ * @brief Function that creates while node
+ * 
+ * Node type is set to AST_WHILE, While struct values are
+ * set to default (elemebnt bind, experssion and block = NULL)
+ * 
+ * @return Returns pointer to ASTNode or null if memory allocation failed
+*/
 ASTNode* create_while_node();
 
+/**
+ * @fn ASTNode* create_if_node()
+ * @brief Function that creates if node
+ * 
+ * Node type is set to AST_IF_ELSE, If else struct values are
+ * set to default (elemebnt bind, experssion, if block and else block = NULL).
+ * 
+ * @return Returns pointer to ASTNode or null if memory allocation failed
+*/
 ASTNode* create_if_node();
 
 ASTNode* create_fn_call_node();
 
 ASTNode* create_arg_node();
+
+ASTNode* connect_decl_to_prog();
 
 /*
  * TODO
