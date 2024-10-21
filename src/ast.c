@@ -239,3 +239,16 @@ ASTNode* create_fn_call_node(char* fn_name) {
 
     return node;
 }
+
+ASTNode* create_arg_node() {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        fprintf(stderr, "Memory allocation for argument node failed\n");
+        return NULL;
+    }
+
+    node->type = AST_ARG;
+    node->Argument.expression = NULL;
+
+    return node;
+}

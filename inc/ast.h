@@ -299,17 +299,29 @@ ASTNode* create_if_node();
 */
 ASTNode* create_fn_call_node(char* fn_name);
 
+/**
+ * @fn ASTNode* create_arg_node()
+ * @brief Function that creates argument node
+ * 
+ * Node type is set to AST_ARG, Function Argument struct values
+ * are set to default (expression = NULL). This node serves as a
+ * packer node for expression node.
+ * 
+ * @return Returns pointer to ASTNode or null if memory allocation failed
+*/
 ASTNode* create_arg_node();
 
-ASTNode* connect_decl_to_prog();
-
-/*
- * TODO
- * Create function for allocating and freeing memory for ASTNode
- * Define grammar for LL
- * Create parsing function that parses tokens
- * Optional: Create different types of ASTNodes based on LL grammar
- * Finish parser that builds the tree
+/**
+ * @fn void free_program_node(ASTNode* program_node)
+ * @brief Function that frees memory for all nodes in program node
+ * 
+ * This function deletes all nodes within program node meaning
+ * that it essentially deletes whole AST. Function uses smaller helper functions 
+ * that delete coresponding nodes and nodes within them.
+ * 
+ * @param[in, out] program_node pointer to a root node
+ * @return void
 */
+void free_program_node(ASTNode* program_node);
 
 #endif // AST_H
