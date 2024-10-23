@@ -312,16 +312,20 @@ ASTNode* create_fn_call_node(char* fn_name);
 ASTNode* create_arg_node();
 
 /**
- * @fn void free_program_node(ASTNode* program_node)
- * @brief Function that frees memory for all nodes in program node
+ * // TODO CREATE ADITIONAL NODES
+*/
+
+/**
+ * @fn void free_ast_node(ASTNode* node)
+ * @brief Function that frees memory for all child node of node passed as an argument
  * 
- * This function deletes all nodes within program node meaning
- * that it essentially deletes whole AST. Function uses smaller helper functions 
- * that delete coresponding nodes and nodes within them.
+ * This function deletes all nodes based on their types recursively,
+ * function uses switch statement to switch between different node types
+ * and frees coresponding nodes based on their type.
  * 
- * @param[in, out] program_node pointer to a root node
+ * @param[in, out] node pointer to a node
  * @return void
 */
-void free_program_node(ASTNode* program_node);
+void free_ast_node(ASTNode* node);
 
 #endif // AST_H

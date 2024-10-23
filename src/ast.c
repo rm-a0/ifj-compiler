@@ -252,3 +252,122 @@ ASTNode* create_arg_node() {
 
     return node;
 }
+
+void free_ast_node(ASTNode* node) {
+    if (node == NULL) {
+        return;
+    }
+
+    switch (node->type) {
+        case AST_PROGRAM:
+            // Free all declarations recursively
+            for (int i = 0; i < node->Program.decl_count; i++) {
+                if (node->Program.declarations[i] != NULL) {
+                    free_ast_node(node->Program.declarations[i]);
+                }
+            }
+            free(node->Program.declarations); // Free array itself
+            break;
+
+        case AST_FN_DECL:
+            free(node->FnDecl.fn_name); // Free name
+            // Free all parameters recursively
+            for (int i = 0; i < node->FnDecl.param_count; i++) {
+                if (node->FnDecl.params[i] != NULL) {
+                    free_ast_node(node->FnDecl.params[i]);
+                }
+            }
+            free(node->FnDecl.params); // Free array itself
+            // Free block node
+            if (node->FnDecl.block != NULL) {
+                free_ast_node(node->FnDecl.block);
+            }
+            break;
+
+        case AST_PARAM:
+            free(node->Param.identifier); // Free identifier
+            break;
+
+        case AST_RETURN:
+            // Free exression node
+            if (node->Return.expression != NULL) {
+                free_ast_node(node->Return.expression);
+            }
+            break;
+
+        case AST_VAR_DECL:
+            free(node->VarDecl.var_name); // Free name
+            // Free expression node
+            if (node->VarDecl.expression != NULL) {
+                free_ast_node(node->VarDecl.expression);
+            }
+            break;
+
+        case AST_CONST_DECL:
+            free(node->ConstDecl.const_name); // Free name
+            // Free expression node
+            if (node->ConstDecl.expression != NULL) {
+                free_ast_node(node->ConstDecl.expression);
+            }
+            break;
+
+        case AST_BLOCK:
+            // Free all block nodes recursively
+            for (int i = 0; i < node->Block.node_count; i++) {
+                if (node->Block.nodes[i] != NULL) {
+                    free_ast_node(node->Block.nodes[i]);
+                }
+            }
+            free(node->Block.nodes); // Free array itself
+            break;
+
+        case AST_WHILE:
+            if (node->WhileCycle.expression != NULL) {
+                free_ast_node(node->WhileCycle.expression);
+            }
+            if (node->WhileCycle.block != NULL) {
+                free_ast_node(node->WhileCycle.block);
+            }
+            if (node->WhileCycle.element_bind != NULL) {
+                free_ast_node(node->WhileCycle.element_bind);
+            }
+            break;
+
+        case AST_IF_ELSE:
+            if (node->IfElse.expression != NULL) {
+                free_ast_node(node->IfElse.expression);
+            }
+            if (node->IfElse.if_block != NULL) {
+                free_ast_node(node->IfElse.if_block);
+            }
+            if (node->IfElse.else_block != NULL) {
+                free_ast_node(node->IfElse.else_block);
+            }
+            if (node->IfElse.element_bind != NULL) {
+                free_ast_node(node->IfElse.element_bind);
+            }
+            break;
+
+        case AST_FN_CALL:
+            free(node->FnCall.fn_name);
+            for (int i = 0; i < node->FnCall.arg_count; i++) {
+                if (node->FnCall.args[i] != NULL) {
+                    free_ast_node(node->FnCall.args[i]);
+                }
+            }
+            free(node->FnCall.args);
+            break;
+
+        case AST_ARG:
+            if (node->Argument.expression != NULL) {
+                free_ast_node(node->Argument.expression);
+            }
+            break;
+
+        default:
+            fprintf(stderr, "Unknown node type: %d\n", node->type);
+            break;
+    }
+
+    free(node);
+}
