@@ -321,7 +321,7 @@ ASTNode* create_arg_node();
  * 
  * This function deletes all nodes based on their types recursively,
  * function uses switch statement to switch between different node types
- * and frees coresponding nodes based on their type.
+ * and frees coresponding structs within nodes based on the node type.
  * 
  * @param[in, out] node pointer to a node
  * @return void

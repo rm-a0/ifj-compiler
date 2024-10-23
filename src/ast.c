@@ -322,43 +322,52 @@ void free_ast_node(ASTNode* node) {
             break;
 
         case AST_WHILE:
+            // Free expression
             if (node->WhileCycle.expression != NULL) {
                 free_ast_node(node->WhileCycle.expression);
             }
+            // Free while block
             if (node->WhileCycle.block != NULL) {
                 free_ast_node(node->WhileCycle.block);
             }
+            // Free element bind
             if (node->WhileCycle.element_bind != NULL) {
                 free_ast_node(node->WhileCycle.element_bind);
             }
             break;
 
         case AST_IF_ELSE:
+            // Free expression
             if (node->IfElse.expression != NULL) {
                 free_ast_node(node->IfElse.expression);
             }
+            // Free if block
             if (node->IfElse.if_block != NULL) {
                 free_ast_node(node->IfElse.if_block);
             }
+            // Free else block
             if (node->IfElse.else_block != NULL) {
                 free_ast_node(node->IfElse.else_block);
             }
+            // Free element bind
             if (node->IfElse.element_bind != NULL) {
                 free_ast_node(node->IfElse.element_bind);
             }
             break;
 
         case AST_FN_CALL:
-            free(node->FnCall.fn_name);
+            free(node->FnCall.fn_name); // Free name
+            // Free all arguments recursively
             for (int i = 0; i < node->FnCall.arg_count; i++) {
                 if (node->FnCall.args[i] != NULL) {
                     free_ast_node(node->FnCall.args[i]);
                 }
             }
-            free(node->FnCall.args);
+            free(node->FnCall.args); // Free array itself
             break;
 
         case AST_ARG:
+            // Free expression
             if (node->Argument.expression != NULL) {
                 free_ast_node(node->Argument.expression);
             }
@@ -369,5 +378,5 @@ void free_ast_node(ASTNode* node) {
             break;
     }
 
-    free(node);
+    free(node); // Free node itself
 }
