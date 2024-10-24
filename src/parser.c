@@ -89,10 +89,51 @@ ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
     if (!check_token(*token, TOKEN_ASSIGN, NULL)) {
         return NULL;
     }
-    advance_token(token, lexer);
+    // Delete later, for now it accepts anything as expression untill it encounters semicolon
+    while (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
+        advance_token(token, lexer);
+    }
     //ASTNode* expression_node = parser_expression(lexer, token);
 
     return const_decl_node;
+}
+
+ASTNode* parse_var_decl(Lexer* lexer, Token** token) {
+    ASTNode* var_decl_node = create_var_decl_node(AST_UNSPECIFIED, (*token)->value);
+    advance_token(token, lexer);
+    // Optional data type
+    if (check_token(*token, TOKEN_COLON, NULL)) {
+        advance_token(token, lexer);
+        if (*token == NULL) {
+            return NULL;
+        }
+        // Based on token type assign data type of const decl node
+        switch ((*token)->token_type) {
+            case TOKEN_I32:
+                var_decl_node->ConstDecl.data_type = AST_I32;
+                break;
+            case TOKEN_F64:
+                var_decl_node->ConstDecl.data_type = AST_F64;
+                break;
+            case TOKEN_U8:
+                var_decl_node->ConstDecl.data_type = AST_U8;
+                break;
+            default:
+                return NULL; // Unexpected token type
+                break;
+        }
+        advance_token(token, lexer); // Advance for assign check
+    }
+    if (!check_token(*token, TOKEN_ASSIGN, NULL)) {
+        return NULL;
+    }
+    // Delete later, for now it accepts anything as expression untill it encounters semicolon
+    while (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
+        advance_token(token, lexer);
+    }
+    //ASTNode* expression_node = parser_expression(lexer, token);
+
+    return var_decl_node;
 }
 
 ASTNode* parse_tokens(Lexer* lexer) {
@@ -103,7 +144,7 @@ ASTNode* parse_tokens(Lexer* lexer) {
 
     ASTNode* program_node = create_program_node();  // Create root (program node)
 
-    // Loop until the token is EOF or NULL
+    // Loop until the token is EOF
     while (!check_token(token, TOKEN_EOF, NULL)) {
         // CONST
         if (check_token(token, TOKEN_CONST, NULL)) {
@@ -137,15 +178,20 @@ ASTNode* parse_tokens(Lexer* lexer) {
                 goto error;
             }
         }
-        // VAR
+        // VAR_DECL
         else if (check_token(token, TOKEN_VAR, NULL)) {
-            // VAR_DECL
-            // parse_var_decl();
+            // Check if variable declaration is valid
+            ASTNode* var_decl = parse_var_decl(lexer, &token);
+            if (var_decl != NULL) {
+                // CREATE APPEND FUNCTION
+                program_node->Program.declarations[program_node->Program.decl_count] = var_decl;
+                program_node->Program.decl_count++;
+            }
         }
         // PUB
         else if (check_token(token, TOKEN_PUB, NULL)) {
             // FN_DECL
-            // parse_fn_decl();
+            //ASTNode* fn_decl = parse_fn_decl(lexer, &token);
 
         }
         // SYNTAX ERROR
