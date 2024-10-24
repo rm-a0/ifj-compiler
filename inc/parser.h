@@ -12,6 +12,46 @@
 #include "ast.h"    // Include definition of ASTNodes
 
 /**
+ * @fn void advance_token(Token** token, Lexer* lexer);
+ * @brief Frees token if its not NULL and gets another one from lexer
+ * 
+ * Function gets next token from stream input and frees previous token 
+ * if it wasnt NULL.
+ * 
+ * @param[in, out] token Pointer to a pointer of token
+ * @param[in] lexer Pointer to a lexer struct
+ * @return void
+*/
+void advance_token(Token** token, Lexer* lexer);
+
+/**
+ * @fn int check_token(Token* token, TokenType expected_type, const char* expected_value)
+ * @brief Checks if token has expected type and value
+ * 
+ * If token is null, expected type or value is not matching function returns false,
+ * when expected value is set to NULL, value is not checked, only type.
+ * 
+ * @param[in] token Pointer to a token
+ * @param[in] expected_type Expected token type
+ * @param[in] expected_value Expected token value
+ * @return Returns 1 if the token matches or 0 if it does not
+*/
+int check_token(Token* token, TokenType expected_type, const char* expected_value);
+
+/**
+ * @fn int parse_prolog(Lexer* lexer, Token** token)
+ * @brief Parses prolog
+ * 
+ * This function parses source code and checks if the prolog is
+ * is valid or not.
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @return Returns 1 if the prolog is correrct or 0 if its not.
+*/
+int parse_prolog(Lexer* lexer, Token** token);
+
+/**
  * @fn ASTNode* parse_const_decl(Lexer* lexer, Token** token)
  * @brief Parses constant declarations and constructs var_decl node of AST
  * 
@@ -23,7 +63,6 @@
  * @return AST constant declaration node or NULL if syntax is invalid
 */
 ASTNode* parse_const_decl(Lexer* lexer, Token** token);
-
 
 /**
  * @fn ASTNode* parse_var_decl(Lexer* lexer, Token** token)
