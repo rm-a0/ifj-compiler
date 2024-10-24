@@ -187,6 +187,9 @@ ASTNode* parse_tokens(Lexer* lexer) {
                 program_node->Program.declarations[program_node->Program.decl_count] = var_decl;
                 program_node->Program.decl_count++;
             }
+            else {
+                goto error;
+            }
         }
         // PUB
         else if (check_token(token, TOKEN_PUB, NULL)) {
