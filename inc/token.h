@@ -7,12 +7,15 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
+#include <stddef.h>
+
 /**
  * @enum TokenType
  * @brief Constants for different token types.
  */
 typedef enum {
     INVALID,              ///< Constant for invalid tokens.
+    TOKEN_EOF,            ///< Constant for end of file tokens
     TOKEN_CONST,          ///< Constant for 'const' keyword.
     TOKEN_ELSE,           ///< Constant for 'else' keyword.
     TOKEN_FN,             ///< Constant for 'fn' keyword.

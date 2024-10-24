@@ -428,5 +428,6 @@ Token* get_token(Lexer* lexer) {
                 break;
         }
     }
-    return NULL;
+
+    return create_token(TOKEN_EOF, 0, NULL);
 }
