@@ -61,6 +61,7 @@ int parse_prolog(Lexer* lexer, Token** token) {
 }
 
 ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
+    // No need to get identifier token since it was checked before
     ASTNode* const_decl_node = create_const_decl_node(AST_UNSPECIFIED, (*token)->value);
     advance_token(token, lexer);
     // Optional data type
@@ -99,6 +100,10 @@ ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
 }
 
 ASTNode* parse_var_decl(Lexer* lexer, Token** token) {
+    advance_token(token, lexer); // get identifier
+    if (!check_token(*token, TOKEN_IDENTIFIER, NULL)) {
+        return NULL;
+    }
     ASTNode* var_decl_node = create_var_decl_node(AST_UNSPECIFIED, (*token)->value);
     advance_token(token, lexer);
     // Optional data type
