@@ -21,17 +21,14 @@ int check_token(Token* token, TokenType expected_type, const char* expected_valu
     if (token == NULL) {
         return 0;   // Token is invalid
     }
-
     if (token->token_type != expected_type) {
         return 0;   // Type is different than expected
     }
-
     if (expected_value != NULL) {
         if (token->value == NULL || strcmp(token->value, expected_value) != 0) {
             return 0;   // Token value is different from expected value
         }
     }
-
     return 1;   // Return true
 }
 
@@ -63,8 +60,39 @@ int parse_prolog(Lexer* lexer, Token** token) {
     return 1; // Return true
 }
 
-ASTNode* parse_const_decl(Lexer* lexer, Token* token) {
-    return NULL;
+ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
+    ASTNode* const_decl_node = create_const_decl_node(AST_UNSPECIFIED, (*token)->value);
+    advance_token(token, lexer);
+    // Optional data type
+    if (check_token(*token, TOKEN_COLON, NULL)) {
+        advance_token(token, lexer);
+        if (*token == NULL) {
+            return NULL;
+        }
+        // Based on token type assign data type of const decl node
+        switch ((*token)->token_type) {
+            case TOKEN_I32:
+                const_decl_node->ConstDecl.data_type = AST_I32;
+                break;
+            case TOKEN_F64:
+                const_decl_node->ConstDecl.data_type = AST_F64;
+                break;
+            case TOKEN_U8:
+                const_decl_node->ConstDecl.data_type = AST_U8;
+                break;
+            default:
+                return NULL; // Unexpected token type
+                break;
+        }
+        advance_token(token, lexer); // Advance for assign check
+    }
+    if (!check_token(*token, TOKEN_ASSIGN, NULL)) {
+        return NULL;
+    }
+    advance_token(token, lexer);
+    //ASTNode* expression_node = parser_expression(lexer, token);
+
+    return const_decl_node;
 }
 
 ASTNode* parse_tokens(Lexer* lexer) {
@@ -82,6 +110,7 @@ ASTNode* parse_tokens(Lexer* lexer) {
             advance_token(&token, lexer);
             // PROLOG
             if (check_token(token, TOKEN_IDENTIFIER, "ifj")) {
+                // Check if prolog is valid
                 if (parse_prolog(lexer, &token)) {
                     program_node->Program.has_prolog = true;
                 }
@@ -91,8 +120,12 @@ ASTNode* parse_tokens(Lexer* lexer) {
             }
             // CONST_DECL
             else if (check_token(token, TOKEN_IDENTIFIER, NULL)) {
-                ASTNode* const_decl = parse_const_decl(lexer, token);
+                // Check if constant declaration is valid
+                ASTNode* const_decl = parse_const_decl(lexer, &token);
                 if (const_decl != NULL) {
+                    // CREATE APPEND FUNCTION
+                    program_node->Program.declarations[program_node->Program.decl_count] = const_decl;
+                    program_node->Program.decl_count++;
                     //append_declaration();
                 }
                 else {
