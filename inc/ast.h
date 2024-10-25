@@ -328,4 +328,17 @@ ASTNode* create_arg_node();
 */
 void free_ast_node(ASTNode* node);
 
+/**
+ * @fn int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node)
+ * @brief Function that appends declaratio node into program_node declaration array
+ * 
+ * Functions reallocates memory for pointer array of declarations inside program node
+ * if declaration count reaches declaration capacity and appends new declaration into array.
+ * 
+ * @param[in, out] program_node Pointer to a program node
+ * @param[in] decl_node Pointer to a declaration node
+ * @return 0 if success, otherwise return 1
+*/
+int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node);
+
 #endif // AST_H

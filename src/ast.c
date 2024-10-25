@@ -380,3 +380,26 @@ void free_ast_node(ASTNode* node) {
 
     free(node); // Free node itself
 }
+
+int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node) {
+    if (program_node == NULL || decl_node == NULL) {
+        return 1;
+    }
+
+    // If capacity is reached, double the size of an array
+    if (program_node->Program.decl_count >= program_node->Program.decl_capacity) {
+        program_node->Program.decl_capacity *= 2;
+        ASTNode** new_decl = realloc(program_node->Program.declarations, program_node->Program.decl_capacity);
+        if (new_decl == NULL) {
+            fprintf(stderr, "Failed to reallocate memory for program node declarations\n");
+            return 1;
+        }
+
+        program_node->Program.declarations = new_decl;
+
+    }
+    // Append node to declaration pointer array
+    program_node->Program.declarations[program_node->Program.decl_count] = decl_node;
+    program_node->Program.decl_count++;
+    return 0;
+}
