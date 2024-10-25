@@ -42,10 +42,9 @@ extern ErrorType error_tracker;
  * @param[in] error type of error to be set
  * @return void
  * 
- * @note This function should be used at lowest level possible
- * to remove the need to use it in the functions with higher level of absraction.
- * For example internal errror should be set within functions that allocate memory not
- * inside other functions that use these functions.
+ * @note This function should set internal errors in the lowest
+ * level possible so that there wont be a need to constantly check
+ * and set errors in more abstract functions.
 */
 void set_error(ErrorType error);
 

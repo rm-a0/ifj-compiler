@@ -9,6 +9,7 @@
 ErrorType error_tracker = NO_ERROR;
 
 void set_error(ErrorType error) {
+    // set new error only if no error was encoutered before
     if (error_tracker == NO_ERROR) {
         error_tracker = error;
     }

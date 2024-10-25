@@ -21,7 +21,6 @@ int check_token(Token* token, TokenType expected_type, const char* expected_valu
         return 0;   // Token is invalid
     }
     if (token->token_type != expected_type) {
-        set_error(SYNTAX_ERROR); // Set error to syntax error if type is different then expected
         return 0;   // Type is different than expected
     }
     if (expected_value != NULL) {
@@ -153,7 +152,48 @@ ASTNode* parse_var_decl(Lexer* lexer, Token** token) {
 }
 
 ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
+    if (!check_token(*token, TOKEN_IDENTIFIER, NULL)) {
+        return NULL;
+    }
+    ASTNode* parameter = create_param_node(AST_UNSPECIFIED, (*token)->value);
+    if (parameter == NULL) {
+        return NULL;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_COLON, NULL)) {
+        return NULL;
+    }
+    advance_token(token, lexer);
+    // check for null pointer before acessing token type
+    if (*token == NULL)
+        return NULL;
+    switch ((*token)->token_type) {
+        case TOKEN_I32:
+            parameter->Param.data_type = AST_I32;
+            break;
+        case TOKEN_F64:
+            parameter->Param.data_type = AST_F64;
+            break;
+        case TOKEN_U8:
+            parameter->Param.data_type = AST_U8;
+            break;
+        // add more
+        default: // Unexpected token syntax error
+            free_ast_node(parameter);
+            return NULL;
+            break;
+    }
+    advance_token(token, lexer);
+    // Parenthesis after coma is alowed so we move to nex
+    if (check_token(*token, TOKEN_COMMA, NULL)) {
+        advance_token(token, lexer);
+    }
+    // If its not parenthesis or coma return NULL
+    else if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+        return NULL;
+    }
 
+    return parameter;
 }
 
 ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
@@ -190,6 +230,7 @@ ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
         }
     }
     advance_token(token, lexer);
+    // check for NULL pointer to prevent SEGFAULT
     if (*token == NULL) {
         free_ast_node(fn_decl_node);
         return NULL;
@@ -298,7 +339,6 @@ ASTNode* parse_tokens(Lexer* lexer) {
             else {
                 goto error;
             }
-
         }
         // SYNTAX ERROR
         else {
@@ -313,6 +353,8 @@ ASTNode* parse_tokens(Lexer* lexer) {
 
     // Error handle for go to
     error:
+        // set error ot syntax error if no lexical or internal error was found before
+        set_error(SYNTAX_ERROR);
         free_ast_node(program_node);
         free_token(token);
         return NULL;
