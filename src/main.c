@@ -107,12 +107,10 @@ int main(int argc, char** argv) {
     ASTNode* root = parse_tokens(&lexer);
     if (root == NULL) {
         destroy_lexer(&lexer);
-        fprintf(stderr, "Syntax error\n");
-        exit(SYNTAX_ERROR);
+        exit(error_tracker);
     }
     else {
         fprintf(stderr, "Syntax is correct\n");
-        // continue in semantic analysis
     }
 
     destroy_lexer(&lexer);

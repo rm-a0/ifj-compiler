@@ -145,6 +145,7 @@ Token* get_token(Lexer* lexer) {
                             return create_token(lexer->ascii_l_table[c], 0, NULL);
                         }
                         else {
+                            set_error(LEXICAL_ERROR);
                             return NULL; // Invalid character
                         }
                         break;
@@ -162,10 +163,12 @@ Token* get_token(Lexer* lexer) {
                         return create_token(TOKEN_IMPORT, 0, NULL);
                     }
                     else {
+                        set_error(LEXICAL_ERROR);
                         return NULL;
                     }
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL;
                 }
                 break;
@@ -191,6 +194,7 @@ Token* get_token(Lexer* lexer) {
                     return create_token(lexer->ascii_l_table[(int)lexer->buff[0]], 0, NULL);
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL;
                 }
                 break;
@@ -212,6 +216,7 @@ Token* get_token(Lexer* lexer) {
                     }
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL; // Invalid identifier
                 }
                 break;
@@ -225,6 +230,7 @@ Token* get_token(Lexer* lexer) {
                     append(lexer, &idx, c);
                 }
                 else if (c == '\n') {
+                    set_error(LEXICAL_ERROR);
                     return NULL; // Invalid string character
                 }
                 else {
@@ -242,6 +248,7 @@ Token* get_token(Lexer* lexer) {
                     append(lexer, &idx, c);
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL; // Invalid escape sequence
                 }
                 break;
@@ -254,6 +261,7 @@ Token* get_token(Lexer* lexer) {
                     }
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL;
                 }
                 break;
@@ -267,6 +275,7 @@ Token* get_token(Lexer* lexer) {
                     append(lexer, &idx, c);
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL;
                 }
                 break;
@@ -281,6 +290,7 @@ Token* get_token(Lexer* lexer) {
                     return create_token(TOKEN_INTEGER, 1, "0");
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL; // Invalid number
                 }
                 break;
@@ -303,6 +313,7 @@ Token* get_token(Lexer* lexer) {
                     return create_token(TOKEN_INTEGER, idx, lexer->buff);
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL; // Invalid integer
                 }
                 break;
@@ -321,6 +332,7 @@ Token* get_token(Lexer* lexer) {
                     return create_token(TOKEN_FLOAT, idx, lexer->buff); // TODO
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL; // Invalid float
                 }
                 break;
@@ -334,6 +346,7 @@ Token* get_token(Lexer* lexer) {
                     append(lexer, &idx, c);
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL;
                 }
                 break;
@@ -344,6 +357,7 @@ Token* get_token(Lexer* lexer) {
                     append(lexer, &idx, c);
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL;
                 }
                 break;
@@ -359,6 +373,7 @@ Token* get_token(Lexer* lexer) {
                     return create_token(TOKEN_FLOAT, idx, lexer->buff);
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL;
                 }
                 break;
@@ -372,6 +387,7 @@ Token* get_token(Lexer* lexer) {
                     return create_token(TOKEN_DIV, 0, NULL);
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL;
                 }
                 break;
@@ -389,6 +405,7 @@ Token* get_token(Lexer* lexer) {
                     append(lexer, &idx, c);
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL;
                 }
                 break;
@@ -405,6 +422,7 @@ Token* get_token(Lexer* lexer) {
                     return create_token(token, 0, NULL);
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL;
                 }
                 break;
@@ -414,6 +432,7 @@ Token* get_token(Lexer* lexer) {
                     return create_token(TOKEN_SLICE, 0, NULL);
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL;
                 }
                 break;
@@ -423,6 +442,7 @@ Token* get_token(Lexer* lexer) {
                     append(lexer, &idx, c);
                 }
                 else {
+                    set_error(LEXICAL_ERROR);
                     return NULL;
                 }
                 break;

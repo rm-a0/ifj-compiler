@@ -12,8 +12,7 @@ void advance_token(Token** token, Lexer* lexer) {
     }
     *token = get_token(lexer);
     if (*token == NULL) {
-        fprintf(stderr, "Lexical error\n");
-        // set error state to lexical error
+        set_error(LEXICAL_ERROR);
     }
 }
 
@@ -22,10 +21,12 @@ int check_token(Token* token, TokenType expected_type, const char* expected_valu
         return 0;   // Token is invalid
     }
     if (token->token_type != expected_type) {
+        set_error(SYNTAX_ERROR); // Set error to syntax error if type is different then expected
         return 0;   // Type is different than expected
     }
     if (expected_value != NULL) {
         if (token->value == NULL || strcmp(token->value, expected_value) != 0) {
+            set_error(SYNTAX_ERROR); // Set error to syntax error if value is different then expected
             return 0;   // Token value is different from expected value
         }
     }
@@ -152,7 +153,7 @@ ASTNode* parse_var_decl(Lexer* lexer, Token** token) {
 }
 
 ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
-    
+
 }
 
 ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {

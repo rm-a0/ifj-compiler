@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "ast.h"
+#include "error.h"
 
 #define DEFAULT_PROGRAM_DECL_CNT    10  ///< Used for pre-allocating memory for declaration array inside program node
 #define DEFAULT_FN_ARG_CNT          3   ///< Used for pre-allocating memory for argument array inside function declaration node
@@ -17,6 +18,7 @@
 ASTNode* create_program_node() {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for program node failed\n");
         return NULL;
     }
@@ -30,6 +32,7 @@ ASTNode* create_program_node() {
     node->Program.declarations = malloc(DEFAULT_PROGRAM_DECL_CNT * sizeof(ASTNode*));
     if (node->Program.declarations == NULL) {
         free(node);
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for declaration array in program node failed\n");
         return NULL;
     }
@@ -45,6 +48,7 @@ ASTNode* create_program_node() {
 ASTNode* create_fn_decl_node(char* fn_name) {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for function declaration node failed\n");
         return NULL;
     }
@@ -52,6 +56,7 @@ ASTNode* create_fn_decl_node(char* fn_name) {
     node->type = AST_FN_DECL;
     node->FnDecl.fn_name = strdup(fn_name);
     if (node->FnDecl.fn_name == NULL) {
+        set_error(INTERNAL_ERROR);
         free(node);
         fprintf(stderr, "Memory allocation for function name in function declaration node failed\n");
     }
@@ -62,6 +67,7 @@ ASTNode* create_fn_decl_node(char* fn_name) {
     node->FnDecl.param_capacity = DEFAULT_FN_PARAM_CNT;
     node->FnDecl.params = malloc(DEFAULT_FN_PARAM_CNT * sizeof(ASTNode*));
     if (node->FnDecl.params == NULL) {
+        set_error(INTERNAL_ERROR);
         free(node->FnDecl.fn_name);
         free(node);
         fprintf(stderr, "Memroy allocation for paramaeter array in function declaration node failed\n");
@@ -82,6 +88,7 @@ ASTNode* create_fn_decl_node(char* fn_name) {
 ASTNode* create_param_node(DataType data_type, char* identifier) {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for parameter node failed\n");
         return NULL;
     }
@@ -90,6 +97,7 @@ ASTNode* create_param_node(DataType data_type, char* identifier) {
     node->Param.data_type = data_type;
     node->Param.identifier = strdup(identifier);
     if (node->Param.identifier == NULL) {
+        set_error(INTERNAL_ERROR);
         free(node);
         fprintf(stderr, "Memory allocation for identifier in parameter node failed\n");
         return NULL;
@@ -101,6 +109,7 @@ ASTNode* create_param_node(DataType data_type, char* identifier) {
 ASTNode* create_return_node() {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for return node failed\n");
         return NULL;
     }
@@ -113,6 +122,7 @@ ASTNode* create_return_node() {
 ASTNode* create_var_decl_node(DataType data_type, char* var_name) {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for variable declaration node failed\n");
         return NULL;
     }
@@ -122,6 +132,7 @@ ASTNode* create_var_decl_node(DataType data_type, char* var_name) {
     node->VarDecl.expression = NULL;
     node->VarDecl.var_name = strdup(var_name);
     if (node->VarDecl.var_name == NULL) {
+        set_error(INTERNAL_ERROR);
         free(node);
         fprintf(stderr, "Memory allocation for variable name in variable declaration node failed\n");
         return NULL;
@@ -133,6 +144,7 @@ ASTNode* create_var_decl_node(DataType data_type, char* var_name) {
 ASTNode* create_const_decl_node(DataType data_type, char* const_name) {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for const declaration node failed\n");
         return NULL;
     }
@@ -142,6 +154,7 @@ ASTNode* create_const_decl_node(DataType data_type, char* const_name) {
     node->ConstDecl.expression = NULL;
     node->ConstDecl.const_name = strdup(const_name);
     if (node->VarDecl.var_name == NULL) {
+        set_error(INTERNAL_ERROR);
         free(node);
         fprintf(stderr, "Memory allocation for const name in constant declaration node failed\n");
         return NULL;
@@ -153,6 +166,7 @@ ASTNode* create_const_decl_node(DataType data_type, char* const_name) {
 ASTNode* create_block_node() {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for block node failed\n");
         return NULL;
     }
@@ -162,6 +176,7 @@ ASTNode* create_block_node() {
     node->Block.node_capacity = DEFAULT_BLOCK_NODE_CNT;
     node->Block.nodes = malloc(DEFAULT_BLOCK_NODE_CNT * sizeof(ASTNode*));
     if (node->Block.nodes == NULL) {
+        set_error(INTERNAL_ERROR);
         free(node);
         fprintf(stderr, "Memory allocation for pointer array in block node failed\n");
         return NULL;
@@ -178,6 +193,7 @@ ASTNode* create_block_node() {
 ASTNode* create_while_node() {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for while node failed\n");
         return NULL;
     }
@@ -193,6 +209,7 @@ ASTNode* create_while_node() {
 ASTNode* create_if_node() {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for if/else node failed\n");
         return NULL;
     }
@@ -209,6 +226,7 @@ ASTNode* create_if_node() {
 ASTNode* create_fn_call_node(char* fn_name) {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for function call node failed\n");
         return NULL;
     }
@@ -216,6 +234,7 @@ ASTNode* create_fn_call_node(char* fn_name) {
     node->type = AST_FN_CALL;
     node->FnCall.fn_name = strdup(fn_name);
     if (node->FnCall.fn_name == NULL) {
+        set_error(INTERNAL_ERROR);
         free(node);
         fprintf(stderr, "Memory allocation for function name in function call node failed\n");
         return NULL;
@@ -227,6 +246,7 @@ ASTNode* create_fn_call_node(char* fn_name) {
     node->FnCall.arg_capacity = DEFAULT_FN_ARG_CNT;
     node->FnCall.args = malloc(DEFAULT_FN_ARG_CNT * sizeof(ASTNode*));
     if (node->FnCall.args == NULL) {
+        set_error(INTERNAL_ERROR);
         free(node);
         fprintf(stderr, "Memory allocation for pointer array in function call node failed\n");
         return NULL;
@@ -243,6 +263,7 @@ ASTNode* create_fn_call_node(char* fn_name) {
 ASTNode* create_arg_node() {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for argument node failed\n");
         return NULL;
     }
@@ -374,6 +395,7 @@ void free_ast_node(ASTNode* node) {
             break;
 
         default:
+            set_error(INTERNAL_ERROR);
             fprintf(stderr, "Unknown node type: %d\n", node->type);
             break;
     }
@@ -383,6 +405,7 @@ void free_ast_node(ASTNode* node) {
 
 int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node) {
     if (program_node == NULL || decl_node == NULL) {
+        set_error(INTERNAL_ERROR);
         return 1;
     }
 
@@ -391,6 +414,7 @@ int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node) {
         program_node->Program.decl_capacity *= 2;
         ASTNode** new_decl = realloc(program_node->Program.declarations, program_node->Program.decl_capacity);
         if (new_decl == NULL) {
+            set_error(INTERNAL_ERROR);
             fprintf(stderr, "Failed to reallocate memory for program node declarations\n");
             return 1;
         }
@@ -406,6 +430,7 @@ int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node) {
 
 int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node) {
     if (fn_node == NULL || param_node == NULL) {
+        set_error(INTERNAL_ERROR);
         return 1;
     }
 
@@ -414,6 +439,7 @@ int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node) {
         fn_node->FnDecl.param_capacity *= 2;
         ASTNode** new_params = realloc(fn_node->FnDecl.params, fn_node->FnDecl.param_capacity);
         if (new_params == NULL) {
+            set_error(INTERNAL_ERROR);
             fprintf(stderr, "Failed to reallocate memory for parameters in function declaration node\n");
             return 1;
         }
