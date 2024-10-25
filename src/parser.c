@@ -10,11 +10,11 @@ void advance_token(Token** token, Lexer* lexer) {
     if (token && *token) {
         free_token(*token);
     }
-    // delete later
-    else {
-        fprintf(stderr, "Token is null in advance token function");
-    }
     *token = get_token(lexer);
+    if (*token == NULL) {
+        fprintf(stderr, "Lexical error\n");
+        // set error state to lexical error
+    }
 }
 
 int check_token(Token* token, TokenType expected_type, const char* expected_value) {
@@ -63,6 +63,9 @@ int parse_prolog(Lexer* lexer, Token** token) {
 ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
     // No need to get identifier token since it was checked before
     ASTNode* const_decl_node = create_const_decl_node(AST_UNSPECIFIED, (*token)->value);
+    if (const_decl_node == NULL) {
+        return NULL;
+    }
     advance_token(token, lexer);
     // Optional data type
     if (check_token(*token, TOKEN_COLON, NULL)) {
@@ -104,12 +107,17 @@ ASTNode* parse_var_decl(Lexer* lexer, Token** token) {
     if (!check_token(*token, TOKEN_IDENTIFIER, NULL)) {
         return NULL;
     }
+    // Create variable declaration node (mmust be freed when returnin NULL)
     ASTNode* var_decl_node = create_var_decl_node(AST_UNSPECIFIED, (*token)->value);
+    if (var_decl_node == NULL) {
+        return NULL;
+    }
     advance_token(token, lexer);
     // Optional data type
     if (check_token(*token, TOKEN_COLON, NULL)) {
         advance_token(token, lexer);
         if (*token == NULL) {
+            free_ast_node(var_decl_node);
             return NULL;
         }
         // Based on token type assign data type of const decl node
@@ -124,21 +132,102 @@ ASTNode* parse_var_decl(Lexer* lexer, Token** token) {
                 var_decl_node->ConstDecl.data_type = AST_U8;
                 break;
             default:
+                free_ast_node(var_decl_node);
                 return NULL; // Unexpected token type
                 break;
         }
         advance_token(token, lexer); // Advance for assign check
     }
     if (!check_token(*token, TOKEN_ASSIGN, NULL)) {
+        free_ast_node(var_decl_node);
         return NULL;
     }
     // Delete later, for now it accepts anything as expression untill it encounters semicolon
     while (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
         advance_token(token, lexer);
     }
-    //ASTNode* expression_node = parser_expression(lexer, token);
+    // ASTNode* expression_node = parser_expression(lexer, token);
 
     return var_decl_node;
+}
+
+ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
+    
+}
+
+ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_FN, NULL)) {
+        return NULL;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_IDENTIFIER, NULL)) {
+        return NULL;
+    }
+    // Create node for function declaration
+    ASTNode* fn_decl_node =  create_fn_decl_node((*token)->value);
+    if (fn_decl_node == NULL) {
+        return NULL;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_L_PAREN, NULL)) {
+        free_ast_node(fn_decl_node);
+        return NULL;
+    }
+    advance_token(token, lexer);
+    // Loop until we encouter right parenthesis or if something goes wrong within the loop
+    while (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+        ASTNode* param_node = parse_fn_params(lexer, token);
+        if (param_node == NULL) {
+            free_ast_node(fn_decl_node);
+            return NULL;
+        }
+        // Append parameter to function
+        if (append_param_to_fn(fn_decl_node, param_node) != 0) {
+            free_ast_node(fn_decl_node);
+            return NULL;
+        }
+    }
+    advance_token(token, lexer);
+    if (*token == NULL) {
+        free_ast_node(fn_decl_node);
+        return NULL;
+    }
+    // Check for return type
+    switch ((*token)->token_type) {
+        case TOKEN_VOID:
+            fn_decl_node->FnDecl.return_type = AST_VOID;
+            break;
+        case TOKEN_I32:
+            fn_decl_node->FnDecl.return_type = AST_I32;
+            break;
+        case TOKEN_F64:
+            fn_decl_node->FnDecl.return_type = AST_F64;
+            break;
+        case TOKEN_U8:
+            fn_decl_node->FnDecl.return_type = AST_U8;
+            break;
+        // add more
+        default: // Unexpected token syntax error
+            free_ast_node(fn_decl_node);
+            return NULL;
+            break;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_L_BRACE, NULL)) {
+        free_ast_node(fn_decl_node);
+        return NULL;
+    }
+    // TOOD
+    // ASTNode* block_node = parse_block_node();
+
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_R_BRACE, NULL)) {
+        free_ast_node(fn_decl_node);
+        return NULL;
+    }
+
+    return fn_decl_node;
 }
 
 ASTNode* parse_tokens(Lexer* lexer) {
@@ -199,8 +288,15 @@ ASTNode* parse_tokens(Lexer* lexer) {
         }
         // PUB
         else if (check_token(token, TOKEN_PUB, NULL)) {
-            // FN_DECL
-            //ASTNode* fn_decl = parse_fn_decl(lexer, &token);
+            ASTNode* fn_decl = parse_fn_decl(lexer, &token);
+            if (fn_decl != NULL) {
+                if (append_decl_to_prog(program_node, fn_decl) != 0) {
+                    goto error;
+                }
+            }
+            else {
+                goto error;
+            }
 
         }
         // SYNTAX ERROR
