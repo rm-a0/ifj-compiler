@@ -169,10 +169,10 @@ ASTNode* parse_tokens(Lexer* lexer) {
                 // Check if constant declaration is valid
                 ASTNode* const_decl = parse_const_decl(lexer, &token);
                 if (const_decl != NULL) {
-                    // CREATE APPEND FUNCTION
-                    program_node->Program.declarations[program_node->Program.decl_count] = const_decl;
-                    program_node->Program.decl_count++;
-                    //append_declaration();
+                    // Append variable declaration into program node array
+                    if (append_decl_to_prog(program_node, const_decl) != 0) {
+                        goto error;
+                    }
                 }
                 else {
                     goto error;
@@ -188,9 +188,10 @@ ASTNode* parse_tokens(Lexer* lexer) {
             // Check if variable declaration is valid
             ASTNode* var_decl = parse_var_decl(lexer, &token);
             if (var_decl != NULL) {
-                // CREATE APPEND FUNCTION
-                program_node->Program.declarations[program_node->Program.decl_count] = var_decl;
-                program_node->Program.decl_count++;
+                // Append variable declaration into program node array
+                if (append_decl_to_prog(program_node, var_decl) != 0) {
+                    goto error;
+                }
             }
             else {
                 goto error;
