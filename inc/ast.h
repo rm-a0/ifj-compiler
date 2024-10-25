@@ -341,4 +341,17 @@ void free_ast_node(ASTNode* node);
 */
 int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node);
 
+/**
+ * @fn int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node)
+ * @brief Function that appends declaratio node into program_node declaration array
+ * 
+ * Functions reallocates memory for pointer array of parameters inside function declaration node
+ * if parameter count reaches parameter capacity and appends new parameter into array.
+ * 
+ * @param[in, out] fn_node Pointer to a function declaration node
+ * @param[in] param_node Pointer to a parameter node
+ * @return 0 if success, otherwise return 1
+*/
+int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node);
+
 #endif // AST_H

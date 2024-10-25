@@ -403,3 +403,26 @@ int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node) {
     program_node->Program.decl_count++;
     return 0;
 }
+
+int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node) {
+    if (fn_node == NULL || param_node == NULL) {
+        return 1;
+    }
+
+    // If capacity is reached, double the size of an array
+    if (fn_node->FnDecl.param_count >= fn_node->FnDecl.param_capacity) {
+        fn_node->FnDecl.param_capacity *= 2;
+        ASTNode** new_params = realloc(fn_node->FnDecl.params, fn_node->FnDecl.param_capacity);
+        if (new_params == NULL) {
+            fprintf(stderr, "Failed to reallocate memory for parameters in function declaration node\n");
+            return 1;
+        }
+
+        fn_node->FnDecl.params = new_params;
+
+    }
+    // Append node to parameter pointer array
+    fn_node->FnDecl.params[fn_node->FnDecl.param_count] = param_node;
+    fn_node->FnDecl.param_count++;
+    return 0;
+}
