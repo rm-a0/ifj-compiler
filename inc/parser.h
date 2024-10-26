@@ -77,6 +77,45 @@ ASTNode* parse_const_decl(Lexer* lexer, Token** token);
 */
 ASTNode* parse_var_decl(Lexer* lexer, Token** token);
 
+/**
+ * @fn ASTNode* parse_fn_decl(Lexer* lexer, Token** token)
+ * @brief Parses function declarations and constructs fn_decl node of AST
+ * 
+ * This function parses source code and checks if the function declaration
+ * is valid or not while constructing AST function declaration node. 
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @return AST function declaration node or NULL if syntax is invalid
+*/
+ASTNode* parse_fn_decl(Lexer* lexer, Token** token);
+
+/**
+ * @fn ASTNode* parse_block(Lexer* lexer, Token** token)
+ * @brief Parses block and constructs block node of AST
+ * 
+ * This function parses source code and checks if the block structure
+ * is valid or not while constructing AST block node. 
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @return AST block node or NULL if syntax is invalid
+*/
+ASTNode* parse_block(Lexer* lexer, Token** token);
+
+/**
+ * @fn ASTNode* parse_if_else(Lexer* lexer, Token** token)
+ * @brief Parses if/else statements and constructs if_else node of AST
+ * 
+ * This function parses source code and checks if the if/else structure
+ * is valid or not while constructing AST if_else node. 
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @return AST if/else node or NULL if syntax is invalid
+*/
+ASTNode* parse_if_else(Lexer* lexer, Token** token);
+
 /** 
  * @fn ASTNode* parse_tokens(Lexer* lexer)
  * @brief Parses stream of tokens and creates an Abstract Syntax Tree (AST).

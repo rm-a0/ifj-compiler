@@ -198,6 +198,60 @@ ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
     return parameter;
 }
 
+// TODO
+ASTNode* parse_element_bind(Lexer* lexer, Token** token) {
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_PIPE, NULL)) {
+        return NULL;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_IDENTIFIER, NULL)) {
+        return NULL;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_PIPE, NULL)) {
+        return NULL;
+    }
+    return NULL;
+}
+
+ASTNode* parse_if_else(Lexer* lexer, Token** token) {
+    if (!check_token(*token, TOKEN_IF, NULL)) {
+        return NULL;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_L_PAREN, NULL)) {
+        return NULL;
+    }
+    while (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+        // replace with expression
+        // ASTNode* expression_node = parse_expression
+        advance_token(token, lexer);
+    }
+    // Parse if block
+    ASTNode* if_block = parse_block(lexer, token);
+    if (if_block == NULL) {
+        return NULL; 
+    }
+    // Create node and add if block to it
+    ASTNode* if_else_node = create_if_node();
+    if_else_node->IfElse.if_block = if_block;
+
+    // Check for else block
+    advance_token(token, lexer);
+    if (check_token(*token, TOKEN_ELSE, NULL)) {
+        // Parse else block
+        ASTNode* else_block = parse_block(lexer, token);
+        if (else_block == NULL) {
+            free_ast_node(if_else_node);
+            return NULL;
+        }
+        if_else_node->IfElse.else_block = else_block;
+    }
+
+    return if_else_node;
+}
+
 ASTNode* parse_block(Lexer* lexer, Token** token) {
     advance_token(token, lexer);
     if (!check_token(*token, TOKEN_L_BRACE, NULL)) {
@@ -209,26 +263,43 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
     if (block_node == NULL) {
         return NULL;
     }
-    // Check for NULL pointer before switch
+    // Advance token before loop begins
     advance_token(token, lexer);
-    if (*token == NULL) {
-        return NULL;
-    }
-    switch ((*token)->token_type) {
-    case TOKEN_IF:
-        // ASTNode* if_else_node = parse_if_else_node(lexer, token);
-        break;
-    // TODO 
-    default:
-        free_ast_node(block_node);
-        return NULL;
-        break;
-    }
-
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_R_BRACE, NULL)) {
-        free_ast_node(block_node);
-        return NULL;
+    // Loop untill right brace is encoutered
+    while (!check_token(*token, TOKEN_R_BRACE, NULL)) {
+        // Check for NULL pointer before switch
+        if (*token == NULL) {
+            return NULL;
+        }
+        switch ((*token)->token_type) {
+            case TOKEN_IF: {
+                ASTNode* if_else_node = parse_if_else(lexer, token);
+                if (if_else_node == NULL) {
+                    return NULL;
+                }
+                // appedn node to declarations
+            }
+                break;
+            case TOKEN_WHILE:
+                break;
+            case TOKEN_CONST:
+                break;
+            case TOKEN_VAR:
+                break;
+            case TOKEN_IDENTIFIER:
+                // fncall/assignment
+                break;
+            case TOKEN_RETURN:
+                // expression
+                break;
+            default:
+                free_ast_node(block_node);
+                return NULL;
+                break;
+        }
+        // in if token we are checkin for else, and if there is not this
+        // advnace token would mess this up
+        advance_token(token, lexer);
     }
 
     return block_node;
@@ -300,6 +371,7 @@ ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
         free_ast_node(fn_decl_node);
         return NULL;
     }
+    fn_decl_node->FnDecl.block = block_node;
 
     return fn_decl_node;
 }
