@@ -61,7 +61,9 @@ int parse_prolog(Lexer* lexer, Token** token) {
 }
 
 ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
-    // No need to get identifier token since it was checked before
+    if (!check_token(*token, TOKEN_IDENTIFIER, NULL)) {
+        return NULL;
+    }
     ASTNode* const_decl_node = create_const_decl_node(AST_UNSPECIFIED, (*token)->value);
     if (const_decl_node == NULL) {
         return NULL;
@@ -196,6 +198,42 @@ ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
     return parameter;
 }
 
+ASTNode* parse_block(Lexer* lexer, Token** token) {
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_L_BRACE, NULL)) {
+        return NULL;
+    }
+    
+    // create block node
+    ASTNode* block_node = create_block_node();
+    if (block_node == NULL) {
+        return NULL;
+    }
+    // Check for NULL pointer before switch
+    advance_token(token, lexer);
+    if (*token == NULL) {
+        return NULL;
+    }
+    switch ((*token)->token_type) {
+    case TOKEN_IF:
+        // ASTNode* if_else_node = parse_if_else_node(lexer, token);
+        break;
+    // TODO 
+    default:
+        free_ast_node(block_node);
+        return NULL;
+        break;
+    }
+
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_R_BRACE, NULL)) {
+        free_ast_node(block_node);
+        return NULL;
+    }
+
+    return block_node;
+}
+
 ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
     advance_token(token, lexer);
     if (!check_token(*token, TOKEN_FN, NULL)) {
@@ -255,16 +293,10 @@ ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
             return NULL;
             break;
     }
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_L_BRACE, NULL)) {
-        free_ast_node(fn_decl_node);
-        return NULL;
-    }
-    // TOOD
-    // ASTNode* block_node = parse_block_node();
 
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_R_BRACE, NULL)) {
+    // Parse block
+    ASTNode* block_node = parse_block(lexer, token);
+    if (block_node == NULL) {
         free_ast_node(fn_decl_node);
         return NULL;
     }
