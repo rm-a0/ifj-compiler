@@ -452,3 +452,26 @@ int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node) {
     fn_node->FnDecl.param_count++;
     return 0;
 }
+
+int append_node_to_block(ASTNode* block, ASTNode* node) {
+    if (node == NULL || block == NULL) {
+        set_error(INTERNAL_ERROR);
+        return 1;
+    }
+
+    if (block->Block.node_count >= block->Block.node_capacity) {
+        block->Block.node_capacity *= 2;
+        ASTNode** new_nodes = realloc(block->Block.nodes, block->Block.node_capacity);
+        if (new_nodes == NULL) {
+            set_error(INTERNAL_ERROR);
+            fprintf(stderr, "Failed to reallocate memory for nodes array in block node\n");
+            return 1;
+        }
+
+        block->Block.nodes = new_nodes;
+    }
+    // Append node to node pointer array
+    block->Block.nodes[block->Block.node_count] = node;
+    block->Block.node_count++;
+    return 0;
+}

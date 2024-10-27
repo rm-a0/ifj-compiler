@@ -186,7 +186,7 @@ ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
             break;
     }
     advance_token(token, lexer);
-    // Parenthesis after coma is alowed so we move to nex
+    // Parenthesis after coma is alowed so we move to next
     if (check_token(*token, TOKEN_COMMA, NULL)) {
         advance_token(token, lexer);
     }
@@ -247,6 +247,8 @@ ASTNode* parse_if_else(Lexer* lexer, Token** token) {
             return NULL;
         }
         if_else_node->IfElse.else_block = else_block;
+        // This is needed because we advanced to check for else before
+        advance_token(token, lexer);
     }
 
     return if_else_node;
@@ -258,7 +260,7 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
         return NULL;
     }
     
-    // create block node
+    // Create block node
     ASTNode* block_node = create_block_node();
     if (block_node == NULL) {
         return NULL;
@@ -273,19 +275,54 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
         }
         switch ((*token)->token_type) {
             case TOKEN_IF: {
+                // Parse if else block and append it to block node
                 ASTNode* if_else_node = parse_if_else(lexer, token);
                 if (if_else_node == NULL) {
+                    free_ast_node(block_node);
                     return NULL;
                 }
-                // appedn node to declarations
+                if (append_node_to_block(block_node, if_else_node) != 0) {
+                    free_ast_node(if_else_node);
+                    free_ast_node(block_node);
+                    return NULL;
+                }
             }
                 break;
             case TOKEN_WHILE:
                 break;
-            case TOKEN_CONST:
-                break;
-            case TOKEN_VAR:
-                break;
+            case TOKEN_CONST: {
+                // Since parse const checks for identifier we must advnace token
+                advance_token(token, lexer);
+                ASTNode* const_node = parse_const_decl(lexer, token);
+                if (const_node == NULL) {
+                    free_ast_node(block_node);
+                    return NULL;
+                }
+                if (append_node_to_block(block_node, const_node) != 0) {
+                    free_ast_node(const_node);
+                    free_ast_node(block_node);
+                    return NULL;
+                }
+                // Const parsing ends on ';', we need to advance
+                advance_token(token, lexer);
+            }
+               break;
+            case TOKEN_VAR: {
+                // Dont need to advnace token like in const since its advanced within function
+                ASTNode* var_node = parse_var_decl(lexer, token);
+                if (var_node == NULL) {
+                    free_ast_node(block_node);
+                    return NULL;
+                }
+                if (append_node_to_block(block_node, var_node) != 0) {
+                    free_ast_node(var_node);
+                    free_ast_node(block_node);
+                    return NULL;
+                }
+                // Var parsing ends on ';', we need to advance
+                advance_token(token, lexer);
+            }
+               break;
             case TOKEN_IDENTIFIER:
                 // fncall/assignment
                 break;
@@ -299,7 +336,7 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
         }
         // in if token we are checkin for else, and if there is not this
         // advnace token would mess this up
-        advance_token(token, lexer);
+        // advance_token(token, lexer);
     }
 
     return block_node;

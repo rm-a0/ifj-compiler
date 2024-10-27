@@ -354,4 +354,17 @@ int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node);
 */
 int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node);
 
+/**
+ * @fn int append_node_to_block(ASTNode* block, ASTNode* node)
+ * @brief Function that appends node to block node
+ * 
+ * Functions reallocates memory for pointer array of nodes inside block node
+ * if node count reaches node capacity and appends new node into array.
+ * 
+ * @param[in, out] block Pointer to a block node
+ * @param[in] node Pointer to a node
+ * @return 0 if success, otherwise return 1
+*/
+int append_node_to_block(ASTNode* block, ASTNode* node);
+
 #endif // AST_H
