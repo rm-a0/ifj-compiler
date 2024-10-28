@@ -254,6 +254,31 @@ ASTNode* parse_if_else(Lexer* lexer, Token** token) {
     return if_else_node;
 }
 
+ASTNode* parse_while(Lexer* lexer, Token** token) {
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_L_PAREN, NULL)) {
+        return NULL;
+    }
+    // parse expression
+    advance_token(token, lexer); // delete later?
+    if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+        return NULL;
+    }
+    // Parse element bind
+    // Parse block node
+    ASTNode* block_node = parse_block(lexer, token);
+    if (block_node == NULL) {
+        return NULL;
+    }
+    ASTNode* while_node = create_while_node();
+    if (while_node == NULL) {
+        return NULL;
+    }
+    while_node->WhileCycle.block = block_node;
+    // while_node->WhileCycle.expression = expression;
+    return while_node;
+}
+
 ASTNode* parse_block(Lexer* lexer, Token** token) {
     advance_token(token, lexer);
     if (!check_token(*token, TOKEN_L_BRACE, NULL)) {
@@ -288,7 +313,20 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                 }
             }
                 break;
-            case TOKEN_WHILE:
+            case TOKEN_WHILE: {
+                ASTNode* while_node = parse_while(lexer, token);
+                if (while_node == NULL) {
+                    free_ast_node(block_node);
+                    return NULL;
+                }
+                if (append_node_to_block(block_node, while_node) != 0) {
+                    free_ast_node(while_node);
+                    free_ast_node(block_node);
+                    return NULL;
+                }
+                // While parsing ends on '}', we need to advance
+                advance_token(token, lexer);
+            }
                 break;
             case TOKEN_CONST: {
                 // Since parse const checks for identifier we must advnace token
