@@ -362,7 +362,21 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
             }
                break;
             case TOKEN_IDENTIFIER:
-                // fncall/assignment
+                // Save name of the identifier
+                char* identifier = strdup((*token)->value);
+                advance_token(token, lexer);
+                if (check_token(*token, TOKEN_ASSIGN, NULL)) {
+                    // parse assignment
+                }
+                else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
+                    // parse fn call
+                }
+                else {
+                    free(identifier);
+                    free_ast_node(block_node);
+                    return NULL;
+                }
+                free(identifier);
                 break;
             case TOKEN_RETURN:
                 // expression
