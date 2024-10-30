@@ -91,6 +91,19 @@ ASTNode* parse_var_decl(Lexer* lexer, Token** token);
 ASTNode* parse_fn_decl(Lexer* lexer, Token** token);
 
 /**
+ * @fn ASTNode* parse_fn_params(Lexer* lexer, Token** token)
+ * @brief Parses function parameters and constructs fn parameter node of AST
+ * 
+ * This function parses source code and checks if the function parameters 
+ * are valid or not while constructing AST function parameter node. 
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @return AST function declaration node or NULL if syntax is invalid
+*/
+ASTNode* parse_fn_params(Lexer* lexer, Token** token);
+
+/**
  * @fn ASTNode* parse_block(Lexer* lexer, Token** token)
  * @brief Parses block and constructs block node of AST
  * 

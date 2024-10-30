@@ -361,7 +361,7 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                 advance_token(token, lexer);
             }
                break;
-            case TOKEN_IDENTIFIER:
+            case TOKEN_IDENTIFIER: {
                 // Save name of the identifier
                 char* identifier = strdup((*token)->value);
                 advance_token(token, lexer);
@@ -377,7 +377,8 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                     return NULL;
                 }
                 free(identifier);
-                break;
+            }
+               break;
             case TOKEN_RETURN:
                 // expression
                 break;
