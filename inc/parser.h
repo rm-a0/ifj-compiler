@@ -117,6 +117,18 @@ ASTNode* parse_block(Lexer* lexer, Token** token);
 ASTNode* parse_if_else(Lexer* lexer, Token** token);
 
 /** 
+ * @fn ASTNode* parse_while(Lexer* lexer, Token** token)
+ * @brief Parses while cycle and constructs while node
+ * 
+ * This function parses source code and checks if the whiel cycle
+ * is valid or not while constructing AST while node.
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @return AST if/else node or NULL if syntax is invalid
+*/ 
+ASTNode* parse_while(Lexer* lexer, Token** token);
+/** 
  * @fn ASTNode* parse_tokens(Lexer* lexer)
  * @brief Parses stream of tokens and creates an Abstract Syntax Tree (AST).
  * 
