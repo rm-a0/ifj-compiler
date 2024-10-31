@@ -279,6 +279,24 @@ ASTNode* parse_while(Lexer* lexer, Token** token) {
     return while_node;
 }
 
+ASTNode* parse_fn_call(Lexer* lexer, Token** token, char* identifier) {
+    ASTNode* fn_call = create_fn_call_node(identifier);
+    if (fn_call == NULL) {
+        return NULL;
+    }
+    // Parse fn args
+    while (!(check_token(*token, TOKEN_R_PAREN, NULL))) {
+        advance_token(token, lexer);
+    }
+    // We got ')' get next token anc check for ';'
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
+        free_ast_node(fn_call);
+        return NULL;
+    }
+    return fn_call;
+}
+
 ASTNode* parse_block(Lexer* lexer, Token** token) {
     advance_token(token, lexer);
     if (!check_token(*token, TOKEN_L_BRACE, NULL)) {
@@ -369,7 +387,18 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                     // parse assignment
                 }
                 else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
-                    // parse fn call
+                    ASTNode* fn_call_node = parse_fn_call(lexer, token, identifier);
+                    if (fn_call_node == NULL) {
+                        free(identifier);
+                        free_ast_node(block_node);
+                        return NULL;
+                    }
+                    if (append_node_to_block(block_node, fn_call_node) != 0) {
+                        free(identifier);
+                        free_ast_node(fn_call_node);
+                        free_ast_node(block_node);
+                        return NULL;
+                    }
                 }
                 else {
                     free(identifier);
@@ -377,6 +406,7 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                     return NULL;
                 }
                 free(identifier);
+                advance_token(token, lexer); // assignment and fn call end on ';'
             }
                break;
             case TOKEN_RETURN:
