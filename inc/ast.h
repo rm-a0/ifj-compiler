@@ -114,13 +114,13 @@ struct ASTNode {
 
         struct {
             ASTNode* expression;    ///< Expression controlling cycle
-            ASTNode* element_bind;     ///< Ellement bind (optional)
+            char* element_bind;     ///< Ellement bind (optional)
             ASTNode* block;         ///< Pointer to a node encapsulating while cycle
         } WhileCycle;
 
         struct {
             ASTNode* expression;    ///< Expression controlling cycle
-            ASTNode* element_bind;     ///< Ellement bind (optional)
+            char* element_bind;     ///< Ellement bind (optional)
             ASTNode* if_block;      ///< Pointer to a node encapsulating if block
             ASTNode* else_block;    ///< Pointer to a node encapsulating else block
         } IfElse;

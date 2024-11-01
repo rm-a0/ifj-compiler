@@ -353,7 +353,7 @@ void free_ast_node(ASTNode* node) {
             }
             // Free element bind
             if (node->WhileCycle.element_bind != NULL) {
-                free_ast_node(node->WhileCycle.element_bind);
+                free(node->WhileCycle.element_bind);
             }
             break;
 
@@ -372,7 +372,7 @@ void free_ast_node(ASTNode* node) {
             }
             // Free element bind
             if (node->IfElse.element_bind != NULL) {
-                free_ast_node(node->IfElse.element_bind);
+                free(node->IfElse.element_bind);
             }
             break;
 

@@ -60,6 +60,49 @@ int parse_prolog(Lexer* lexer, Token** token) {
     return 1; // Return true
 }
 
+int parse_element_bind(Lexer* lexer, Token** token, ASTNode* node) {
+    advance_token(token, lexer);
+    // Element bind is not there return success
+    if (!check_token(*token, TOKEN_PIPE, NULL)) {
+        return 0;
+    }
+    advance_token(token, lexer);
+    // Incorrect element bind sequence
+    if (!check_token(*token, TOKEN_IDENTIFIER, NULL)) {
+        return 1;
+    }
+    // Based on node type assign element bind
+    switch (node->type) {
+        case AST_WHILE: {
+            node->WhileCycle.element_bind = strdup((*token)->value);
+            if (node->WhileCycle.element_bind == NULL) {
+                set_error(INTERNAL_ERROR);
+                return 1;
+            }
+        }
+            break;
+        case AST_IF_ELSE: {
+            node->IfElse.element_bind = strdup((*token)->value);
+            if (node->IfElse.element_bind == NULL) {
+                set_error(INTERNAL_ERROR);
+                return 1;
+            }
+        }
+            break;    
+        default:
+            set_error(INTERNAL_ERROR);
+            return 1; 
+            break;
+    }
+
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_PIPE, NULL)) {
+        return 1;
+    }
+    // Parse succeeded
+    return 0;
+}
+
 ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
     if (!check_token(*token, TOKEN_IDENTIFIER, NULL)) {
         return NULL;
@@ -198,23 +241,6 @@ ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
     return parameter;
 }
 
-// TODO
-ASTNode* parse_element_bind(Lexer* lexer, Token** token) {
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_PIPE, NULL)) {
-        return NULL;
-    }
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_IDENTIFIER, NULL)) {
-        return NULL;
-    }
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_PIPE, NULL)) {
-        return NULL;
-    }
-    return NULL;
-}
-
 ASTNode* parse_if_else(Lexer* lexer, Token** token) {
     if (!check_token(*token, TOKEN_IF, NULL)) {
         return NULL;
@@ -228,13 +254,26 @@ ASTNode* parse_if_else(Lexer* lexer, Token** token) {
         // ASTNode* expression_node = parse_expression
         advance_token(token, lexer);
     }
+
+    // Create if else node
+    ASTNode* if_else_node = create_if_node();
+    if (if_else_node == NULL) {
+        return NULL;
+    }
+
+    // Check element bind 
+    if (parse_element_bind(lexer, token, if_else_node) != 0) {
+        free_ast_node(if_else_node);
+        return NULL;
+    }
+
     // Parse if block
     ASTNode* if_block = parse_block(lexer, token);
     if (if_block == NULL) {
+        free_ast_node(if_else_node);
         return NULL; 
     }
-    // Create node and add if block to it
-    ASTNode* if_else_node = create_if_node();
+    // Add if block to if else node
     if_else_node->IfElse.if_block = if_block;
 
     // Check for else block
@@ -259,19 +298,25 @@ ASTNode* parse_while(Lexer* lexer, Token** token) {
     if (!check_token(*token, TOKEN_L_PAREN, NULL)) {
         return NULL;
     }
-    // parse expression
+    // Parse expression
     advance_token(token, lexer); // delete later?
     if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
         return NULL;
     }
+    // Create while node
+    ASTNode* while_node = create_while_node();
+    if (while_node == NULL) {
+        return NULL;
+    }
     // Parse element bind
+    if (parse_element_bind(lexer, token, while_node) != 0) {
+        free_ast_node(while_node);
+        return NULL;
+    }
     // Parse block node
     ASTNode* block_node = parse_block(lexer, token);
     if (block_node == NULL) {
-        return NULL;
-    }
-    ASTNode* while_node = create_while_node();
-    if (while_node == NULL) {
+        free_ast_node(while_node);
         return NULL;
     }
     while_node->WhileCycle.block = block_node;
