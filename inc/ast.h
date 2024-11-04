@@ -27,7 +27,7 @@ typedef enum {
     AST_BIN_OP,         ///< Node for binary operator
     AST_INT,            ///< Node for integer
     AST_FLOAT,          ///< Node for float
-    AST_STRING,         ///< Node for stirg
+    AST_STRING,         ///< Node for string
     AST_IDENTIFIER,     ///< Node for identifier
     AST_RETURN          ///< Node for return statement
 } ASTNodeType;
@@ -39,8 +39,8 @@ typedef enum {
 typedef enum {
     AST_UNSPECIFIED,    ///< If data type was not specified  
     AST_VOID,           ///< 'void' (void data type)
-    AST_U8,             ///< 'u8' (unsigend 8 bit int)
-    AST_SLICE,          ///< 'u8' (unsigend 8 bit int)
+    AST_U8,             ///< 'u8' (unsigned 8 bit int)
+    AST_SLICE,          ///< 'u8' (unsigned 8 bit int)
     AST_I32,            ///< 'i32' (32 bit integer)
     AST_F64             ///< 'f64' (64 bit float)
 } DataType;
@@ -54,8 +54,8 @@ typedef enum {
     AST_MINUS,          ///< '-' operator
     AST_MUL,            ///< '*' operator
     AST_DIV,            ///< '/' operator
-    AST_GREATER,        ///< '>' opeartor
-    AST_GREATER_EQU,    ///< '>= opeartor
+    AST_GREATER,        ///< '>' operator
+    AST_GREATER_EQU,    ///< '>= operator
     AST_LESS,           ///< '<' operator
     AST_LESS_EQU,       ///< '<=' operator
     AST_EQU,            ///< '=' operator
@@ -91,7 +91,7 @@ struct ASTNode {
 
         struct {
             DataType data_type;     ///< Expected data type
-            char* identifier;       ///< Name of varaible used in function
+            char* identifier;       ///< Name of variable used in function
         } Param;
 
         struct {
@@ -109,18 +109,18 @@ struct ASTNode {
         struct {
             int node_count;         ///< Number of nodes;
             int node_capacity;      ///< Number of allocated pointers to nodes
-            ASTNode** nodes;        ///< Array of pointer to nodes (delcaration or statements)
+            ASTNode** nodes;        ///< Array of pointer to nodes (declaration or statements)
         } Block;
 
         struct {
             ASTNode* expression;    ///< Expression controlling cycle
-            char* element_bind;     ///< Ellement bind (optional)
+            char* element_bind;     ///< Element bind (optional)
             ASTNode* block;         ///< Pointer to a node encapsulating while cycle
         } WhileCycle;
 
         struct {
             ASTNode* expression;    ///< Expression controlling cycle
-            char* element_bind;     ///< Ellement bind (optional)
+            char* element_bind;     ///< Element bind (optional)
             ASTNode* if_block;      ///< Pointer to a node encapsulating if block
             ASTNode* else_block;    ///< Pointer to a node encapsulating else block
         } IfElse;
@@ -176,7 +176,7 @@ struct ASTNode {
  *  
  * Node type is set to AST_PROGRAM, Program structs values are set to default values
  * (has prolog = false, declaration count = 0) and array of declaration pointers is 
- * pre-allocated for DEFAULT_PROGRAM_DECL_CNT nodes. Decalaration capacity is set 
+ * pre-allocated for DEFAULT_PROGRAM_DECL_CNT nodes. Declaration capacity is set
  * to the same value and all pointers to declaration nodes are set to NULL.
  *  
  * @return Returns pointer to ASTNode or null if memory allocation failed
@@ -204,7 +204,7 @@ ASTNode* create_fn_decl_node(char* fn_name);
  * 
  * Node type is set to AST_PARAM, Parameter struct values are set 
  * based on the arguments (data_type, identifier). Memory is allocated
- * for idnetifier using strdup (must be freed later).
+ * for identifier using strdup (must be freed later).
  * 
  * @param[in] data_type Data type of the identifier
  * @param[in] identifier Name of the variable (identifier)
@@ -227,7 +227,7 @@ ASTNode* create_return_node();
  * @brief Function that creates variable declaration node
  * 
  * Node type is set to AST_VAR_DECL, Variable declaration struct values are
- * set based on arguemnts (data_type, var_name) and expression pointer is set
+ * set based on arguments (data_type, var_name) and expression pointer is set
  * to default (NULL). Memory is allocated for var_name using strdup (must be freed later).
  * 
  * @param[in] data_type Data type of the variable
@@ -241,7 +241,7 @@ ASTNode* create_var_decl_node(DataType data_type, char* var_name);
  * @brief Function that creates constant declaration node
  * 
  * Node type is set to AST_CONST_DECL, Constant declaration struct values are
- * set based on arguemnts (data_type, const_name) and expression pointer is set
+ * set based on arguments (data_type, const_name) and expression pointer is set
  * to default (NULL). Memory is allocated for const_name using strdup (must be freed later).
  * 
  * @param[in] data_type Data type of the constant
@@ -255,7 +255,7 @@ ASTNode* create_const_decl_node(DataType data_type, char* const_name);
  * @brief Function that creates block node
  * 
  * Node type is set to AST_BLOCK, Block struct values are
- * set to default (node_count = 0), memory is preallocated for
+ * set to default (node_count = 0), memory is pre-allocated for
  * DEFAULT_BLOCK_NODE_COUNT nodes (can be re-allocated later) and all
  * pointers are set to NULL.
  * 
@@ -268,7 +268,7 @@ ASTNode* create_block_node();
  * @brief Function that creates while node
  * 
  * Node type is set to AST_WHILE, While struct values are
- * set to default (elemebnt bind, experssion and block = NULL)
+ * set to default (element bind, expression and block = NULL)
  * 
  * @return Returns pointer to ASTNode or null if memory allocation failed
 */
@@ -279,7 +279,7 @@ ASTNode* create_while_node();
  * @brief Function that creates if node
  * 
  * Node type is set to AST_IF_ELSE, If else struct values are
- * set to default (elemebnt bind, experssion, if block and else block = NULL).
+ * set to default (element bind, expression, if block and else block = NULL).
  * 
  * @return Returns pointer to ASTNode or null if memory allocation failed
 */
@@ -291,7 +291,7 @@ ASTNode* create_if_node();
  * 
  * Node type is set to AST_FN_CALL, Function call struct values
  * are set to default, memory is pre-allocated for argument array and capacity
- * is set to DEFAULT_FN_ARG_CNT. Memory for function name is allocaetd using strdup
+ * is set to DEFAULT_FN_ARG_CNT. Memory for function name is allocated using strdup
  * (must be freed later). All pointers are set to NULL.
  * 
  * @param[in] fn_name Identifier of the function
@@ -321,7 +321,7 @@ ASTNode* create_arg_node();
  * 
  * This function deletes all nodes based on their types recursively,
  * function uses switch statement to switch between different node types
- * and frees coresponding structs within nodes based on the node type.
+ * and frees corresponding structs within nodes based on the node type.
  * 
  * @param[in, out] node pointer to a node
  * @return void
@@ -330,7 +330,7 @@ void free_ast_node(ASTNode* node);
 
 /**
  * @fn int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node)
- * @brief Function that appends declaratio node into program_node declaration array
+ * @brief Function that appends declaration node into program_node declaration array
  * 
  * Functions reallocates memory for pointer array of declarations inside program node
  * if declaration count reaches declaration capacity and appends new declaration into array.
@@ -343,7 +343,7 @@ int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node);
 
 /**
  * @fn int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node)
- * @brief Function that appends declaratio node into program_node declaration array
+ * @brief Function that appends declaration node into program_node declaration array
  * 
  * Functions reallocates memory for pointer array of parameters inside function declaration node
  * if parameter count reaches parameter capacity and appends new parameter into array.
