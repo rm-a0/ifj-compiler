@@ -122,53 +122,56 @@ const char* operator_type_to_string(OperatorType operator) {
 }
 
 /**
- * @brief Prints indentation spaces
+ * @brief Prints indentation spaces to the specified output file
  * @param level Indentation level
+ * @param output_file Pointer to the output file
  */
-void print_indent(int level) {
+void print_indent(int level, FILE* output_file) {
     for (int i = 0; i < level; ++i) {
-        printf("    ");  // 4 spaces per indent level
+        fprintf(output_file, "    ");  // 4 spaces per indent level
     }
 }
 
 /**
- * @brief Recursively prints the AST starting from the given node
+ * @brief Recursively prints the AST starting from the given node to the specified output file
  * @param node Pointer to the ASTNode to print
  * @param indent_level Current indentation level
+ * @param output_file Pointer to the output file
  */
-void print_ast(ASTNode* node, int indent_level) {
+void print_ast(ASTNode* node, int indent_level, FILE* output_file) {
     if (node == NULL) {
-        print_indent(indent_level);
-        printf("NULL\n");
+        print_indent(indent_level, output_file);
+        fprintf(output_file, "NULL\n");
         return;
     }
 
     switch (node->type) {
         case AST_BIN_OP:
-            print_indent(indent_level);
-            printf("Binary Operator: %s\n", operator_type_to_string(node->BinaryOperator.operator));
-            print_indent(indent_level);
-            printf("Left:\n");
-            print_ast(node->BinaryOperator.left, indent_level + 1);
-            print_indent(indent_level);
-            printf("Right:\n");
-            print_ast(node->BinaryOperator.right, indent_level + 1);
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Binary Operator: %s\n", operator_type_to_string(node->BinaryOperator.operator));
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Left:\n");
+            print_ast(node->BinaryOperator.left, indent_level + 1, output_file);
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Right:\n");
+            print_ast(node->BinaryOperator.right, indent_level + 1, output_file);
             break;
         case AST_IDENTIFIER:
-            print_indent(indent_level);
-            printf("Identifier: %s\n", node->Identifier.identifier);
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Identifier: %s\n", node->Identifier.identifier);
             break;
         case AST_INT:
-            print_indent(indent_level);
-            printf("Integer: %d\n", node->Integer.number);
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Integer: %d\n", node->Integer.number);
             break;
         // Add cases for other node types if needed
         default:
-            print_indent(indent_level);
-            printf("Unknown node type\n");
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Unknown node type\n");
             break;
     }
 }
+
 
 int main() {
     // Create identifier nodes for 'a', 'b', and 'c'
@@ -188,17 +191,26 @@ int main() {
     // Create the node for '(a + b * c) - 5'
     ASTNode* root_node = create_binary_operator_node(AST_MINUS, node_a_plus_b_mul_c, node_5);
 
-    // The AST for '(a + b * c) - 5' is now constructed with 'root_node' as the root
+    // Open the output file
+    FILE* output_file = fopen("testCG.out", "w");
+    if (output_file == NULL) {
+        perror("Failed to open testCG.out for writing");
+        exit(EXIT_FAILURE);
+    }
 
-    // Output a confirmation message
-    printf("AST for expression '(a + b * c) - 5' has been successfully created.\n");
+    // Output a confirmation message to the console
+    printf("AST for expression has been successfully created.\n");
 
-    // Print the AST
-    printf("Abstract Syntax Tree for '(a + b * c) - 5':\n");
-    print_ast(root_node, 0);
+    // Print the AST to the file
+    fprintf(output_file, "Abstract Syntax Tree for:\n");
+    print_ast(root_node, 0, output_file);
+
+    // Close the output file
+    fclose(output_file);
 
     // Clean up and free the allocated memory
     free_ast_node(root_node);
 
     return 0;
 }
+
