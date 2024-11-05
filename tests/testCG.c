@@ -208,6 +208,10 @@ int main() {
     // Close the output file
     fclose(output_file);
 
+    // Generator
+
+    // generate_code(ASTNode *root_node);
+
     // Clean up and free the allocated memory
     free_ast_node(root_node);
 
