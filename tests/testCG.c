@@ -1,92 +1,52 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../inc/ast.h"  // Include the header file containing ASTNode definitions
+#include "error.h"
+#include "ast.h"  // Include the header file containing ASTNode definitions
 // #include "../inc/generator.h"
 
 /**
- * @brief Creates an AST node for an integer (i32)
- * @param value The integer value to store in the node
- * @return Pointer to the created ASTNode
+ * @brief Function that appends an argument node to a function call node
+ *
+ * Reallocates memory for the pointer array of arguments inside the function call node
+ * if the argument count reaches the argument capacity and appends the new argument to the array.
+ *
+ * @param[in, out] fn_call_node Pointer to a function call node
+ * @param[in] arg_node Pointer to an argument node
+ * @return 0 if success, otherwise return 1
  */
-ASTNode* create_integer_node(int value) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (node == NULL) {
-        perror("Failed to allocate memory for integer node");
-        exit(EXIT_FAILURE);
+int append_arg_to_fn_call(ASTNode* fn_call_node, ASTNode* arg_node) {
+    if (fn_call_node->type != AST_FN_CALL) {
+        return 1; // Error: node is not a function call
     }
-    node->type = AST_INT;
-    node->Integer.number = value;
-    return node;
+    if (fn_call_node->FnCall.arg_count >= fn_call_node->FnCall.arg_capacity) {
+        int new_capacity = fn_call_node->FnCall.arg_capacity * 2;
+        ASTNode** new_args = realloc(fn_call_node->FnCall.args, sizeof(ASTNode*) * new_capacity);
+        if (new_args == NULL) {
+            return 1; // Allocation failed
+        }
+        fn_call_node->FnCall.args = new_args;
+        fn_call_node->FnCall.arg_capacity = new_capacity;
+    }
+    fn_call_node->FnCall.args[fn_call_node->FnCall.arg_count++] = arg_node;
+    return 0;
 }
 
 /**
- * @brief Creates an AST node for an identifier
- * @param name Name of the identifier
- * @return Pointer to the created ASTNode
+ * @brief Converts DataType enum to its string representation
+ * @param data_type The DataType enum value
+ * @return String representation of the data type
  */
-ASTNode* create_identifier_node(const char* name) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (node == NULL) {
-        perror("Failed to allocate memory for identifier node");
-        exit(EXIT_FAILURE);
+const char* data_type_to_string(DataType data_type) {
+    switch (data_type) {
+        case AST_I32: return "i32";
+        case AST_F64: return "f64";
+        case AST_U8:
+        case AST_SLICE: return "[]u8";
+        case AST_VOID: return "void";
+        // Add other data types as needed
+        default: return "UNKNOWN_TYPE";
     }
-    node->type = AST_IDENTIFIER;
-    node->Identifier.identifier = strdup(name);
-    if (node->Identifier.identifier == NULL) {
-        perror("Failed to allocate memory for identifier name");
-        free(node);
-        exit(EXIT_FAILURE);
-    }
-    return node;
-}
-
-/**
- * @brief Creates an AST node for a binary operator
- * @param operator Operator type (e.g., AST_PLUS, AST_MUL)
- * @param left Pointer to the left child node
- * @param right Pointer to the right child node
- * @return Pointer to the created ASTNode
- */
-ASTNode* create_binary_operator_node(OperatorType operator, ASTNode* left, ASTNode* right) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (node == NULL) {
-        perror("Failed to allocate memory for binary operator node");
-        exit(EXIT_FAILURE);
-    }
-    node->type = AST_BIN_OP;
-    node->BinaryOperator.operator = operator;
-    node->BinaryOperator.left = left;
-    node->BinaryOperator.right = right;
-    return node;
-}
-
-/**
- * @brief Recursively frees an AST node and its children
- * @param node Pointer to the ASTNode to free
- */
-void free_ast_node(ASTNode* node) {
-    if (node == NULL) {
-        return;
-    }
-
-    switch (node->type) {
-        case AST_BIN_OP:
-            free_ast_node(node->BinaryOperator.left);
-            free_ast_node(node->BinaryOperator.right);
-            break;
-        case AST_IDENTIFIER:
-            free(node->Identifier.identifier);
-            break;
-        case AST_INT:
-            // No dynamically allocated memory inside AST_INT nodes
-            break;
-        // Add cases for other node types if needed
-        default:
-            break;
-    }
-
-    free(node);
 }
 
 /**
@@ -146,50 +106,271 @@ void print_ast(ASTNode* node, int indent_level, FILE* output_file) {
     }
 
     switch (node->type) {
+        case AST_PROGRAM:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Program Node:\n");
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Has Prolog: %s\n", node->Program.has_prolog ? "Yes" : "No");
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Declaration Count: %d\n", node->Program.decl_count);
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Declarations:\n");
+            for (int i = 0; i < node->Program.decl_count; ++i) {
+                print_ast(node->Program.declarations[i], indent_level + 1, output_file);
+            }
+            break;
+
+        case AST_FN_DECL:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Function Declaration:\n");
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Function Name: %s\n", node->FnDecl.fn_name);
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Return Type: %s\n", data_type_to_string(node->FnDecl.return_type));
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Parameters (%d):\n", node->FnDecl.param_count);
+            for (int i = 0; i < node->FnDecl.param_count; ++i) {
+                print_ast(node->FnDecl.params[i], indent_level + 2, output_file);
+            }
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Function Body:\n");
+            print_ast(node->FnDecl.block, indent_level + 2, output_file);
+            break;
+
+        case AST_PARAM:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Parameter:\n");
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Data Type: %s\n", data_type_to_string(node->Param.data_type));
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Identifier: %s\n", node->Param.identifier);
+            break;
+
+        case AST_VAR_DECL:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Variable Declaration:\n");
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Variable Name: %s\n", node->VarDecl.var_name);
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Data Type: %s\n", data_type_to_string(node->VarDecl.data_type));
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Expression:\n");
+            print_ast(node->VarDecl.expression, indent_level + 2, output_file);
+            break;
+
+        case AST_CONST_DECL:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Constant Declaration:\n");
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Constant Name: %s\n", node->ConstDecl.const_name);
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Data Type: %s\n", data_type_to_string(node->ConstDecl.data_type));
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Expression:\n");
+            print_ast(node->ConstDecl.expression, indent_level + 2, output_file);
+            break;
+
+        case AST_BLOCK:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Block Node:\n");
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Node Count: %d\n", node->Block.node_count);
+            for (int i = 0; i < node->Block.node_count; ++i) {
+                print_ast(node->Block.nodes[i], indent_level + 1, output_file);
+            }
+            break;
+
+        case AST_WHILE:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "While Cycle:\n");
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Condition Expression:\n");
+            print_ast(node->WhileCycle.expression, indent_level + 2, output_file);
+            if (node->WhileCycle.element_bind) {
+                print_indent(indent_level + 1, output_file);
+                fprintf(output_file, "Element Bind: %s\n", node->WhileCycle.element_bind);
+            }
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Loop Body:\n");
+            print_ast(node->WhileCycle.block, indent_level + 2, output_file);
+            break;
+
+        case AST_IF_ELSE:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "If-Else Statement:\n");
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Condition Expression:\n");
+            print_ast(node->IfElse.expression, indent_level + 2, output_file);
+            if (node->IfElse.element_bind) {
+                print_indent(indent_level + 1, output_file);
+                fprintf(output_file, "Element Bind: %s\n", node->IfElse.element_bind);
+            }
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "If Block:\n");
+            print_ast(node->IfElse.if_block, indent_level + 2, output_file);
+            if (node->IfElse.else_block) {
+                print_indent(indent_level + 1, output_file);
+                fprintf(output_file, "Else Block:\n");
+                print_ast(node->IfElse.else_block, indent_level + 2, output_file);
+            }
+            break;
+
+        case AST_FN_CALL:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Function Call:\n");
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Function Name: %s\n", node->FnCall.fn_name);
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Arguments (%d):\n", node->FnCall.arg_count);
+            for (int i = 0; i < node->FnCall.arg_count; ++i) {
+                print_ast(node->FnCall.args[i], indent_level + 2, output_file);
+            }
+            break;
+
+        case AST_ARG:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Argument:\n");
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Expression:\n");
+            print_ast(node->Argument.expression, indent_level + 2, output_file);
+            break;
+
+        case AST_RETURN:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Return Statement:\n");
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Expression:\n");
+            print_ast(node->Return.expression, indent_level + 2, output_file);
+            break;
+
         case AST_BIN_OP:
             print_indent(indent_level, output_file);
             fprintf(output_file, "Binary Operator: %s\n", operator_type_to_string(node->BinaryOperator.operator));
-            print_indent(indent_level, output_file);
-            fprintf(output_file, "Left:\n");
-            print_ast(node->BinaryOperator.left, indent_level + 1, output_file);
-            print_indent(indent_level, output_file);
-            fprintf(output_file, "Right:\n");
-            print_ast(node->BinaryOperator.right, indent_level + 1, output_file);
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Left Operand:\n");
+            print_ast(node->BinaryOperator.left, indent_level + 2, output_file);
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Right Operand:\n");
+            print_ast(node->BinaryOperator.right, indent_level + 2, output_file);
             break;
-        case AST_IDENTIFIER:
+
+        case AST_FLOAT:
             print_indent(indent_level, output_file);
-            fprintf(output_file, "Identifier: %s\n", node->Identifier.identifier);
+            fprintf(output_file, "Float: %f\n", node->Float.number);
             break;
+
         case AST_INT:
             print_indent(indent_level, output_file);
             fprintf(output_file, "Integer: %d\n", node->Integer.number);
             break;
-        // Add cases for other node types if needed
+
+        case AST_STRING:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "String: \"%s\"\n", node->String.string);
+            break;
+
+        case AST_IDENTIFIER:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Identifier: %s\n", node->Identifier.identifier);
+            break;
+
+        case AST_EXPRESSION:
+            print_indent(indent_level, output_file);
+            fprintf(output_file, "Expression Node:\n");
+            print_indent(indent_level + 1, output_file);
+            fprintf(output_file, "Binary Operator:\n");
+            print_ast(node->Expression.binary_operator, indent_level + 2, output_file);
+            break;
+
         default:
             print_indent(indent_level, output_file);
-            fprintf(output_file, "Unknown node type\n");
+            fprintf(output_file, "Unknown node type: %d\n", node->type);
             break;
     }
 }
 
 
 int main() {
-    // Create identifier nodes for 'a', 'b', and 'c'
-    ASTNode* node_a = create_identifier_node("a");
-    ASTNode* node_b = create_identifier_node("b");
-    ASTNode* node_c = create_identifier_node("c");
+    // Create the root program node
+    ASTNode* program_node = create_program_node();
 
-    // Create integer node for '5'
-    ASTNode* node_5 = create_integer_node(5);
+    // Create the 'build' function declaration
+    ASTNode* build_fn = create_fn_decl_node("build");
+    build_fn->FnDecl.return_type = AST_SLICE;
 
-    // Create the node for 'b * c'
-    ASTNode* node_b_mul_c = create_binary_operator_node(AST_MUL, node_b, node_c);
+    // Create parameters 'x' and 'y' of type '[]u8'
+    ASTNode* param_x = create_param_node(AST_SLICE, "x");
+    ASTNode* param_y = create_param_node(AST_SLICE, "y");
+    append_param_to_fn(build_fn, param_x);
+    append_param_to_fn(build_fn, param_y);
 
-    // Create the node for 'a + (b * c)'
-    ASTNode* node_a_plus_b_mul_c = create_binary_operator_node(AST_PLUS, node_a, node_b_mul_c);
+    // Create the block for 'build' function
+    ASTNode* build_block = create_block_node();
+    build_fn->FnDecl.block = build_block;
 
-    // Create the node for '(a + b * c) - 5'
-    ASTNode* root_node = create_binary_operator_node(AST_MINUS, node_a_plus_b_mul_c, node_5);
+    // Build function body: const res = ifj.concat(x, y);
+    ASTNode* concat_call = create_fn_call_node("ifj.concat");
+    ASTNode* id_x = create_identifier_node("x");
+    ASTNode* id_y = create_identifier_node("y");
+    append_arg_to_fn_call(concat_call, id_x);
+    append_arg_to_fn_call(concat_call, id_y);
+
+    ASTNode* const_res = create_const_decl_node(AST_SLICE, "res");
+    const_res->ConstDecl.expression = concat_call;
+    append_node_to_block(build_block, const_res);
+
+    // Return statement: return res;
+    ASTNode* return_node = create_return_node();
+    return_node->Return.expression = create_identifier_node("res");
+    append_node_to_block(build_block, return_node);
+
+    // Add 'build' function to the program
+    append_decl_to_prog(program_node, build_fn);
+
+    // Create the 'main' function declaration
+    ASTNode* main_fn = create_fn_decl_node("main");
+    main_fn->FnDecl.return_type = AST_VOID;
+
+    // Create the block for 'main' function
+    ASTNode* main_block = create_block_node();
+    main_fn->FnDecl.block = main_block;
+
+    // Main function body:
+    // const a = ifj.string("ahoj ");
+    ASTNode* string_call_ahoj = create_fn_call_node("ifj.string");
+    ASTNode* str_ahoj = create_string_node("ahoj ");
+    append_arg_to_fn_call(string_call_ahoj, str_ahoj);
+
+    ASTNode* const_a = create_const_decl_node(AST_SLICE, "a");
+    const_a->ConstDecl.expression = string_call_ahoj;
+    append_node_to_block(main_block, const_a);
+
+    // var ct : []u8 = ifj.string("svete");
+    ASTNode* string_call_svete = create_fn_call_node("ifj.string");
+    ASTNode* str_svete = create_string_node("svete");
+    append_arg_to_fn_call(string_call_svete, str_svete);
+
+    ASTNode* var_ct = create_var_decl_node(AST_SLICE, "ct");
+    var_ct->VarDecl.expression = string_call_svete;
+    append_node_to_block(main_block, var_ct);
+
+    // ct = build(a, ct);
+    ASTNode* build_call = create_fn_call_node("build");
+    ASTNode* id_a = create_identifier_node("a");
+    ASTNode* id_ct = create_identifier_node("ct");
+    append_arg_to_fn_call(build_call, id_a);
+    append_arg_to_fn_call(build_call, id_ct);
+
+    ASTNode* assign_ct = create_binary_op_node(AST_EQU, create_identifier_node("ct"), build_call);
+    append_node_to_block(main_block, assign_ct);
+
+    // ifj.write(ct);
+    ASTNode* write_call = create_fn_call_node("ifj.write");
+    append_arg_to_fn_call(write_call, create_identifier_node("ct"));
+    append_node_to_block(main_block, write_call);
+
+    // Add 'main' function to the program
+    append_decl_to_prog(program_node, main_fn);
 
     // Open the output file
     FILE* output_file = fopen("testCG.out", "w");
@@ -198,23 +379,17 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // Output a confirmation message to the console
-    printf("AST for expression has been successfully created.\n");
-
-    // Print the AST to the file
-    fprintf(output_file, "Abstract Syntax Tree for:\n");
-    print_ast(root_node, 0, output_file);
+    // Print the AST to the output file
+    fprintf(output_file, "Abstract Syntax Tree for the provided Zig code:\n");
+    print_ast(program_node, 0, output_file);
 
     // Close the output file
     fclose(output_file);
 
-    // Generator
+    // Free the AST nodes
+    free_ast_node(program_node);
 
-    // generate_code(ASTNode *root_node);
-
-    // Clean up and free the allocated memory
-    free_ast_node(root_node);
+    printf("AST has been successfully created and written to testCG.out.\n");
 
     return 0;
 }
-
