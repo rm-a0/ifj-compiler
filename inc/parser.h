@@ -38,6 +38,8 @@ void advance_token(Token** token, Lexer* lexer);
 */
 int check_token(Token* token, TokenType expected_type, const char* expected_value);
 
+ASTNode* parse_expression(Lexer* lexer, Token** token);
+
 /**
  * @fn int parse_prolog(Lexer* lexer, Token** token)
  * @brief Parses prolog

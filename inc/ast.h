@@ -29,7 +29,8 @@ typedef enum {
     AST_FLOAT,          ///< Node for float
     AST_STRING,         ///< Node for stirg
     AST_IDENTIFIER,     ///< Node for identifier
-    AST_RETURN          ///< Node for return statement
+    AST_RETURN,         ///< Node for return statement
+    AST_EXPRESSION      ///< Node for expression
 } ASTNodeType;
 
 /**
@@ -169,6 +170,47 @@ struct ASTNode {
         } Expression;
     };
 };
+/**
+ * @fn ASTNode* create_identifier_node(char* identifier)
+ * @brief Function that creates an identifier node
+ * 
+ * Node type is set to AST_IDENTIFIER, and the Identifier struct's `identifier` field
+ * is set based on the argument. Memory is allocated for the identifier string using
+ * strdup (must be freed later).
+ * 
+ * @param[in] identifier The identifier string (e.g., variable name)
+ * @return Returns pointer to ASTNode or NULL if memory allocation failed
+ */
+ASTNode* create_identifier_node(char* identifier);
+
+/**
+ * @fn ASTNode* create_binary_op_node(int operator, ASTNode* left, ASTNode* right)
+ * @brief Function that creates a binary operator node
+ * 
+ * Node type is set to AST_BIN_OP, and the BinaryOperator struct's fields are set
+ * based on the arguments. The operator is mapped from the token type to the OperatorType enum.
+ * 
+ * @param[in] operator The operator token type (int)
+ * @param[in] left The left operand ASTNode
+ * @param[in] right The right operand ASTNode
+ * @return Returns pointer to ASTNode or NULL if memory allocation failed or if operator is invalid
+ */
+ASTNode* create_binary_op_node(int operator, ASTNode* left, ASTNode* right);
+
+/**
+ * @fn ASTNode* create_i32_node(int value)
+ * @brief Function that creates an integer literal node
+ * 
+ * Node type is set to AST_INT, and the Integer struct's `number` field
+ * is set based on the argument.
+ * 
+ * @param[in] value The integer value
+ * @return Returns pointer to ASTNode or NULL if memory allocation failed
+ */
+ASTNode* create_i32_node(int value);
+
+ASTNode* create_f64_node(double value);
+ASTNode* create_string_node(char* value);
 
 /**
  * @fn ASTNode* create_program_node()
