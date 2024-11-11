@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "error.h"
-#include "ast.h"  // Include the header file containing ASTNode definitions
-// #include "../inc/generator.h"
+#include "../inc/ast.h"  // Include the header file containing ASTNode definitions
+#include "../inc/generator.h"
+#include "../src/generator.c"
 
 /**
  * @brief Function that appends an argument node to a function call node
@@ -382,9 +383,10 @@ int main() {
     // Print the AST to the output file
     fprintf(output_file, "Abstract Syntax Tree for the provided Zig code:\n");
     print_ast(program_node, 0, output_file);
-
     // Close the output file
     fclose(output_file);
+
+    printf("Generovanie kódu ukončené hodnotou: %i\n",generate_code(program_node));
 
     // Free the AST nodes
     free_ast_node(program_node);
