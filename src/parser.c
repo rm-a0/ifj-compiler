@@ -206,6 +206,7 @@ ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
     }
     advance_token(token, lexer);
     if (!check_token(*token, TOKEN_COLON, NULL)) {
+        free_ast_node(parameter);
         return NULL;
     }
     advance_token(token, lexer);
@@ -235,6 +236,7 @@ ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
     }
     // If its not parenthesis or coma return NULL
     else if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+        free_ast_node(parameter);
         return NULL;
     }
 
