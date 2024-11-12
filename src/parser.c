@@ -428,10 +428,11 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                break;
             case TOKEN_IDENTIFIER: {
                 // Save name of the identifier
+                // What about built in fn?
                 char* identifier = strdup((*token)->value);
                 advance_token(token, lexer);
                 if (check_token(*token, TOKEN_ASSIGN, NULL)) {
-                    // parse assignment
+                    // parse expression
                 }
                 else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
                     ASTNode* fn_call_node = parse_fn_call(lexer, token, identifier);
