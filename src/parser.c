@@ -116,6 +116,7 @@ ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
     if (check_token(*token, TOKEN_COLON, NULL)) {
         advance_token(token, lexer);
         if (*token == NULL) {
+            free_ast_node(const_decl_node);
             return NULL;
         }
         // Based on token type assign data type of const decl node
@@ -129,13 +130,23 @@ ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
             case TOKEN_U8:
                 const_decl_node->ConstDecl.data_type = AST_U8;
                 break;
+            case TOKEN_SLICE:
+                advance_token(token, lexer);
+                if (!check_token(*token, TOKEN_U8, NULL)) {
+                    free_ast_node(const_decl_node);
+                    return NULL;
+                }
+                const_decl_node->ConstDecl.data_type = AST_SLICE;
+                break;
             default:
+                free_ast_node(const_decl_node);
                 return NULL; // Unexpected token type
                 break;
         }
         advance_token(token, lexer); // Advance for assign check
     }
     if (!check_token(*token, TOKEN_ASSIGN, NULL)) {
+        free_ast_node(const_decl_node);
         return NULL;
     }
     // Delete later, for now it accepts anything as expression untill it encounters semicolon
@@ -175,6 +186,14 @@ ASTNode* parse_var_decl(Lexer* lexer, Token** token) {
                 break;
             case TOKEN_U8:
                 var_decl_node->ConstDecl.data_type = AST_U8;
+                break;
+            case TOKEN_SLICE:
+                advance_token(token, lexer);
+                if (!check_token(*token, TOKEN_U8, NULL)) {
+                    free_ast_node(var_decl_node);
+                    return NULL;
+                }
+                var_decl_node->ConstDecl.data_type = AST_SLICE;
                 break;
             default:
                 free_ast_node(var_decl_node);
@@ -223,7 +242,14 @@ ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
         case TOKEN_U8:
             parameter->Param.data_type = AST_U8;
             break;
-        // add more
+        case TOKEN_SLICE:
+            advance_token(token, lexer);
+            if (!check_token(*token, TOKEN_U8, NULL)) {
+                free_ast_node(parameter);
+                return NULL;
+            }
+            parameter->Param.data_type = AST_SLICE;
+            break;
         default: // Unexpected token syntax error
             free_ast_node(parameter);
             return NULL;
