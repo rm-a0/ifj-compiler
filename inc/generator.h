@@ -8,6 +8,7 @@
 #define IFJ_COMPILER_GENERATOR_H
 #include "ast.h"
 #include "error.h"
+#include "generator_instructions.h"
 
 #include <stdio.h>
 #include <stdlib.h>
