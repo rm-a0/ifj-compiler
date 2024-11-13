@@ -3,6 +3,7 @@
  * @brief Implementation of function that handle nodes of AST
  * @authors Michal Repcik (xrepcim00)
 */
+#define _POSIX_C_SOURCE 200809L // Used for strdup(), optimize later
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,60 @@
 #define DEFAULT_FN_ARG_CNT          3   ///< Used for pre-allocating memory for argument array inside function declaration node
 #define DEFAULT_FN_PARAM_CNT        3   ///< Used for pre-allocating memory for parameter array inside function call node
 #define DEFAULT_BLOCK_NODE_CNT      5   ///< Used for pre-allocating memory for node array inside block
+
+// For testing purposes
+
+void print_ast(ASTNode* node, int depth) {
+    if (node == NULL) return;
+
+    for(int i = 0; i < depth; i++) printf("  "); // Indentation
+
+    switch(node->type) {
+        case AST_PROGRAM:
+            printf("Program\n");
+            // Iterate through declarations if applicable
+            break;
+        case AST_CONST_DECL:
+            printf("ConstDecl: %s\n", node->ConstDecl.const_name);
+            print_ast(node->ConstDecl.expression, depth + 1);
+            break;
+        case AST_VAR_DECL:
+            printf("VarDecl: %s\n", node->VarDecl.var_name);
+            print_ast(node->VarDecl.expression, depth + 1);
+            break;
+        case AST_FN_DECL:
+            printf("FnDecl: %s\n", node->FnDecl.fn_name);
+            // Print parameters and block
+            break;
+        case AST_IF_ELSE:
+            printf("IfElse\n");
+            print_ast(node->IfElse.expression, depth + 1);
+            print_ast(node->IfElse.if_block, depth + 1);
+            if (node->IfElse.else_block) {
+                printf("Else Block:\n");
+                print_ast(node->IfElse.else_block, depth + 2);
+            }
+            break;
+        case AST_WHILE:
+            printf("WhileCycle\n");
+            print_ast(node->WhileCycle.expression, depth + 1);
+            print_ast(node->WhileCycle.block, depth + 1);
+            break;
+        case AST_FN_CALL:
+            printf("FnCall: %s\n", node->FnCall.fn_name);
+            // Print arguments if applicable
+            break;
+        case AST_BLOCK:
+            printf("Block\n");
+            // Iterate through statements if applicable
+            break;
+        // Handle other AST node types similarly
+        default:
+            printf("Unknown AST Node\n");
+            break;
+    }
+}
+
 
 // Expression nodes
 
@@ -439,6 +494,7 @@ void free_ast_node(ASTNode* node) {
             if (node->String.string != NULL) {
                 free(node->String.string);
             }
+            break;
         case AST_PROGRAM:
             // Free all declarations recursively
             for (int i = 0; i < node->Program.decl_count; i++) {

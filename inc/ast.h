@@ -170,6 +170,9 @@ struct ASTNode {
         } Expression;
     };
 };
+
+void print_ast(ASTNode* node, int depth);
+
 /**
  * @fn ASTNode* create_identifier_node(char* identifier)
  * @brief Function that creates an identifier node

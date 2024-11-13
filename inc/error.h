@@ -1,8 +1,8 @@
 /**
  * @file error.h
  * @brief Header file containing return values for different error types
- * @authors Michal Repcik (xrepcim00)
-*/
+ * @authors ...
+ */
 
 #ifndef ERROR_H
 #define ERROR_H
@@ -10,7 +10,7 @@
 /**
  * @enum ErrorType
  * @brief Constants for different error types.
-*/
+ */
 typedef enum { 
     NO_ERROR = 0,                           ///< No error occurred.
     LEXICAL_ERROR = 1,                      ///< Error occurred during lexical analysis.
@@ -29,23 +29,35 @@ typedef enum {
 /**
  * @var ErrorType error_tracker
  * @brief Global variable across all files to keep track of different error types
-*/
+ */
 extern ErrorType error_tracker;
 
 /**
- * @fn set_error(ErrorType error)
+ * @fn void set_error(ErrorType error)
  * @brief Sets global variable error_tracker to desired value
  * 
- * Error is set only is the error_tracker is set to NO_ERROR to
- * prevent overwriting previous errros.
+ * Error is set only if the error_tracker is set to NO_ERROR to
+ * prevent overwriting previous errors.
  * 
- * @param[in] error type of error to be set
+ * @param[in] error Type of error to be set
  * @return void
- * 
- * @note This function should set internal errors in the lowest
- * level possible so that there wont be a need to constantly check
- * and set errors in more abstract functions.
-*/
+ */
 void set_error(ErrorType error);
+
+/**
+ * @fn ErrorType get_error(void)
+ * @brief Retrieves the current error state.
+ * 
+ * @return The current ErrorType.
+ */
+ErrorType get_error(void);
+
+/**
+ * @fn void reset_error(void)
+ * @brief Resets the error state to NO_ERROR.
+ * 
+ * @return void
+ */
+void reset_error(void);
 
 #endif // ERROR_H

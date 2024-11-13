@@ -4,7 +4,10 @@
  * @authors Michal Repcik (xrepcim00)
 */
 
+#define _POSIX_C_SOURCE 200809L // Used for strdup(), optimize later
 #include <stdlib.h>
+#include <string.h>
+
 #include "parser.h"
 #include "lexer.h"
 #include "ast.h"
@@ -39,7 +42,7 @@ int check_token(Token* token, TokenType expected_type, const char* expected_valu
     return 1;   // Return true
 }
 
-// Expression tree funcionality
+// ---------- Expression tree funcionality ----------
 
 // Define operator precedence
 int get_precedence(TokenType op) {
@@ -65,6 +68,7 @@ int get_precedence(TokenType op) {
 
 // Define operator associativity (left-to-right)
 int is_left_associative(TokenType op) {
+    (void)op;
     return 1; // Assuming all operators are left-associative
 }
 
@@ -271,9 +275,8 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
     return expression_node;
 }
 
+// ---------- End Expression tree funcionality ----------
 
-
-//
 
 int parse_prolog(Lexer* lexer, Token** token) {
     advance_token(token, lexer);
