@@ -99,6 +99,8 @@ int parse_element_bind(Lexer* lexer, Token** token, ASTNode* node) {
     if (!check_token(*token, TOKEN_PIPE, NULL)) {
         return 1;
     }
+    // Advance token to get next token before checking for block
+    advance_token(token, lexer);
     // Parse succeeded
     return 0;
 }
@@ -115,7 +117,14 @@ ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
     // Optional data type
     if (check_token(*token, TOKEN_COLON, NULL)) {
         advance_token(token, lexer);
-        if (*token == NULL) {
+
+        // Check for question mark (nullable data type)
+        if (check_token(*token, TOKEN_Q_MARK, NULL)) {
+            const_decl_node->ConstDecl.nullable = true;
+            advance_token(token, lexer);
+        }
+
+        if (token == NULL || *token == NULL) {
             free_ast_node(const_decl_node);
             return NULL;
         }
@@ -172,7 +181,14 @@ ASTNode* parse_var_decl(Lexer* lexer, Token** token) {
     // Optional data type
     if (check_token(*token, TOKEN_COLON, NULL)) {
         advance_token(token, lexer);
-        if (*token == NULL) {
+
+        // Check for nullable data type
+        if (check_token(*token, TOKEN_Q_MARK, NULL)) {
+            var_decl_node->VarDecl.nullable = true;
+            advance_token(token, lexer);
+        }
+
+        if (token == NULL || *token == NULL) {
             free_ast_node(var_decl_node);
             return NULL;
         }
@@ -229,9 +245,18 @@ ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
         return NULL;
     }
     advance_token(token, lexer);
-    // check for null pointer before acessing token type
-    if (*token == NULL)
+
+    // Check for nullable fn parameter
+    if (check_token(*token, TOKEN_Q_MARK, NULL)) {
+        parameter->Param.nullable = true;
+        advance_token(token, lexer);
+    }
+
+    // Check for null pointer before acessing token type
+    if (token == NULL || *token == NULL) {
+        free_ast_node(parameter);
         return NULL;
+    }
     switch ((*token)->token_type) {
         case TOKEN_I32:
             parameter->Param.data_type = AST_I32;
@@ -308,6 +333,7 @@ ASTNode* parse_if_else(Lexer* lexer, Token** token) {
     advance_token(token, lexer);
     if (check_token(*token, TOKEN_ELSE, NULL)) {
         // Parse else block
+        advance_token(token, lexer);
         ASTNode* else_block = parse_block(lexer, token);
         if (else_block == NULL) {
             free_ast_node(if_else_node);
@@ -371,7 +397,6 @@ ASTNode* parse_fn_call(Lexer* lexer, Token** token, char* identifier) {
 }
 
 ASTNode* parse_block(Lexer* lexer, Token** token) {
-    advance_token(token, lexer);
     if (!check_token(*token, TOKEN_L_BRACE, NULL)) {
         return NULL;
     }
@@ -533,8 +558,15 @@ ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
         }
     }
     advance_token(token, lexer);
+
+    // Check for nullable data type
+    if (check_token(*token, TOKEN_Q_MARK, NULL)) {
+        fn_decl_node->FnDecl.nullable = true;
+        advance_token(token, lexer);
+    }
+
     // check for NULL pointer to prevent SEGFAULT
-    if (*token == NULL) {
+    if (token == NULL || *token == NULL) {
         free_ast_node(fn_decl_node);
         return NULL;
     }
@@ -560,6 +592,7 @@ ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
     }
 
     // Parse block
+    advance_token(token, lexer);
     ASTNode* block_node = parse_block(lexer, token);
     if (block_node == NULL) {
         free_ast_node(fn_decl_node);

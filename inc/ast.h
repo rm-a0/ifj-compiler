@@ -86,22 +86,26 @@ struct ASTNode {
             int param_capacity;     ///< Number of allocated pointers to parameter nodes
             ASTNode** params;       ///< Array of pointers to function parameters
             ASTNode* block;         ///< Pointer to node encapsulating content of the function
+            bool nullable;          ///< Flag if the function return type is nullable
             DataType return_type;   ///< Return type
         } FnDecl;
 
         struct {
             DataType data_type;     ///< Expected data type
+            bool nullable;          ///< Flag if the parameter is nullable
             char* identifier;       ///< Name of varaible used in function
         } Param;
 
         struct {
             char* var_name;         ///< Variable name
+            bool nullable;          ///< Flag if the variable is nullable
             DataType data_type;     ///< Data type (optional)
             ASTNode* expression;    ///< Expression/identifier/number
         } VarDecl;
 
         struct {
             char* const_name;       ///< Constant name
+            bool nullable;          ///< Flag if the constant is nullable
             DataType data_type;     ///< Data type (optional)
             ASTNode* expression;    ///< Expression/identifier/number
         } ConstDecl;

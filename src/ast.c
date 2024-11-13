@@ -80,6 +80,7 @@ ASTNode* create_fn_decl_node(char* fn_name) {
     }
 
     node->FnDecl.block = NULL;
+    node->FnDecl.nullable = false;
     node->FnDecl.return_type = AST_UNSPECIFIED; // Not specified when creating node
 
     return node;
@@ -94,6 +95,7 @@ ASTNode* create_param_node(DataType data_type, char* identifier) {
     }
 
     node->type = AST_PARAM;
+    node->Param.nullable = false;
     node->Param.data_type = data_type;
     node->Param.identifier = strdup(identifier);
     if (node->Param.identifier == NULL) {
@@ -130,6 +132,7 @@ ASTNode* create_var_decl_node(DataType data_type, char* var_name) {
     node->type = AST_VAR_DECL;
     node->VarDecl.data_type = data_type;
     node->VarDecl.expression = NULL;
+    node->VarDecl.nullable = false;
     node->VarDecl.var_name = strdup(var_name);
     if (node->VarDecl.var_name == NULL) {
         set_error(INTERNAL_ERROR);
@@ -152,6 +155,7 @@ ASTNode* create_const_decl_node(DataType data_type, char* const_name) {
     node->type = AST_CONST_DECL;
     node->ConstDecl.data_type = data_type;
     node->ConstDecl.expression = NULL;
+    node->ConstDecl.nullable = false;
     node->ConstDecl.const_name = strdup(const_name);
     if (node->VarDecl.var_name == NULL) {
         set_error(INTERNAL_ERROR);
