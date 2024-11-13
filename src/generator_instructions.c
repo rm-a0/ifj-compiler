@@ -1,6 +1,6 @@
 /**
  * @file parser.c
- * @brief Implementation of a generator.
+ * @brief Implementation of a generator_instruction.
  * @authors Martin Kandera (xkande00)
 */
 
@@ -25,7 +25,7 @@ void pop_frame(){
     printf("POPFRAME\n");
 }
 void def_var (const char* var){
-    printf("DEFVAR LF@%s", var);
+    printf("DEFVAR LF@%s\n", var);
 }
 void move(const char* var, const char* symb){
     printf("MOVE LF@%s %s\n", var, symb);
