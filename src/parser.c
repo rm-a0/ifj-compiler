@@ -6,6 +6,51 @@
 #include "error.h"
 #include "parser.h"
 
+const char* tok_name[] = {
+    "INVALID",              ///< Constant for invalid tokens.
+    "TOKEN_EOF",            ///< Constant for end of file tokens.
+    "TOKEN_CONST",          ///< Constant for 'const' keyword.
+    "TOKEN_ELSE",           ///< Constant for 'else' keyword.
+    "TOKEN_FN",             ///< Constant for 'fn' keyword.
+    "TOKEN_IF",             ///< Constant for 'if' keyword.
+    "TOKEN_I32",            ///< Constant for 'i32' keyword.
+    "TOKEN_F64",            ///< Constant for 'f64' keyword.
+    "TOKEN_NULL",           ///< Constant for 'null' keyword.
+    "TOKEN_PUB",            ///< Constant for 'pub' keyword.
+    "TOKEN_RETURN",         ///< Constant for 'return' keyword.
+    "TOKEN_U8",             ///< Constant for 'u8' keyword.
+    "TOKEN_VAR",            ///< Constant for 'var' keyword.
+    "TOKEN_VOID",           ///< Constant for 'void' keyword.
+    "TOKEN_WHILE",          ///< Constant for 'while' keyword.
+    "TOKEN_IDENTIFIER",     ///< Constant for identifier.
+    "TOKEN_STRING",         ///< Constant for string.
+    "TOKEN_INTEGER",        ///< Constant for integer (whole number).
+    "TOKEN_FLOAT",          ///< Constant for float (decimal number).
+    "TOKEN_SLICE",          ///< Constant for slice '[]'.
+    "TOKEN_L_PAREN",        ///< Constant for '(' character.
+    "TOKEN_R_PAREN",        ///< Constant for ')' character.
+    "TOKEN_L_BRACE",        ///< Constant for '{' character.
+    "TOKEN_R_BRACE",        ///< Constant for '}' character.
+    "TOKEN_DOT",            ///< Constant for '.' character.
+    "TOKEN_COMMA",          ///< Constant for ',' character.
+    "TOKEN_COLON",          ///< Constant for ':' character.
+    "TOKEN_SEMICOLON",      ///< Constant for ';' character.
+    "TOKEN_PIPE",           ///< Constant for '|' character.
+    "TOKEN_PLUS",           ///< Constant for '+' character.
+    "TOKEN_MINUS",          ///< Constant for '-' character.
+    "TOKEN_MULT",           ///< Constant for '*' character.
+    "TOKEN_DIV",            ///< Constant for '/' character.
+    "TOKEN_ASSIGN",         ///< Constant for '=' character.
+    "TOKEN_Q_MARK",         ///< Constant for '?' character.
+    "TOKEN_LESS",           ///< Constant for '<' character.
+    "TOKEN_GREATER",        ///< Constant for '>' character.
+    "TOKEN_EXCM",           ///< Constant for '!' character.
+    "TOKEN_LESS_EQU",       ///< Constant for '<=' operator.
+    "TOKEN_GREATER_EQU",    ///< Constant for '>=' operator.
+    "TOKEN_NOT_EQU",        ///< Constant for '!=' operator.
+    "TOKEN_EQU",            ///< Constant for '==' operator.
+    "TOKEN_IMPORT"          ///< Constant for '@import' directive.
+};
 void advance_token(Token** token, Lexer* lexer) {
     if (token && *token) {
         free_token(*token);
@@ -13,6 +58,9 @@ void advance_token(Token** token, Lexer* lexer) {
     *token = get_token(lexer);
     if (*token == NULL) {
         set_error(LEXICAL_ERROR);
+    }
+    else {
+        printf("TokenType: %s\n", tok_name[(*token)->token_type]);
     }
 }
 
@@ -25,7 +73,6 @@ int check_token(Token* token, TokenType expected_type, const char* expected_valu
     }
     if (expected_value != NULL) {
         if (token->value == NULL || strcmp(token->value, expected_value) != 0) {
-            set_error(SYNTAX_ERROR); // Set error to syntax error if value is different then expected
             return 0;   // Token value is different from expected value
         }
     }
@@ -33,6 +80,13 @@ int check_token(Token* token, TokenType expected_type, const char* expected_valu
 }
 
 int parse_prolog(Lexer* lexer, Token** token) {
+    if (!check_token(*token, TOKEN_CONST, NULL)) {
+        return 0;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_IDENTIFIER, "ifj")) {
+        return 0;
+    }
     advance_token(token, lexer);
     if (!check_token(*token, TOKEN_ASSIGN, NULL)) {
         return 0;
@@ -106,6 +160,7 @@ int parse_element_bind(Lexer* lexer, Token** token, ASTNode* node) {
 }
 
 ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
+    advance_token(token, lexer);
     if (!check_token(*token, TOKEN_IDENTIFIER, NULL)) {
         return NULL;
     }
@@ -445,8 +500,6 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
             }
                 break;
             case TOKEN_CONST: {
-                // Since parse const checks for identifier we must advnace token
-                advance_token(token, lexer);
                 ASTNode* const_node = parse_const_decl(lexer, token);
                 if (const_node == NULL) {
                     free_ast_node(block_node);
@@ -610,44 +663,29 @@ ASTNode* parse_tokens(Lexer* lexer) {
     }
     
     // Prolog must be at the start so we check it first?
-    //if (!parse_prolog(lexer, &token)) {
-    //    free_token(token):
-    //    return NULL;
-    //}
+    if (!parse_prolog(lexer, &token)) {
+        free_token(token);
+        set_error(SYNTAX_ERROR);
+        return NULL;
+    }
+    advance_token(token, lexer);
     ASTNode* program_node = create_program_node();  // Create root (program node)
     // Loop until the token is EOF
     while (!check_token(token, TOKEN_EOF, NULL)) {
         // CONST
         if (check_token(token, TOKEN_CONST, NULL)) {
-            advance_token(&token, lexer);
-            // PROLOG
-            if (check_token(token, TOKEN_IDENTIFIER, "ifj")) {
-                // Check if prolog is valid
-                if (parse_prolog(lexer, &token)) {
-                    program_node->Program.has_prolog = true;
-                }
-                else {
+            // Check if constant declaration is valid
+            ASTNode* const_decl = parse_const_decl(lexer, &token);
+            if (const_decl != NULL) {
+                // Append variable declaration into program node array
+                if (append_decl_to_prog(program_node, const_decl) != 0) {
                     goto error;
                 }
             }
-            // CONST_DECL
-            else if (check_token(token, TOKEN_IDENTIFIER, NULL)) {
-                // Check if constant declaration is valid
-                ASTNode* const_decl = parse_const_decl(lexer, &token);
-                if (const_decl != NULL) {
-                    // Append variable declaration into program node array
-                    if (append_decl_to_prog(program_node, const_decl) != 0) {
-                        goto error;
-                    }
-                }
-                else {
-                    goto error;
-                }
-            }
-            // SYNTAX ERROR
             else {
                 goto error;
             }
+ 
         }
         // VAR_DECL
         else if (check_token(token, TOKEN_VAR, NULL)) {
