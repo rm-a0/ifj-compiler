@@ -51,6 +51,7 @@ const char* tok_name[] = {
     "TOKEN_EQU",            ///< Constant for '==' operator.
     "TOKEN_IMPORT"          ///< Constant for '@import' directive.
 };
+
 void advance_token(Token** token, Lexer* lexer) {
     if (token && *token) {
         free_token(*token);
@@ -60,6 +61,7 @@ void advance_token(Token** token, Lexer* lexer) {
         set_error(LEXICAL_ERROR);
     }
     else {
+        // delete later
         printf("TokenType: %s\n", tok_name[(*token)->token_type]);
     }
 }
@@ -637,6 +639,14 @@ ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
         case TOKEN_U8:
             fn_decl_node->FnDecl.return_type = AST_U8;
             break;
+        case TOKEN_SLICE:
+            advance_token(token, lexer);
+            if (!check_token(*token, TOKEN_U8, NULL)) {
+                free_ast_node(fn_decl_node);
+                return NULL;
+            }
+            fn_decl_node->FnDecl.return_type = AST_SLICE;
+            break;
         // add more
         default: // Unexpected token syntax error
             free_ast_node(fn_decl_node);
@@ -668,7 +678,7 @@ ASTNode* parse_tokens(Lexer* lexer) {
         set_error(SYNTAX_ERROR);
         return NULL;
     }
-    advance_token(token, lexer);
+    advance_token(&token, lexer);
     ASTNode* program_node = create_program_node();  // Create root (program node)
     // Loop until the token is EOF
     while (!check_token(token, TOKEN_EOF, NULL)) {
