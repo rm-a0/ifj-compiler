@@ -74,7 +74,6 @@ struct ASTNode {
     ASTNodeType type;
     union {
         struct {
-            bool has_prolog;        ///< Flag for prolog (@import)
             int decl_capacity;      ///< Number of allocated pointers to declaration nodes
             int decl_count;         ///< Number of top level declarations
             ASTNode** declarations; ///< Top level declaration (fn, var, const)

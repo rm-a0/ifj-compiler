@@ -24,7 +24,6 @@ ASTNode* create_program_node() {
     }
 
     node->type = AST_PROGRAM;
-    node->Program.has_prolog = false;
     node->Program.decl_count = 0;
 
     // Allocate meory for default size (can be reallocated later)
