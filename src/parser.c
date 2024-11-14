@@ -453,6 +453,46 @@ ASTNode* parse_fn_call(Lexer* lexer, Token** token, char* identifier) {
     return fn_call;
 }
 
+ASTNode* parse_builtin_fn_call(Lexer* lexer, Token** token, char* identifier) {
+    if (strcmp(identifier, "ifj") != 0) {
+        return NULL;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_IDENTIFIER, NULL)) {
+        return NULL;
+    }
+    // Concat ifj, dot and new id
+    int new_len = 3 + strlen((*token)->value) + 1 + 1; // 'ifj' + '.' + id + null terminator
+    char* new_id = malloc(new_len*sizeof(char));
+    if (new_id == NULL) {
+        return NULL;
+    }
+    strcpy(new_id, identifier);
+    strcat(new_id, ".");
+    strcat(new_id, (*token)->value);
+    
+    ASTNode* builtin_fn_call = create_fn_call_node(new_id);
+    free(new_id); // we dont need the new id anymore
+    if (builtin_fn_call == NULL) {
+        return NULL;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_L_PAREN, NULL)) {
+        free(builtin_fn_call);
+        return NULL;
+    }
+    // parse expression
+    while (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+        advance_token(token, lexer);
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
+        free_ast_node(builtin_fn_call);
+        return NULL;
+    }
+    return builtin_fn_call;
+}
+
 ASTNode* parse_block(Lexer* lexer, Token** token) {
     if (!check_token(*token, TOKEN_L_BRACE, NULL)) {
         return NULL;
@@ -550,6 +590,20 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                     if (append_node_to_block(block_node, fn_call_node) != 0) {
                         free(identifier);
                         free_ast_node(fn_call_node);
+                        free_ast_node(block_node);
+                        return NULL;
+                    }
+                }
+                else if (check_token(*token, TOKEN_DOT, NULL)) {
+                    ASTNode* builtin_fn_call = parse_builtin_fn_call(lexer, token, identifier);
+                    if (builtin_fn_call == NULL) {
+                        free(identifier);
+                        free_ast_node(block_node);
+                        return NULL;
+                    }
+                    if (append_node_to_block(block_node, builtin_fn_call) != 0) {
+                        free(identifier);
+                        free_ast_node(builtin_fn_call);
                         free_ast_node(block_node);
                         return NULL;
                     }

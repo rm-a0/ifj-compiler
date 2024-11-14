@@ -130,7 +130,6 @@ struct ASTNode {
 
         struct {
             char* fn_name;          ///< Function name
-            bool is_builtin;        ///< FLag for builtin function
             int arg_count;          ///< Number of arguments
             int arg_capacity;       ///< Number of allocated pointers to function arguments
             ASTNode** args;         ///< Array of pointers to function arguments

@@ -244,7 +244,6 @@ ASTNode* create_fn_call_node(char* fn_name) {
     }
 
     node->FnCall.arg_count = 0;
-    node->FnCall.is_builtin = false;
     // Allocate memory for default arguemnt count (can be re-allocated later)
     node->FnCall.arg_capacity = DEFAULT_FN_ARG_CNT;
     node->FnCall.args = malloc(DEFAULT_FN_ARG_CNT * sizeof(ASTNode*));
