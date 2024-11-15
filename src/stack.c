@@ -1,107 +1,155 @@
+#include <stdlib.h>
+#include <string.h>
+#include "stack.h"
+#include "symtable.h"
+
 /**
- * @file stack.c
- * @brief Implementation of stack data structure
- * @authors Alex Marinica (xmarina00)
-*/
+ * @brief Resizes the RootStack by doubling its capacity.
+ * @param rootStack Pointer to the RootStack to resize.
+ */
+void resize_root_stack(RootStack *rootStack) {
+    rootStack->capacity *= 2;
+    rootStack->functionNames = realloc(rootStack->functionNames, rootStack->capacity * sizeof(char *));
+    rootStack->functions = realloc(rootStack->functions, rootStack->capacity * sizeof(ScopeStack *));
+}
+
+/**
+ * @brief Resizes the ScopeStack by doubling its capacity.
+ * @param scopeStack Pointer to the ScopeStack to resize.
+ */
+void resize_scope_stack(ScopeStack *scopeStack) {
+    scopeStack->capacity *= 2;
+    scopeStack->frames = realloc(scopeStack->frames, scopeStack->capacity * sizeof(Frame *));
+}
+
+/**
+ * @brief Initializes the RootStack for global function management.
+ * @return Pointer to the initialized RootStack, or NULL if memory allocation fails.
+ */
+RootStack *init_root_stack() {
+    RootStack *root = malloc(sizeof(RootStack));
+    if (root) {
+        root->functionNames = malloc(10 * sizeof(char *));
+        root->functions = malloc(10 * sizeof(ScopeStack *));
+        root->functionCount = 0;
+        root->capacity = 10;
+    }
+    return root;
+}
+
+/**
+ * @brief Adds a new function ScopeStack to the RootStack.
+ * @param rootStack Pointer to the RootStack where the function will be added.
+ * @param functionName Name of the function to add.
+ */
+void add_function(RootStack *rootStack, const char *functionName) {
+    if (rootStack->functionCount >= rootStack->capacity) {
+        resize_root_stack(rootStack); // Resize if capacity is reached
+    }
+    rootStack->functionNames[rootStack->functionCount] = strdup(functionName);
+    rootStack->functions[rootStack->functionCount] = init_scope_stack();
+    rootStack->functionCount++;
+}
+
+/**
+ * @brief Retrieves the ScopeStack of a specific function by its name.
+ * @param rootStack Pointer to the RootStack.
+ * @param functionName Name of the function to retrieve.
+ * @return Pointer to the ScopeStack of the specified function, or NULL if not found.
+ */
+ScopeStack *get_function_stack(RootStack *rootStack, const char *functionName) {
+    for (int i = 0; i < rootStack->functionCount; i++) {
+        if (strcmp(rootStack->functionNames[i], functionName) == 0) {
+            return rootStack->functions[i];
+        }
+    }
+    return NULL; // Not found
+}
+
+/**
+ * @brief Initializes a new ScopeStack for managing frames within a function.
+ * @return Pointer to the initialized ScopeStack, or NULL if memory allocation fails.
+ */
+ScopeStack *init_scope_stack() {
+    ScopeStack *scopeStack = malloc(sizeof(ScopeStack));
+    if (scopeStack) {
+        scopeStack->frames = malloc(10 * sizeof(Frame *));
+        scopeStack->top = -1;
+        scopeStack->capacity = 10;
+    }
+    return scopeStack;
+}
+
+/**
+ * @brief Pushes a new frame onto the ScopeStack, resizing if needed.
+ * @param scopeStack Pointer to the ScopeStack where the frame will be pushed.
+ */
+void push_frame(ScopeStack *scopeStack, FrameType type) {
+    if (scopeStack->top + 1 >= scopeStack->capacity) {
+        resize_scope_stack(scopeStack); // Resize if capacity is reached
+    }
+    Frame *frame = init_frame();
+    frame->type = type;  // Set frame type
+    scopeStack->frames[++scopeStack->top] = frame;
+}
+
+/**
+ * @brief Removes the top frame from the ScopeStack.
+ * @param scopeStack Pointer to the ScopeStack to pop from.
+ */
+void pop_frame(ScopeStack *scopeStack) {
+    if (scopeStack->top >= 0) {
+        free(scopeStack->frames[scopeStack->top--]);
+    }
+}
+
+/**
+ * @brief Retrieves the top frame of the ScopeStack without removing it.
+ * @param scopeStack Pointer to the ScopeStack.
+ * @return Pointer to the top Frame, or NULL if the stack is empty.
+ */
+Frame *top_frame(ScopeStack *scopeStack) {
+    if (scopeStack->top >= 0) {
+        return scopeStack->frames[scopeStack->top];
+    }
+    return NULL;
+}
+
+/**
+ * @brief Initializes a Frame with a new symbol table.
+ * @return Pointer to the initialized Frame, or NULL if memory allocation fails.
+ */
+Frame *init_frame() {
+    Frame *frame = malloc(sizeof(Frame));
+    if (frame) {
+        frame->symbolTable = init_symbol_table();
+    }
+    return frame;
+}
 
 #include <stdio.h>
-#include <limits.h>
-#include "stack.h"
-#include "error.h"
 
-#define INITIAL_CAPACITY 16
-
-StackPtr init_stack() {
-    // Allocate memory for the stack structure
-    StackPtr stack = (StackPtr)malloc(sizeof(struct Stack));
-    
-    // Check if memory allocation for the stack failed
-    if (stack == NULL) {
-        fprintf(stderr, "Failed to allocate memory for stack\n");
-        exit(INTERNAL_ERROR);
-    }
-    
-    // Allocate memory for the stack's internal array with initial capacity
-    stack->arr = (int*)malloc(INITIAL_CAPACITY * sizeof(int));
-
-    // Check if memory allocation for the stack array failed
-    if (stack->arr == NULL) {
-        free(stack); // Free the stack structure before exiting
-        fprintf(stderr, "Failed to allocate memory for stack array\n");
-        exit(INTERNAL_ERROR);
-    }
-
-    // Initialize stack properties
-    stack->top = -1;                 // Stack is initially empty
-    stack->capacity = INITIAL_CAPACITY; // Set initial capacity
-    return stack;
-}
-
-void resize(StackPtr stack) {
-    if (stack != NULL) {
-        
-        // Check for overflow: avoid doubling capacity if it would exceed INT_MAX
-        if (stack->capacity > (INT_MAX / 2)) {
-            fprintf(stderr, "Maximum stack capacity reached\n");
-            exit(INTERNAL_ERROR);
+/**
+ * @brief Prints the contents of a function's ScopeStack for debugging.
+ * 
+ * @param scopeStack Pointer to the ScopeStack to print.
+ */
+void print_scope_stack(ScopeStack *scopeStack) {
+    for (int i = 0; i <= scopeStack->top; i++) {
+        Frame *frame = scopeStack->frames[i];
+        printf("Frame %d: Type = ", i);
+        if (frame->type == IF_COND_STATEMENT) {
+            printf("IF_COND_STATEMENT\n");
+        } else if (frame->type == WHILE_STATEMENT) {
+            printf("WHILE_STATEMENT\n");
         }
-
-        // Double the current capacity
-        stack->capacity *= 2;
-
-        // Attempt to reallocate memory for the array with the new capacity
-        int *newArr = (int*)realloc(stack->arr, stack->capacity * sizeof(int));
-        
-        // Check if reallocation failed
-        if (newArr == NULL) {
-            fprintf(stderr, "Memory re-allocation failed\n");
-            exit(INTERNAL_ERROR);
-        }
-
-        // Update the array pointer to the newly allocated memory
-        stack->arr = newArr;
+        print_symbol_table(frame->symbolTable);
     }
 }
 
-bool is_empty(int topIndex) {
-    // Returns true if topIndex is -1, indicating no elements in the stack
-    return (topIndex == -1 ? true : false);
-}
-
-bool is_full(StackPtr stack) {
-    // Returns true if top index is one less than the capacity
-    return (stack->top + 1 == stack->capacity ? true : false);
-}
-
-void push(StackPtr stack, int value) {
-    if (stack != NULL) {
-        // If stack is full, resize to double its capacity
-        if (is_full(stack)) {
-            resize(stack);
-        }
-
-        // Increment top index and add the value to the new top position
-        stack->arr[++stack->top] = value;
+void print_root_stack(RootStack *rootStack) {
+    for (int i = 0; i < rootStack->functionCount; i++) {
+        printf("Function: %s\n", rootStack->functionNames[i]);
+        print_scope_stack(rootStack->functions[i]);
     }
-}
-
-void pop(StackPtr stack) {
-    // Only decrement top index if stack is not empty
-    if (stack != NULL && stack->top != -1) {
-        stack->top -= 1;
-    }
-}
-
-int top(StackPtr stack) {
-    // Check if stack is empty; return INTERNAL_ERROR if so, else return top element
-    return (is_empty(stack->top) ? INTERNAL_ERROR : stack->arr[stack->top]);
-}
-
-int free_resources(StackPtr stack) {
-    // Free the array holding the stack elements
-    free(stack->arr);
-    
-    // Free the stack structure itself
-    free(stack);
-    return 0;
 }

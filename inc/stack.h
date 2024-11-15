@@ -1,89 +1,110 @@
-/**
- * @file stack.h
- * @brief Header file for stack.c
- * @authors Alex Marinica (xmarina00)
-*/
+#ifndef STACK_H
+#define STACK_H
 
-#include <stdbool.h>
+#include "symtable.h"
+
+typedef enum {
+    IF_COND_STATEMENT,
+    WHILE_STATEMENT
+} FrameType;
 
 /**
- * @struct Stack
- * @brief Struct representing a stack data structure.
+ * @struct Frame
+ * @brief Struct representing a frame that holds a symbol table.
  */
-typedef struct Stack {
-    int *arr;       // Array to hold stack elements
-    int top;        // Index of the top element
-    int capacity;   // Current maximum capacity of the stack
-} *StackPtr;
+typedef struct Frame {
+    SymbolTable *symbolTable; // Each frame has its own symbol table
+    FrameType type;           // Type of the frame (IF_COND_STATEMENT, WHILE_STATEMENT)
+} Frame;
 
 /**
- * @fn StackPtr init_stack()
- * @brief Initializes a new stack with a predefined initial capacity.
- *
- * @return Pointer to the initialized stack structure.
- * @retval NULL if memory allocation fails.
+ * @struct ScopeStack
+ * @brief Struct representing a stack of frames within a function scope.
  */
-StackPtr init_stack();
+typedef struct ScopeStack {
+    Frame **frames;      /**< Array to hold pointers to Frame elements */
+    int top;             /**< Index of the top element */
+    int capacity;        /**< Current maximum capacity of the stack */
+} ScopeStack;
 
 /**
- * @fn void resize(StackPtr stack)
- * @brief Resizes the stack to double its current capacity.
- *
- * @param[in, out] stack Pointer to the stack structure to resize.
- * 
- * @note Exits with an error code if memory allocation fails or the maximum stack capacity is exceeded.
+ * @struct RootStack
+ * @brief Struct representing a global stack of functions, each with its own ScopeStack.
  */
-void resize(StackPtr stack);
+typedef struct RootStack {
+    char **functionNames;   /**< Names of functions */
+    ScopeStack **functions; /**< Each function has its own ScopeStack */
+    int functionCount;      /**< Current number of functions in the stack */
+    int capacity;           /**< Maximum capacity of the RootStack */
+} RootStack;
+
+// Function prototypes for stack and scope management
 
 /**
- * @fn bool is_empty(StackPtr stack)
- * @brief Checks if the stack is empty.
- *
- * @param[in] topIndex variable storing head index of a stack.
- * @return True if the stack is empty, false otherwise.
+ * @brief Initializes the root stack for global function management.
+ * @return Pointer to the initialized RootStack.
  */
-bool is_empty(int topIndex);
+RootStack *init_root_stack();
 
 /**
- * @fn bool is_full(StackPtr stack)
- * @brief Checks if the stack is full.
- *
- * @param[in] stack Pointer to the stack structure.
- * @return True if the stack is full, false otherwise.
+ * @brief Adds a new function ScopeStack to the RootStack.
+ * @param rootStack Pointer to the RootStack.
+ * @param functionName Name of the function to add.
  */
-bool is_full(StackPtr stack);
+void add_function(RootStack *rootStack, const char *functionName);
 
 /**
- * @fn void push(StackPtr stack, int value)
- * @brief Pushes a new value onto the stack, resizing if necessary.
- *
- * @param[in, out] stack Pointer to the stack structure.
- * @param[in] value The integer value to be pushed onto the stack.
+ * @brief Retrieves the ScopeStack of a specific function by name.
+ * @param rootStack Pointer to the RootStack.
+ * @param functionName Name of the function to retrieve.
+ * @return Pointer to the corresponding ScopeStack, or NULL if not found.
  */
-void push(StackPtr stack, int value);
+ScopeStack *get_function_stack(RootStack *rootStack, const char *functionName);
 
 /**
- * @fn void pop(StackPtr stack)
- * @brief Removes the top element from the stack.
- *
- * @param[in, out] stack Pointer to the stack structure.
+ * @brief Resizes the RootStack when the capacity is reached.
+ * @param rootStack Pointer to the RootStack to resize.
  */
-void pop(StackPtr stack);
+void resize_root_stack(RootStack *rootStack);
 
 /**
- * @fn int top(StackPtr stack)
- * @brief Retrieves the top element of the stack without removing it.
- *
- * @param[in] stack Pointer to the stack structure.
- * @return The top element of the stack, or an error code if the stack is empty.
+ * @brief Initializes a ScopeStack for managing frames within a function.
+ * @return Pointer to the initialized ScopeStack.
  */
-int top(StackPtr stack);
+ScopeStack *init_scope_stack();
 
 /**
- * @fn int free_resources(StackPtr stack)
- * @brief Frees the memory allocated for the stack and its elements.
- *
- * @param[in, out] stack Pointer to the stack structure.
- * @return 0 on successful resource release.
+ * @brief Pushes a new frame onto a ScopeStack, resizing if needed.
+ * @param scopeStack Pointer to the ScopeStack to push a new frame onto.
  */
-int free_resources(StackPtr stack);
+void push_frame(ScopeStack *scopeStack, FrameType type);
+
+/**
+ * @brief Removes the top frame from a ScopeStack.
+ * @param scopeStack Pointer to the ScopeStack to pop from.
+ */
+void pop_frame(ScopeStack *scopeStack);
+
+/**
+ * @brief Retrieves the top frame of a ScopeStack without removing it.
+ * @param scopeStack Pointer to the ScopeStack.
+ * @return Pointer to the top Frame, or NULL if the stack is empty.
+ */
+Frame *top_frame(ScopeStack *scopeStack);
+
+/**
+ * @brief Resizes the ScopeStack when the capacity is reached.
+ * @param scopeStack Pointer to the ScopeStack to resize.
+ */
+void resize_scope_stack(ScopeStack *scopeStack);
+
+/**
+ * @brief Initializes a new frame with an empty symbol table.
+ * @return Pointer to the initialized Frame.
+ */
+Frame *init_frame();
+
+// Add the print function here
+void print_root_stack(RootStack *rootStack);
+
+#endif // STACK_H
