@@ -111,6 +111,7 @@ int main(int argc, char** argv) {
     }
     else {
         fprintf(stderr, "Syntax is correct\n");
+        free_ast_node(root);
     }
 
     destroy_lexer(&lexer);
