@@ -21,8 +21,16 @@ test_cases = {
         {"test_file": "seman_tests/test_ret4_invalid_04.zig", "expected_return_code": 4},
         {"test_file": "seman_tests/test_ret4_invalid_05.zig", "expected_return_code": 4},
     ],
+    "ret5": [
+        {"test_file": "seman_tests/test_ret5_valid_01.zig", "expected_return_code": 0},
+        {"test_file": "seman_tests/test_ret5_invalid_01.zig", "expected_return_code": 5},
+        {"test_file": "seman_tests/test_ret5_invalid_02.zig", "expected_return_code": 5},
+        {"test_file": "seman_tests/test_ret5_invalid_03.zig", "expected_return_code": 5},
+        {"test_file": "seman_tests/test_ret5_invalid_04.zig", "expected_return_code": 5},
+    ],
 }
 
+# Runs specified test case
 def run_test(test_case):
     print(f"Running test: {test_case}")
     compiler = "../main"
@@ -54,6 +62,12 @@ def run_test(test_case):
         except Exception as e:
             print(f"Error running test {test_file}: {e}")
 
+# Runs all tests
+def run_all_tests():
+    for test_case in test_cases:
+        run_test(test_case)
+
+# Main function 
 def main():
     if len(sys.argv) < 2:
         run_all_tests()
