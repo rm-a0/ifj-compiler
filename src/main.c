@@ -114,6 +114,7 @@ int main(int argc, char** argv) {
     }
 
     destroy_lexer(&lexer);
+    free_ast_node(root);
     fprintf(stderr, "Time: %.3g\n", (double)(clock()-start)/CLOCKS_PER_SEC);
 
     return NO_ERROR; 
