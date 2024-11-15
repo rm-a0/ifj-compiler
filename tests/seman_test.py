@@ -14,7 +14,12 @@ test_cases = {
     ],
     "ret4": [
         {"test_file": "seman_tests/test_ret4_valid_01.zig", "expected_return_code": 0},
+        {"test_file": "seman_tests/test_ret4_valid_02.zig", "expected_return_code": 0},
         {"test_file": "seman_tests/test_ret4_invalid_01.zig", "expected_return_code": 4},
+        {"test_file": "seman_tests/test_ret4_invalid_02.zig", "expected_return_code": 4},
+        {"test_file": "seman_tests/test_ret4_invalid_03.zig", "expected_return_code": 4},
+        {"test_file": "seman_tests/test_ret4_invalid_04.zig", "expected_return_code": 4},
+        {"test_file": "seman_tests/test_ret4_invalid_05.zig", "expected_return_code": 4},
     ],
 }
 

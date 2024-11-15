@@ -2,6 +2,6 @@
 const ifj = @import("ifj24.zig");
 
 pub fn main() void {
-    undefined_function(arg);
+    undefined_function(); // undefined_function is undefined
 }
     
