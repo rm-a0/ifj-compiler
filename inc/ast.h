@@ -74,7 +74,6 @@ struct ASTNode {
     ASTNodeType type;
     union {
         struct {
-            bool has_prolog;        ///< Flag for prolog (@import)
             int decl_capacity;      ///< Number of allocated pointers to declaration nodes
             int decl_count;         ///< Number of top level declarations
             ASTNode** declarations; ///< Top level declaration (fn, var, const)
@@ -86,22 +85,26 @@ struct ASTNode {
             int param_capacity;     ///< Number of allocated pointers to parameter nodes
             ASTNode** params;       ///< Array of pointers to function parameters
             ASTNode* block;         ///< Pointer to node encapsulating content of the function
+            bool nullable;          ///< Flag if the function return type is nullable
             DataType return_type;   ///< Return type
         } FnDecl;
 
         struct {
             DataType data_type;     ///< Expected data type
+            bool nullable;          ///< Flag if the parameter is nullable
             char* identifier;       ///< Name of varaible used in function
         } Param;
 
         struct {
             char* var_name;         ///< Variable name
+            bool nullable;          ///< Flag if the variable is nullable
             DataType data_type;     ///< Data type (optional)
             ASTNode* expression;    ///< Expression/identifier/number
         } VarDecl;
 
         struct {
             char* const_name;       ///< Constant name
+            bool nullable;          ///< Flag if the constant is nullable
             DataType data_type;     ///< Data type (optional)
             ASTNode* expression;    ///< Expression/identifier/number
         } ConstDecl;
@@ -114,13 +117,13 @@ struct ASTNode {
 
         struct {
             ASTNode* expression;    ///< Expression controlling cycle
-            ASTNode* element_bind;     ///< Ellement bind (optional)
+            char* element_bind;     ///< Ellement bind (optional)
             ASTNode* block;         ///< Pointer to a node encapsulating while cycle
         } WhileCycle;
 
         struct {
             ASTNode* expression;    ///< Expression controlling cycle
-            ASTNode* element_bind;     ///< Ellement bind (optional)
+            char* element_bind;     ///< Ellement bind (optional)
             ASTNode* if_block;      ///< Pointer to a node encapsulating if block
             ASTNode* else_block;    ///< Pointer to a node encapsulating else block
         } IfElse;
@@ -353,5 +356,18 @@ int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node);
  * @return 0 if success, otherwise return 1
 */
 int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node);
+
+/**
+ * @fn int append_node_to_block(ASTNode* block, ASTNode* node)
+ * @brief Function that appends node to block node
+ * 
+ * Functions reallocates memory for pointer array of nodes inside block node
+ * if node count reaches node capacity and appends new node into array.
+ * 
+ * @param[in, out] block Pointer to a block node
+ * @param[in] node Pointer to a node
+ * @return 0 if success, otherwise return 1
+*/
+int append_node_to_block(ASTNode* block, ASTNode* node);
 
 #endif // AST_H
