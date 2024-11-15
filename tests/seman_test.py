@@ -28,6 +28,14 @@ test_cases = {
         {"test_file": "seman_tests/test_ret5_invalid_03.zig", "expected_return_code": 5},
         {"test_file": "seman_tests/test_ret5_invalid_04.zig", "expected_return_code": 5},
     ],
+    "ret6": [
+        {"test_file": "seman_tests/test_ret6_valid_01.zig", "expected_return_code": 0},
+        {"test_file": "seman_tests/test_ret6_valid_02.zig", "expected_return_code": 0},
+        {"test_file": "seman_tests/test_ret6_invalid_01.zig", "expected_return_code": 6},
+        {"test_file": "seman_tests/test_ret6_invalid_02.zig", "expected_return_code": 6},
+        {"test_file": "seman_tests/test_ret6_invalid_03.zig", "expected_return_code": 6},
+        {"test_file": "seman_tests/test_ret6_invalid_04.zig", "expected_return_code": 6},
+    ],
 }
 
 # Runs specified test case
