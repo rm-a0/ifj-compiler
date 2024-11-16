@@ -24,7 +24,6 @@ ASTNode* create_program_node() {
     }
 
     node->type = AST_PROGRAM;
-    node->Program.has_prolog = false;
     node->Program.decl_count = 0;
 
     // Allocate meory for default size (can be reallocated later)
@@ -80,6 +79,7 @@ ASTNode* create_fn_decl_node(char* fn_name) {
     }
 
     node->FnDecl.block = NULL;
+    node->FnDecl.nullable = false;
     node->FnDecl.return_type = AST_UNSPECIFIED; // Not specified when creating node
 
     return node;
@@ -94,6 +94,7 @@ ASTNode* create_param_node(DataType data_type, char* identifier) {
     }
 
     node->type = AST_PARAM;
+    node->Param.nullable = false;
     node->Param.data_type = data_type;
     node->Param.identifier = strdup(identifier);
     if (node->Param.identifier == NULL) {
@@ -130,6 +131,7 @@ ASTNode* create_var_decl_node(DataType data_type, char* var_name) {
     node->type = AST_VAR_DECL;
     node->VarDecl.data_type = data_type;
     node->VarDecl.expression = NULL;
+    node->VarDecl.nullable = false;
     node->VarDecl.var_name = strdup(var_name);
     if (node->VarDecl.var_name == NULL) {
         set_error(INTERNAL_ERROR);
@@ -152,6 +154,7 @@ ASTNode* create_const_decl_node(DataType data_type, char* const_name) {
     node->type = AST_CONST_DECL;
     node->ConstDecl.data_type = data_type;
     node->ConstDecl.expression = NULL;
+    node->ConstDecl.nullable = false;
     node->ConstDecl.const_name = strdup(const_name);
     if (node->VarDecl.var_name == NULL) {
         set_error(INTERNAL_ERROR);
@@ -241,7 +244,6 @@ ASTNode* create_fn_call_node(char* fn_name) {
     }
 
     node->FnCall.arg_count = 0;
-
     // Allocate memory for default arguemnt count (can be re-allocated later)
     node->FnCall.arg_capacity = DEFAULT_FN_ARG_CNT;
     node->FnCall.args = malloc(DEFAULT_FN_ARG_CNT * sizeof(ASTNode*));
@@ -353,7 +355,7 @@ void free_ast_node(ASTNode* node) {
             }
             // Free element bind
             if (node->WhileCycle.element_bind != NULL) {
-                free_ast_node(node->WhileCycle.element_bind);
+                free(node->WhileCycle.element_bind);
             }
             break;
 
@@ -372,7 +374,7 @@ void free_ast_node(ASTNode* node) {
             }
             // Free element bind
             if (node->IfElse.element_bind != NULL) {
-                free_ast_node(node->IfElse.element_bind);
+                free(node->IfElse.element_bind);
             }
             break;
 
@@ -450,5 +452,28 @@ int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node) {
     // Append node to parameter pointer array
     fn_node->FnDecl.params[fn_node->FnDecl.param_count] = param_node;
     fn_node->FnDecl.param_count++;
+    return 0;
+}
+
+int append_node_to_block(ASTNode* block, ASTNode* node) {
+    if (node == NULL || block == NULL) {
+        set_error(INTERNAL_ERROR);
+        return 1;
+    }
+
+    if (block->Block.node_count >= block->Block.node_capacity) {
+        block->Block.node_capacity *= 2;
+        ASTNode** new_nodes = realloc(block->Block.nodes, block->Block.node_capacity);
+        if (new_nodes == NULL) {
+            set_error(INTERNAL_ERROR);
+            fprintf(stderr, "Failed to reallocate memory for nodes array in block node\n");
+            return 1;
+        }
+
+        block->Block.nodes = new_nodes;
+    }
+    // Append node to node pointer array
+    block->Block.nodes[block->Block.node_count] = node;
+    block->Block.node_count++;
     return 0;
 }

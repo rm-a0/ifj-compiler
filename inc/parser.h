@@ -52,6 +52,20 @@ int check_token(Token* token, TokenType expected_type, const char* expected_valu
 int parse_prolog(Lexer* lexer, Token** token);
 
 /**
+ * @fn int parse_element_bind(Lexer* lexer, Token** token, ASTNode* node)
+ * @brief Parses element bind
+ * 
+ * This function parses source code and checks if the element bind
+ * is valid or not. 
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @param[in, out] node pointer to a node element bind is connected to
+ * @return 0 if element bind is not there or valid and 1 if the element bind is invalid
+*/
+int parse_element_bind(Lexer* lexer, Token** token, ASTNode* node);
+
+/**
  * @fn ASTNode* parse_const_decl(Lexer* lexer, Token** token)
  * @brief Parses constant declarations and constructs var_decl node of AST
  * 
@@ -62,8 +76,8 @@ int parse_prolog(Lexer* lexer, Token** token);
  * @param[in, out] token Pointer to a pointer of token
  * @return AST constant declaration node or NULL if syntax is invalid
 */
-ASTNode* parse_const_decl(Lexer* lexer, Token** token);
 
+ASTNode* parse_const_decl(Lexer* lexer, Token** token);
 /**
  * @fn ASTNode* parse_var_decl(Lexer* lexer, Token** token)
  * @brief Parses variable declarations and constructs var_decl node of AST
@@ -76,6 +90,85 @@ ASTNode* parse_const_decl(Lexer* lexer, Token** token);
  * @return AST variable declaration node or NULL if syntax is invalid
 */
 ASTNode* parse_var_decl(Lexer* lexer, Token** token);
+
+/**
+ * @fn ASTNode* parse_fn_decl(Lexer* lexer, Token** token)
+ * @brief Parses function declarations and constructs fn_decl node of AST
+ * 
+ * This function parses source code and checks if the function declaration
+ * is valid or not while constructing AST function declaration node. 
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @return AST function declaration node or NULL if syntax is invalid
+*/
+ASTNode* parse_fn_decl(Lexer* lexer, Token** token);
+
+/**
+ * @fn ASTNode* parse_fn_params(Lexer* lexer, Token** token)
+ * @brief Parses function parameters and constructs fn parameter node of AST
+ * 
+ * This function parses source code and checks if the function parameters 
+ * are valid or not while constructing AST function parameter node. 
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @return AST function declaration node or NULL if syntax is invalid
+*/
+ASTNode* parse_fn_params(Lexer* lexer, Token** token);
+
+/**
+ * @fn ASTNode* parse_block(Lexer* lexer, Token** token)
+ * @brief Parses block and constructs block node of AST
+ * 
+ * This function parses source code and checks if the block structure
+ * is valid or not while constructing AST block node. 
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @return AST block node or NULL if syntax is invalid
+*/
+ASTNode* parse_block(Lexer* lexer, Token** token);
+
+/**
+ * @fn ASTNode* parse_if_else(Lexer* lexer, Token** token)
+ * @brief Parses if/else statements and constructs if_else node of AST
+ * 
+ * This function parses source code and checks if the if/else structure
+ * is valid or not while constructing AST if_else node. 
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @return AST if/else node or NULL if syntax is invalid
+*/
+ASTNode* parse_if_else(Lexer* lexer, Token** token);
+
+/** 
+ * @fn ASTNode* parse_while(Lexer* lexer, Token** token)
+ * @brief Parses while cycle and constructs while node
+ * 
+ * This function parses source code and checks if the whiel cycle
+ * is valid or not while constructing AST while node.
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @return AST if/else node or NULL if syntax is invalid
+*/ 
+ASTNode* parse_while(Lexer* lexer, Token** token);
+
+/** 
+ * @fn ASTNode* parse_fn_call(Lexer* lexer, Token** token, char* identifier)
+ * @brief Parses function call aand construct fn_call node
+ * 
+ * This function parses source code and checks if the function call
+ * is valid or not while constructing AST fn_call node.
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @param[in] identifier Identifier of a function
+ * @return AST fn call node or NULL if syntax is invalid
+*/ 
+ASTNode* parse_fn_call(Lexer* lexer, Token** token, char* identifier);
 
 /** 
  * @fn ASTNode* parse_tokens(Lexer* lexer)
