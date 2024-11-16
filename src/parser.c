@@ -4,13 +4,80 @@
  * @authors Michal Repcik (xrepcim00)
 */
 
+#define _POSIX_C_SOURCE 200809L // Used for strdup(), optimize 
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
 #include "parser.h"
 #include "lexer.h"
 #include "ast.h"
 #include "stack.h"
 #include "ast_node_stack.h"
 #include "error.h"
+
+#define RESET   "\x1b[0m"
+#define GREEN   "\x1b[32m"
+#define BOLD_GREEN "\x1b[1;32m"
+
+int print_token(Lexer* lexer) {
+    const char* tok_name[] = {
+    "INVALID",
+    "TOKEN_CONST",
+    "TOKEN_ELSE",
+    "TOKEN_FN",
+    "TOKEN_IF",
+    "TOKEN_I32",
+    "TOKEN_F64",
+    "TOKEN_NULL",
+    "TOKEN_PUB",
+    "TOKEN_RETURN",
+    "TOKEN_U8",
+    "TOKEN_VAR",
+    "TOKEN_VOID",
+    "TOKEN_WHILE",
+    "TOKEN_IDENTIFIER",
+    "TOKEN_STRING",
+    "TOKEN_INTEGER",
+    "TOKEN_FLOAT",
+    "TOKENS_SLICE",
+    "TOKEN_L_PAREN",
+    "TOKEN_R_PAREN",
+    "TOKEN_L_BRACE",
+    "TOKEN_R_BRACE",
+    "TOKEN_DOT",
+    "TOKEN_COMA",
+    "TOKEN_COLON",
+    "TOKEN_SEMICOLON",
+    "TOKEN_PIPE",
+    "TOKEN_PLUS",
+    "TOKEN_MINUS",
+    "TOKEN_MULT",
+    "TOKEN_DIV",
+    "TOKEN_ASSIGN",
+    "TOKEN_Q_MARK",
+    "TOKEN_LESS",
+    "TOKEN_GREATER",
+    "TOKEN_EXCM",
+    "TOKEN_LESS_EQU",
+    "TOKEN_GREATER_EQU",
+    "TOKEN_NOT_EQU",
+    "TOKEN_EQU",
+    "TOKEN_IMPORT",
+    };
+
+    Token* token;
+    while((token = get_token(lexer)) != NULL) {
+        fprintf(stdout, "Token type: ");
+        fprintf(stdout, BOLD_GREEN "%-25s" RESET, tok_name[token->token_type]);
+
+        fprintf(stdout, "Token value: ");
+        fprintf(stdout, BOLD_GREEN " %s\n" RESET, token->value);
+        free_token(token);
+    }
+
+    return NO_ERROR; 
+}
 
 
 void advance_token(Token** token, Lexer* lexer) {
@@ -39,9 +106,14 @@ int check_token(Token* token, TokenType expected_type, const char* expected_valu
     return 1;   // Return true
 }
 
-// Expression tree funcionality
+// ---------- Expression tree funcionality ----------
 
 // Define operator precedence
+int is_end_of_expression(int paren_counter, Token* token) {
+    return (check_token(token, TOKEN_COMMA, NULL) || check_token(token, TOKEN_SEMICOLON, NULL) ||
+            (paren_counter == 0 && check_token(token, TOKEN_R_PAREN, NULL)));
+}
+
 int get_precedence(TokenType op) {
     switch (op) {
         case TOKEN_EQU:
@@ -63,16 +135,11 @@ int get_precedence(TokenType op) {
     }
 }
 
-// Define operator associativity (left-to-right)
-int is_left_associative(TokenType op) {
-    return 1; // Assuming all operators are left-associative
-}
-
 int is_operand_token(Token* token) {
     return token != NULL && (
         token->token_type == TOKEN_IDENTIFIER ||
-        token->token_type == TOKEN_I32 ||
-        token->token_type == TOKEN_F64 ||
+        token->token_type == TOKEN_INTEGER ||
+        token->token_type == TOKEN_FLOAT ||
         token->token_type == TOKEN_STRING
     );
 }
@@ -93,15 +160,33 @@ int is_operator_token(Token* token) {
 
 ASTNode* parse_operand(Lexer* lexer, Token** token) {
     ASTNode* node = NULL;
+    printf("Parsing operand for token type: %s\n", token_type_to_string((*token)->token_type)); // Debugging
+    // TODO: Add internal error checks
     if (check_token(*token, TOKEN_IDENTIFIER, NULL)) {
-        node = create_identifier_node((*token)->value);
-    } else if (check_token(*token, TOKEN_I32, NULL)) {
+        char* identifier = strdup((*token)->value);
+        advance_token(token, lexer);
+        if (check_token(*token, TOKEN_L_PAREN, NULL)) {
+            node = parse_fn_call(lexer, token, identifier);
+            printf("Creating function node for: %s\n", (*token)->value); // Debugging
+        }
+        else{
+            node = create_identifier_node(identifier);
+            printf("Creating identifier node for: %s\n", (*token)->value); // Debugging
+        }
+    } else if (check_token(*token, TOKEN_INTEGER, NULL)) {
+        printf("Creating integer node for: %s\n", (*token)->value); // Debugging
         node = create_i32_node(atoi((*token)->value));
-    } else if (check_token(*token, TOKEN_F64, NULL)) {
+        advance_token(token, lexer);
+    } else if (check_token(*token, TOKEN_FLOAT, NULL)) {
+        printf("Creating float node for: %s\n", (*token)->value); // Debugging
         node = create_f64_node(atof((*token)->value));
+        advance_token(token, lexer);
     } else if (check_token(*token, TOKEN_STRING, NULL)) {
+        printf("Creating string node for: %s\n", (*token)->value); // Debugging
         node = create_string_node((*token)->value);
+        advance_token(token, lexer);
     } else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
+        printf("Encountered left parenthesis '('.\n"); // Debugging
         advance_token(token, lexer);
         node = parse_expression(lexer, token);
         if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
@@ -109,13 +194,16 @@ ASTNode* parse_operand(Lexer* lexer, Token** token) {
             free_ast_node(node);
             return NULL;
         }
+        advance_token(token, lexer);
     } else {
+        printf("Unexpected token type encountered: %s\n", token_type_to_string((*token)->token_type)); // Debugging
         set_error(SYNTAX_ERROR);
         return NULL;
     }
-    advance_token(token, lexer);
+    printf("Operand parsed and advanced to next token.\n"); // Debugging
     return node;
 }
+
 
 ASTNode* parse_expression(Lexer* lexer, Token** token) {
     // Initialize operator stack using stack.h
@@ -124,6 +212,8 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
         set_error(INTERNAL_ERROR);
         return NULL;
     }
+    // printf("Initialized operator stack.\n");
+    // print_stack(op_stack); // Debugging: Print initial operator stack
 
     // Initialize operand stack for ASTNode*
     ASTNodeStackPtr operand_stack = init_ast_node_stack();
@@ -132,130 +222,215 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
         free_resources(op_stack);
         return NULL;
     }
+    // printf("Initialized operand stack.\n");
+    // print_ast_node_stack(operand_stack); // Debugging: Print initial operand stack
 
-    while (1) {
+    // Begin parsing tokens
+    // TODO: semicolon, R_PAR, coma
+    int paren_counter = 0;
+    while (!is_end_of_expression(paren_counter, *token)) {
+        // printf("\nCurrent Token: %s\n", token_type_to_string((*token)->token_type)); // Debugging: Current token
+
         if (is_operand_token(*token)) {
             // Create AST node for operand and push to operand stack
             ASTNode* operand = parse_operand(lexer, token);
             if (!operand) {
                 // Handle error
+                // printf("Failed to parse operand.\n"); // Debugging
                 set_error(SYNTAX_ERROR);
                 free_resources(op_stack);
                 free_ast_node_stack(operand_stack);
                 return NULL;
             }
             push_ast_node(operand_stack, operand);
-        } else if (is_operator_token(*token)) {
+            printf("Pushed operand to operand stack.\n"); // Debugging
+            print_ast_node_stack(operand_stack); // Debugging: Print operand stack after push
+            // print_stack(op_stack); // Debugging: Print operator stack
+        } 
+        else if (is_operator_token(*token)) {
             int op = (*token)->token_type;
-            while (!is_empty(op_stack->top) &&
-                   ((is_left_associative(op) && get_precedence(op) <= get_precedence(top(op_stack))) ||
-                    (!is_left_associative(op) && get_precedence(op) < get_precedence(top(op_stack))))) {
-                // Pop operator from op_stack and operands from operand_stack to create AST node
-                int top_op = top(op_stack);
-                pop(op_stack);
+            // printf("Encountered operator: %s\n", token_type_to_string(op)); // Debugging: Current operator
 
+            // Debugging: Print current state before processing operators
+            // printf("Before processing operators:\n");
+            // print_ast_node_stack(operand_stack);
+            // print_stack(op_stack);
+
+            while (!is_empty(op_stack->top) &&
+                   (get_precedence(op) <= get_precedence(top(op_stack)))) {
+                int top_op = top(op_stack);
+                // printf("Operator precedence condition met. Top operator on stack: %s\n", token_type_to_string(top_op)); // Debugging
+
+                pop(op_stack);
+                // printf("Popped operator: %s\n", token_type_to_string(top_op)); // Debugging
+                // print_stack(op_stack); // Debugging: Print operator stack after pop
+
+                // Attempt to pop two operands
+                // printf("Attempting to pop two operands from operand stack.\n"); // Debugging
                 ASTNode* right = pop_ast_node(operand_stack);
                 ASTNode* left = pop_ast_node(operand_stack);
+                // printf("Popped operands: left=%p, right=%p\n", (void*)left, (void*)right); // Debugging
 
                 if (!left || !right) {
+                    // printf("Operand stack underflow detected.\n"); // Debugging
                     set_error(SYNTAX_ERROR);
                     free_resources(op_stack);
                     free_ast_node_stack(operand_stack);
                     return NULL;
                 }
 
+                // Create binary operator node
                 ASTNode* op_node = create_binary_op_node(top_op, left, right);
                 if (!op_node) {
-                    // Handle error
+                    // printf("Failed to create binary operator node.\n"); // Debugging
                     set_error(INTERNAL_ERROR);
                     free_resources(op_stack);
                     free_ast_node_stack(operand_stack);
                     return NULL;
                 }
                 push_ast_node(operand_stack, op_node);
+                // printf("Pushed binary operator node to operand stack.\n"); // Debugging
+                // print_ast_node_stack(operand_stack); // Debugging: Print operand stack after push
+                // print_stack(op_stack); // Debugging: Print operator stack
             }
+
+            // Push current operator onto operator stack
             push(op_stack, op);
+            // printf("Pushed operator '%s' to operator stack.\n", token_type_to_string(op)); // Debugging
+            // print_stack(op_stack); // Debugging: Print operator stack after push
+            // print_ast_node_stack(operand_stack); // Debugging: Print operand stack
             advance_token(token, lexer);
-        } else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
+        } 
+        else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
+            paren_counter++;
+            // printf("Encountered left parenthesis '('.\n"); // Debugging
             push(op_stack, TOKEN_L_PAREN);
+            // print_stack(op_stack); // Debugging: Print operator stack after push
+            // print_ast_node_stack(operand_stack); // Debugging: Print operand stack
             advance_token(token, lexer);
-        } else if (check_token(*token, TOKEN_R_PAREN, NULL)) {
+        } 
+        else if (check_token(*token, TOKEN_R_PAREN, NULL)) {
+            paren_counter--;
+            // printf("Encountered right parenthesis ')'.\n"); // Debugging
+            // Debugging: Print current state before processing parentheses
+            // printf("Before processing parentheses:\n");
+            // print_ast_node_stack(operand_stack);
+            // print_stack(op_stack);
+
             while (!is_empty(op_stack->top) && top(op_stack) != TOKEN_L_PAREN) {
                 int top_op = top(op_stack);
-                pop(op_stack);
+                // printf("Processing operator inside parentheses: %s\n", token_type_to_string(top_op)); // Debugging
 
+                pop(op_stack);
+                // printf("Popped operator: %s\n", token_type_to_string(top_op)); // Debugging
+                // print_stack(op_stack); // Debugging: Print operator stack after pop
+
+                // Attempt to pop two operands
+                // printf("Attempting to pop two operands from operand stack.\n"); // Debugging
                 ASTNode* right = pop_ast_node(operand_stack);
                 ASTNode* left = pop_ast_node(operand_stack);
+                // printf("Popped operands: left=%p, right=%p\n", (void*)left, (void*)right); // Debugging
 
                 if (!left || !right) {
+                    // printf("Operand stack underflow detected inside parentheses.\n"); // Debugging
                     set_error(SYNTAX_ERROR);
                     free_resources(op_stack);
                     free_ast_node_stack(operand_stack);
                     return NULL;
                 }
 
+                // Create binary operator node
                 ASTNode* op_node = create_binary_op_node(top_op, left, right);
                 if (!op_node) {
-                    // Handle error
+                    // printf("Failed to create binary operator node inside parentheses.\n"); // Debugging
                     set_error(INTERNAL_ERROR);
                     free_resources(op_stack);
                     free_ast_node_stack(operand_stack);
                     return NULL;
                 }
                 push_ast_node(operand_stack, op_node);
+                // printf("Pushed binary operator node to operand stack.\n"); // Debugging
+                // print_ast_node_stack(operand_stack); // Debugging: Print operand stack after push
+                // print_stack(op_stack); // Debugging: Print operator stack
             }
+
             if (is_empty(op_stack->top)) {
                 // Mismatched parentheses
+                // printf("Mismatched parentheses detected. Operator stack is empty but ')' found.\n"); // Debugging
                 set_error(SYNTAX_ERROR);
                 free_resources(op_stack);
                 free_ast_node_stack(operand_stack);
                 return NULL;
             }
-            pop(op_stack); // Pop the left parenthesis
+
+            // Pop the left parenthesis from the operator stack
+            pop(op_stack);
+            // printf("Popped left parenthesis '(' from operator stack.\n"); // Debugging
+            // print_stack(op_stack); // Debugging: Print operator stack after pop
+            // print_ast_node_stack(operand_stack); // Debugging: Print operand stack
             advance_token(token, lexer);
-        } else {
+        } 
+        else {
             // End of expression or unexpected token
+            // printf("Encountered unexpected token: %s\n", token_type_to_string((*token)->token_type));
             break;
         }
     }
 
     // Pop remaining operators
+    // printf("\nPopping remaining operators from operator stack.\n"); // Debugging
+    // print_ast_node_stack(operand_stack); // Debugging: Print operand stack before popping remaining operators
+    // print_stack(op_stack); // Debugging: Print operator stack before popping remaining operators
+
     while (!is_empty(op_stack->top)) {
         int top_op = top(op_stack);
+        // printf("Popping operator: %s\n", token_type_to_string(top_op)); // Debugging
         pop(op_stack);
+        // print_stack(op_stack); // Debugging: Print operator stack after pop
 
         if (top_op == TOKEN_L_PAREN || top_op == TOKEN_R_PAREN) {
             // Mismatched parentheses
+            // printf("Mismatched parentheses detected during final operator popping.\n"); // Debugging
             set_error(SYNTAX_ERROR);
             free_resources(op_stack);
             free_ast_node_stack(operand_stack);
             return NULL;
         }
 
+        // Attempt to pop two operands
+        // printf("Attempting to pop two operands from operand stack.\n"); // Debugging
         ASTNode* right = pop_ast_node(operand_stack);
         ASTNode* left = pop_ast_node(operand_stack);
+        // printf("Popped operands: left=%p, right=%p\n", (void*)left, (void*)right); // Debugging
 
         if (!left || !right) {
+            // printf("Operand stack underflow detected during final operator popping.\n"); // Debugging
             set_error(SYNTAX_ERROR);
             free_resources(op_stack);
             free_ast_node_stack(operand_stack);
             return NULL;
         }
 
+        // Create binary operator node
         ASTNode* op_node = create_binary_op_node(top_op, left, right);
         if (!op_node) {
-            // Handle error
+            // printf("Failed to create binary operator node during final operator popping.\n"); // Debugging
             set_error(INTERNAL_ERROR);
             free_resources(op_stack);
             free_ast_node_stack(operand_stack);
             return NULL;
         }
         push_ast_node(operand_stack, op_node);
+        // printf("Pushed binary operator node to operand stack.\n"); // Debugging
+        // print_ast_node_stack(operand_stack); // Debugging: Print operand stack after push
+        // print_stack(op_stack); // Debugging: Print operator stack
     }
 
     // The result should be the only operand left
     if (operand_stack->top != 0) {
         // Error: operands left without operators
+        // printf("Error: operands left in operand stack without corresponding operators.\n"); // Debugging
+        // print_ast_node_stack(operand_stack); // Debugging: Print operand stack
         set_error(SYNTAX_ERROR);
         free_resources(op_stack);
         free_ast_node_stack(operand_stack);
@@ -263,6 +438,9 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
     }
 
     ASTNode* expression_node = pop_ast_node(operand_stack);
+    // printf("Final AST node created successfully.\n"); // Debugging
+    // print_ast_node_stack(operand_stack); // Debugging: Print operand stack after final pop
+    // print_stack(op_stack); // Debugging: Print operator stack
 
     // Free the stacks
     free_resources(op_stack);
@@ -272,8 +450,8 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
 }
 
 
+// ---------- End Expression tree funcionality ----------
 
-//
 
 int parse_prolog(Lexer* lexer, Token** token) {
     advance_token(token, lexer);
@@ -620,12 +798,8 @@ ASTNode* parse_fn_call(Lexer* lexer, Token** token, char* identifier) {
     while (!(check_token(*token, TOKEN_R_PAREN, NULL))) {
         advance_token(token, lexer);
     }
-    // We got ')' get next token anc check for ';'
     advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
-        free_ast_node(fn_call);
-        return NULL;
-    }
+    // We got ')' get next token anc check for ';'
     return fn_call;
 }
 
@@ -830,6 +1004,7 @@ ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
 
 ASTNode* parse_tokens(Lexer* lexer) {
     Token* token = get_token(lexer);
+    FILE* output_file = NULL;
     if (token == NULL) {
         return NULL; // idk (empty code allowed ?)
     }
@@ -910,6 +1085,11 @@ ASTNode* parse_tokens(Lexer* lexer) {
     // Error handle for go to
     error:
         // set error ot syntax error if no lexical or internal error was found before
+        if (output_file == NULL) {  // Ensure it's only opened on error
+            output_file = fopen("tests/test.out", "w");
+            print_ast(program_node, 0, output_file);
+            fclose(output_file);
+        }
         set_error(SYNTAX_ERROR);
         free_ast_node(program_node);
         free_token(token);
