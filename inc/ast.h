@@ -27,7 +27,7 @@ typedef enum {
     AST_BIN_OP,         ///< Node for binary operator
     AST_INT,            ///< Node for integer
     AST_FLOAT,          ///< Node for float
-    AST_STRING,         ///< Node for stirg
+    AST_STRING,         ///< Node for string
     AST_IDENTIFIER,     ///< Node for identifier
     AST_RETURN,         ///< Node for return statement
     AST_EXPRESSION      ///< Node for expression
@@ -51,15 +51,15 @@ typedef enum {
  * @brief Enumeration for different operator types
 */
 typedef enum {
-    AST_PLUS,           ///< '+' operator
-    AST_MINUS,          ///< '-' operator
-    AST_MUL,            ///< '*' operator
-    AST_DIV,            ///< '/' operator
-    AST_GREATER,        ///< '>' opeartor
-    AST_GREATER_EQU,    ///< '>= opeartor
-    AST_LESS,           ///< '<' operator
+    AST_PLUS,           ///< '+'  operator
+    AST_MINUS,          ///< '-'  operator
+    AST_MUL,            ///< '*'  operator
+    AST_DIV,            ///< '/'  operator
+    AST_GREATER,        ///< '>'  operator
+    AST_GREATER_EQU,    ///< '>=  operator
+    AST_LESS,           ///< '<'  operator
     AST_LESS_EQU,       ///< '<=' operator
-    AST_EQU,            ///< '=' operator
+    AST_EQU,            ///< '='  operator
     AST_NOT_EQU         ///< '!=' operator
 } OperatorType;
 
