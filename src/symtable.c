@@ -43,8 +43,8 @@ SymbolTable *init_symbol_table() {
  * @param table Pointer to the SymbolTable to resize.
  */
 void resize(SymbolTable *table) {
-    int oldCapacity = table->capacity;
-    Symbol **oldSymbols = table->symbols;
+    int old_capacity = table->capacity;
+    Symbol **old_symbols = table->symbols;
     
     // Double the capacity for the new table size
     table->capacity *= 2;
@@ -55,14 +55,14 @@ void resize(SymbolTable *table) {
     table->count = 0;
 
     // Rehash and insert symbols into the new table
-    for (int i = 0; i < oldCapacity; i++) {
-        if (oldSymbols[i] != NULL) {
-            add_symbol(table, oldSymbols[i]->name, oldSymbols[i]->value);
-            free(oldSymbols[i]->name);
-            free(oldSymbols[i]);
+    for (int i = 0; i < old_capacity; i++) {
+        if (old_symbols[i] != NULL) {
+            add_symbol(table, old_symbols[i]->name, old_symbols[i]->value);
+            free(old_symbols[i]->name);
+            free(old_symbols[i]);
         }
     }
-    free(oldSymbols);
+    free(old_symbols);
 }
 
 /**
