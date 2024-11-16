@@ -356,6 +356,16 @@ int main() {
     append_node_to_block(main_block, var_ct);
 
     // ct = build(a, ct);
+
+    ASTNode* build_call = create_fn_call_node("build");
+    append_arg_to_fn_call(build_call, create_identifier_node("a"));
+    append_arg_to_fn_call(build_call, create_identifier_node("ct"));
+
+    ASTNode* assign_ct = create_var_decl_node(AST_SLICE, "ct");
+    assign_ct->VarDecl.expression = build_call;
+    append_node_to_block(main_block, assign_ct);
+
+    /*
     ASTNode* build_call = create_fn_call_node("build");
     ASTNode* id_a = create_identifier_node("a");
     ASTNode* id_ct = create_identifier_node("ct");
@@ -364,7 +374,7 @@ int main() {
 
     ASTNode* assign_ct = create_binary_op_node(AST_EQU, create_identifier_node("ct"), build_call);
     append_node_to_block(main_block, assign_ct);
-
+*/
     // ifj.write(ct);
     ASTNode* write_call = create_fn_call_node("ifj.write");
     append_arg_to_fn_call(write_call, create_identifier_node("ct"));
@@ -386,6 +396,7 @@ int main() {
     // Close the output file
     fclose(output_file);
 
+    //generate_code(program_node);
     printf("Generovanie kódu ukončené hodnotou: %i\n",generate_code(program_node));
 
     // Free the AST nodes
