@@ -1009,17 +1009,46 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                 advance_token(token, lexer); // assignment and fn call end on ';'
             }
                break;
-            case TOKEN_RETURN:
-                // expression
+            case TOKEN_RETURN: {
+                ASTNode* return_node = create_return_node();
+                if (return_node == NULL) {
+                    free_ast_node(block_node);
+                    return NULL;
+                }
+                advance_token(token, lexer);
+                if (check_token(*token, TOKEN_SEMICOLON, NULL)) {
+                    advance_token(token, lexer);
+                    if (append_node_to_block(block_node, return_node) != 0) {
+                        free_ast_node(block_node);
+                        free_ast_node(return_node);
+                        return NULL;
+                    }
+                    break;
+                }
+                ASTNode* expression_node = parse_expression(lexer, token);
+                if (expression_node == NULL) {
+                    free_ast_node(block_node);
+                    free_ast_node(return_node);
+                    return NULL;
+                }
+                return_node->Return.expression = expression_node;
+                if (append_node_to_block(block_node, return_node) != 0) {
+                    free_ast_node(block_node);
+                    free_ast_node(return_node);
+                    return NULL;
+                }
+                if (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
+                    free_ast_node(block_node);
+                    return NULL;
+                }
+                advance_token(token, lexer);
                 break;
+            }
             default:
                 free_ast_node(block_node);
                 return NULL;
                 break;
         }
-        // in if token we are checkin for else, and if there is not this
-        // advnace token would mess this up
-        // advance_token(token, lexer);
     }
 
     return block_node;
