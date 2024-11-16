@@ -431,4 +431,17 @@ int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node);
 */
 int append_node_to_block(ASTNode* block, ASTNode* node);
 
+/**
+ * @fn int append_arg_to_fn(ASTNode* fn_node, ASTNode* arg_node)
+ * @brief Function that appends argument node to function node
+ * 
+ * Functions reallocates memory for pointer array of nodes inside fn_call node
+ * if node count reaches node capacity and appends new node into array.
+ * 
+ * @param[in, out] fn_node Pointer to a fn call node
+ * @param[in] arg_node Pointer to an argument node
+ * @return 0 if success, otherwise return 1
+*/
+int append_arg_to_fn(ASTNode* fn_node, ASTNode* arg_node);
+
 #endif // AST_H

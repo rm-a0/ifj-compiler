@@ -629,3 +629,28 @@ int append_node_to_block(ASTNode* block, ASTNode* node) {
     block->Block.node_count++;
     return 0;
 }
+
+int append_arg_to_fn(ASTNode* fn_node, ASTNode* arg_node) {
+    if (fn_node == NULL || arg_node == NULL) {
+        set_error(INTERNAL_ERROR);
+        return 1;
+    }
+
+    // If capacity is reached, double the size of an array
+    if (fn_node->FnCall.arg_count >= fn_node->FnCall.arg_capacity) {
+        fn_node->FnCall.arg_capacity *= 2;
+        ASTNode** new_args = realloc(fn_node->FnCall.args, fn_node->FnCall.arg_capacity);
+        if (new_args == NULL) {
+            set_error(INTERNAL_ERROR);
+            fprintf(stderr, "Failed to reallocate memory for arguments in function call node\n");
+            return 1;
+        }
+
+        fn_node->FnCall.args = new_args;
+
+    }
+    // Append node to parameter pointer array
+    fn_node->FnCall.args[fn_node->FnCall.arg_count] = arg_node;
+    fn_node->FnCall.arg_count++;
+    return 0;
+}

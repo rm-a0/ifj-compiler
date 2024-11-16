@@ -644,9 +644,12 @@ ASTNode* parse_if_else(Lexer* lexer, Token** token) {
         return NULL;
     }
     advance_token(token, lexer);
-    ASTNode* expression_node = parse_expression(lexer, token);
-    if (expression_node == NULL) {
-        return NULL;
+    ASTNode* expression_node = NULL;
+    if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+        expression_node = parse_expression(lexer, token);
+        if (expression_node == NULL) {
+            return NULL;
+        }
     }
     if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
         free_ast_node(expression_node);
@@ -702,9 +705,12 @@ ASTNode* parse_while(Lexer* lexer, Token** token) {
     }
     // Parse expression
     advance_token(token, lexer);
-    ASTNode* expression_node = parse_expression(lexer, token);
-    if (expression_node == NULL) {
-        return NULL;
+    ASTNode* expression_node = NULL;
+    if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+        expression_node = parse_expression(lexer, token);
+        if (expression_node == NULL) {
+            return NULL;
+        }   
     }
     if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
         free(expression_node);
@@ -734,13 +740,47 @@ ASTNode* parse_while(Lexer* lexer, Token** token) {
     return while_node;
 }
 
+ASTNode* parse_fn_arg(Lexer* lexer, Token** token) {
+    ASTNode* arg_node = create_arg_node();
+    if (arg_node == NULL) {
+        return NULL;
+    }
+    ASTNode* expression_node = parse_expression(lexer, token);
+    if (expression_node == NULL) {
+        free_ast_node(arg_node);
+    }
+    // Add expression to argument node
+    arg_node->Argument.expression = expression_node;
+    return arg_node;
+}
+
 ASTNode* parse_fn_call(Lexer* lexer, Token** token, char* identifier) {
+    // We are at '(' token
     ASTNode* fn_call = create_fn_call_node(identifier);
     if (fn_call == NULL) {
         return NULL;
     }
     // Parse fn args
-    while (!(check_token(*token, TOKEN_R_PAREN, NULL))) {
+    advance_token(token, lexer);
+    while (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+        ASTNode* fn_arg_node = parse_fn_arg(lexer, token);
+        if (fn_arg_node == NULL) {
+            free_ast_node(fn_call);
+            return NULL;
+        }
+        if (append_arg_to_fn(fn_call, fn_arg_node) != 0) {
+            free_ast_node(fn_call);
+            free_ast_node(fn_arg_node);
+            return NULL;
+        }
+        if (check_token(*token, TOKEN_R_PAREN, NULL)) {
+            break;
+        }
+        if (!check_token(*token, TOKEN_COMMA, NULL)) {
+            free_ast_node(fn_call);
+            free_ast_node(fn_arg_node);
+            return NULL;
+        }
         advance_token(token, lexer);
     }
     advance_token(token, lexer);   // Advance token for expr_parser
@@ -775,9 +815,28 @@ ASTNode* parse_builtin_fn_call(Lexer* lexer, Token** token, char* identifier) {
         free(builtin_fn_call);
         return NULL;
     }
+    advance_token(token, lexer);
     // parse expression
     while (!check_token(*token, TOKEN_R_PAREN, NULL)) {
-        advance_token(token, lexer);
+        ASTNode* fn_arg_node = parse_fn_arg(lexer, token);
+            if (fn_arg_node == NULL) {
+                free_ast_node(builtin_fn_call);
+                return NULL;
+            }
+            if (append_arg_to_fn(builtin_fn_call, fn_arg_node) != 0) {
+                free_ast_node(builtin_fn_call);
+                free_ast_node(fn_arg_node);
+                return NULL;
+            }
+            if (check_token(*token, TOKEN_R_PAREN, NULL)) {
+                break;
+            }
+            if (!check_token(*token, TOKEN_COMMA, NULL)) {
+                free_ast_node(builtin_fn_call);
+                free_ast_node(fn_arg_node);
+                return NULL;
+            }
+            advance_token(token, lexer);
     }
     advance_token(token, lexer); // advance token for expr_parser
     return builtin_fn_call;
