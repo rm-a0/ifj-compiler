@@ -29,6 +29,7 @@ typedef enum {
     AST_FLOAT,          ///< Node for float
     AST_STRING,         ///< Node for stirg
     AST_IDENTIFIER,     ///< Node for identifier
+    AST_ASSIGNMENT,     ///< Node for assignment
     AST_RETURN          ///< Node for return statement
 } ASTNodeType;
 
@@ -168,8 +169,15 @@ struct ASTNode {
         struct {
             ASTNode* binary_operator;
         } Expression;
+
+        struct {
+            char* identifier;
+            ASTNode* expression;
+        } Assignment;
     };
 };
+
+ASTNode* create_assignment_node(char* identifier);
 
 /**
  * @fn ASTNode* create_identifier_node(char* identifier)

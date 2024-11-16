@@ -16,6 +16,23 @@
 #define DEFAULT_FN_PARAM_CNT        3   ///< Used for pre-allocating memory for parameter array inside function call node
 #define DEFAULT_BLOCK_NODE_CNT      5   ///< Used for pre-allocating memory for node array inside block
 
+ASTNode* create_assignment_node(char* identifier) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        return NULL;
+    }
+
+    node->Assignment.identifier = strdup(identifier);
+    if (node->Assignment.identifier == NULL) {
+        free(node);
+        return NULL;
+    }
+
+    node->type = AST_ASSIGNMENT;
+    node->Assignment.expression = NULL;
+    return node;
+}
+
 ASTNode* create_binary_op_node(int operator, ASTNode* left, ASTNode* right) {
     // Map the operator token to the OperatorType enum
     OperatorType op_type;
@@ -415,6 +432,10 @@ void free_ast_node(ASTNode* node) {
     }
 
     switch (node->type) {
+        case AST_ASSIGNMENT:
+            free(node->Assignment.identifier);
+            free_ast_node(node->Assignment.expression);
+            break;
         case AST_BIN_OP:
             // Recursively free left and right operands
             free_ast_node(node->BinaryOperator.left);

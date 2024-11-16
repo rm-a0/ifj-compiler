@@ -842,6 +842,28 @@ ASTNode* parse_builtin_fn_call(Lexer* lexer, Token** token, char* identifier) {
     return builtin_fn_call;
 }
 
+ASTNode* parse_assignment(Lexer* lexer, Token** token, char* identifier) {
+    ASTNode* assignment_node = create_assignment_node(identifier);
+    if (assignment_node == NULL) {
+        return NULL;
+    }
+    advance_token(token, lexer);
+    ASTNode* expression_node = parse_expression(lexer, token);
+    if (expression_node == NULL) {
+        free_ast_node(assignment_node);
+        return NULL;
+    }
+    if (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
+        free_ast_node(assignment_node);
+        free_ast_node(expression_node);
+        return NULL;
+    }
+
+    assignment_node->Assignment.expression = expression_node;
+
+    return assignment_node;
+}
+
 ASTNode* parse_block(Lexer* lexer, Token** token) {
     if (!check_token(*token, TOKEN_L_BRACE, NULL)) {
         return NULL;
@@ -927,7 +949,18 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                 char* identifier = strdup((*token)->value);
                 advance_token(token, lexer);
                 if (check_token(*token, TOKEN_ASSIGN, NULL)) {
-                    // assignment node
+                    ASTNode* assignment_node = parse_assignment(lexer, token, identifier);
+                    if (assignment_node == NULL) {
+                        free(identifier);
+                        free_ast_node(block_node);
+                        return NULL;
+                    }
+                    if (append_node_to_block(block_node, assignment_node) != 0) {
+                        free(identifier);
+                        free_ast_node(assignment_node);
+                        free_ast_node(block_node);
+                        return NULL;
+                    }
                 }
                 else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
                     ASTNode* fn_call_node = parse_fn_call(lexer, token, identifier);
