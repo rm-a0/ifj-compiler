@@ -7,6 +7,7 @@
 #include <time.h>
 
 #include "lexer.h"
+#include "parser.h"
 #include "error.h"
 
 #define RESET   "\x1b[0m"
@@ -32,18 +33,7 @@ FILE* process_file(int argc, char**  argv) {
     return fp;
 }
 
-int main(int argc, char** argv) {
-    clock_t start;
-    start = clock();
-
-    Lexer lexer;
-    FILE* fp;
-    fp = process_file(argc, argv); 
-
-    if (init_lexer(&lexer, fp) != 0) {
-        exit(INTERNAL_ERROR);
-    }
-
+int print_token(Lexer* lexer) {
     const char* tok_name[] = {
     "INVALID",
     "TOKEN_CONST",
@@ -90,7 +80,7 @@ int main(int argc, char** argv) {
     };
 
     Token* token;
-    while((token = get_token(&lexer)) != NULL) {
+    while((token = get_token(lexer)) != NULL) {
         fprintf(stdout, "Token type: ");
         fprintf(stdout, BOLD_GREEN "%-25s" RESET, tok_name[token->token_type]);
 
@@ -99,8 +89,32 @@ int main(int argc, char** argv) {
         free_token(token);
     }
 
-    destroy_lexer(&lexer);
+    return NO_ERROR; 
+}
 
+int main(int argc, char** argv) {
+    clock_t start;
+    start = clock();
+
+    Lexer lexer;
+    FILE* fp;
+    fp = process_file(argc, argv); 
+
+    if (init_lexer(&lexer, fp) != 0) {
+        exit(INTERNAL_ERROR);
+    }
+
+    ASTNode* root = parse_tokens(&lexer);
+    if (root == NULL) {
+        destroy_lexer(&lexer);
+        exit(error_tracker);
+    }
+    else {
+        fprintf(stderr, "Syntax is correct\n");
+        free_ast_node(root);
+    }
+
+    destroy_lexer(&lexer);
     fprintf(stderr, "Time: %.3g\n", (double)(clock()-start)/CLOCKS_PER_SEC);
 
     return NO_ERROR; 

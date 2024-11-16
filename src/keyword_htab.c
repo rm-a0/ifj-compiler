@@ -8,10 +8,12 @@
 #include <string.h>
 
 #include "keyword_htab.h"
+#include "error.h"
 
 KeywordHtab* create_keyword_htab(int size) {
     KeywordHtab* htab = malloc(sizeof(KeywordHtab));
     if (htab == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for keyword hash table failed\n");
         return NULL;
     }
@@ -19,6 +21,7 @@ KeywordHtab* create_keyword_htab(int size) {
     htab->size = size;
     htab->items = calloc(size, sizeof(KeywordHtabItem));
     if (htab->items == NULL) {
+        set_error(INTERNAL_ERROR);
         free(htab);
         fprintf(stderr, "Memory allocation for keyword hash table items failed\n");
         return NULL;
@@ -44,6 +47,7 @@ int insert_keyword_htab(KeywordHtab* htab, const char* keyword, TokenType token)
 
     htab->items[idx].keyword = strdup(keyword);
     if (htab->items[idx].keyword == NULL) {
+        set_error(INTERNAL_ERROR);
         fprintf(stderr, "Memory allocation for keyword failed\n");
         return -1;
     }

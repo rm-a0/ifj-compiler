@@ -11,7 +11,7 @@
  * @enum ErrorType
  * @brief Constants for different error types.
 */
-enum ErrorType { 
+typedef enum { 
     NO_ERROR = 0,                           ///< No error occurred.
     LEXICAL_ERROR = 1,                      ///< Error occurred during lexical analysis.
     SYNTAX_ERROR = 2,                       ///< Error occurred during syntax analysis.
@@ -24,6 +24,28 @@ enum ErrorType {
     SEMANTIC_ERROR_UNUSED_VAR = 9,          ///< Unused variable within its scope.
     OTHER_SEMANTIC_ERROR = 10,              ///< Other unspecified semantic errors.
     INTERNAL_ERROR = 99                     ///< Internal compiler error, not affected by input program.
-};
+} ErrorType;
+
+/**
+ * @var ErrorType error_tracker
+ * @brief Global variable across all files to keep track of different error types
+*/
+extern ErrorType error_tracker;
+
+/**
+ * @fn set_error(ErrorType error)
+ * @brief Sets global variable error_tracker to desired value
+ * 
+ * Error is set only is the error_tracker is set to NO_ERROR to
+ * prevent overwriting previous errros.
+ * 
+ * @param[in] error type of error to be set
+ * @return void
+ * 
+ * @note This function should set internal errors in the lowest
+ * level possible so that there wont be a need to constantly check
+ * and set errors in more abstract functions.
+*/
+void set_error(ErrorType error);
 
 #endif // ERROR_H

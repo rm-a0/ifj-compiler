@@ -7,12 +7,15 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
+#include <stddef.h>
+
 /**
  * @enum TokenType
  * @brief Constants for different token types.
  */
 typedef enum {
     INVALID,              ///< Constant for invalid tokens.
+    TOKEN_EOF,            ///< Constant for end of file tokens
     TOKEN_CONST,          ///< Constant for 'const' keyword.
     TOKEN_ELSE,           ///< Constant for 'else' keyword.
     TOKEN_FN,             ///< Constant for 'fn' keyword.
@@ -84,6 +87,7 @@ Token* create_token(TokenType token_type, size_t lenght, const char* value);
  * @brief Frees memory allocated for Token struct.
  * 
  * @param[in] token Pointer to a token
+ * @return void
 */
 void free_token(Token *token);
 
