@@ -1027,12 +1027,12 @@ ASTNode* parse_tokens(Lexer* lexer) {
     }
     
     // Prolog must be at the start so we check it first?
-    if (parse_prolog(lexer, &token)) {
+    if (!parse_prolog(lexer, &token)) {
         free_token(token);
         set_error(SYNTAX_ERROR);
         return NULL;
     }
-    //advance_token(&token, lexer);
+    advance_token(&token, lexer);
     ASTNode* program_node = create_program_node();  // Create root (program node)
     // Loop until the token is EOF
     while (!check_token(token, TOKEN_EOF, NULL)) {
