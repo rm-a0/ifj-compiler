@@ -11,6 +11,9 @@
 #include "lexer.h"  // Include definition of lexer struct
 #include "ast.h"    // Include definition of ASTNodes
 
+ASTNode* parse_builtin_fn_call(Lexer* lexer, Token** token, char* identifier);
+ASTNode* parse_expression(Lexer* lexer, Token** token);
+
 /**
  * @fn void advance_token(Token** token, Lexer* lexer);
  * @brief Frees token if its not NULL and gets another one from lexer

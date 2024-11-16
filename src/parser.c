@@ -1,10 +1,13 @@
 /** 
  * @file parser.c
  * @brief Implementation of a parser (syntax analysis)
- * @authors Michal Repcik (xrepcim00)
+ * @authors Michal Repcik (xrepcim00) Simon Bobko (xbobkos00)
 */
+#define _POSIX_C_SOURCE 200809L // Used for strdup(), optimize 
 #include "error.h"
 #include "parser.h"
+#include "stack.h"
+#include "ast_node_stack.h"
 
 const char* tok_name[] = {
     "INVALID",              ///< Constant for invalid tokens.
@@ -60,10 +63,6 @@ void advance_token(Token** token, Lexer* lexer) {
     if (*token == NULL) {
         set_error(LEXICAL_ERROR);
     }
-    else {
-        // delete later
-        printf("TokenType: %s\n", tok_name[(*token)->token_type]);
-    }
 }
 
 int check_token(Token* token, TokenType expected_type, const char* expected_value) {
@@ -79,6 +78,272 @@ int check_token(Token* token, TokenType expected_type, const char* expected_valu
         }
     }
     return 1;   // Return true
+}
+
+// Define operator precedence
+int is_end_of_expression(int paren_counter, Token* token) {
+    return (check_token(token, TOKEN_COMMA, NULL) || check_token(token, TOKEN_SEMICOLON, NULL) ||
+            (paren_counter == 0 && check_token(token, TOKEN_R_PAREN, NULL)));
+}
+
+int get_precedence(TokenType op) {
+    switch (op) {
+        case TOKEN_EQU:
+        case TOKEN_NOT_EQU:
+            return 1;
+        case TOKEN_LESS:
+        case TOKEN_LESS_EQU:
+        case TOKEN_GREATER:
+        case TOKEN_GREATER_EQU:
+            return 2;
+        case TOKEN_PLUS:
+        case TOKEN_MINUS:
+            return 3;
+        case TOKEN_MULT:
+        case TOKEN_DIV:
+            return 4;
+        default:
+            return 0;
+    }
+}
+
+int is_operand_token(Token* token) {
+    return token != NULL && (
+        token->token_type == TOKEN_IDENTIFIER ||
+        token->token_type == TOKEN_INTEGER ||
+        token->token_type == TOKEN_FLOAT ||
+        token->token_type == TOKEN_STRING
+    );
+}
+
+int is_operator_token(Token* token) {
+    return token != NULL && (
+        token->token_type == TOKEN_PLUS ||
+        token->token_type == TOKEN_MINUS ||
+        token->token_type == TOKEN_MULT ||
+        token->token_type == TOKEN_DIV ||
+        // Add other operators
+        token->token_type == TOKEN_LESS ||
+        token->token_type == TOKEN_GREATER ||
+        token->token_type == TOKEN_EQU ||
+        token->token_type == TOKEN_NOT_EQU
+    );
+}
+
+ASTNode* parse_operand(Lexer* lexer, Token** token) {
+    ASTNode* node = NULL;
+
+    if (check_token(*token, TOKEN_IDENTIFIER, NULL)) {
+        char* identifier = strdup((*token)->value);
+        advance_token(token, lexer);
+        if (check_token(*token, TOKEN_L_PAREN, NULL)) {
+            node = parse_fn_call(lexer, token, identifier);
+        }
+        else if (check_token(*token, TOKEN_DOT, NULL)) {
+            node = parse_builtin_fn_call(lexer, token, identifier);
+        }
+        else {
+            node = create_identifier_node(identifier);
+        }
+        free(identifier);
+    } else if (check_token(*token, TOKEN_INTEGER, NULL)) {
+        node = create_i32_node(atoi((*token)->value));
+        advance_token(token, lexer);
+    } else if (check_token(*token, TOKEN_FLOAT, NULL)) {
+        node = create_f64_node(atof((*token)->value));
+        advance_token(token, lexer);
+    } else if (check_token(*token, TOKEN_STRING, NULL)) {
+        node = create_string_node((*token)->value);
+        advance_token(token, lexer);
+    } else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
+        advance_token(token, lexer);
+        node = parse_expression(lexer, token);
+        if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+            set_error(SYNTAX_ERROR);
+            free_ast_node(node);
+            return NULL;
+        }
+        advance_token(token, lexer);
+    } else {
+        set_error(SYNTAX_ERROR);
+        return NULL;
+    }
+    return node;
+}
+
+ASTNode* parse_expression(Lexer* lexer, Token** token) {
+    // Initialize operator stack using stack.h
+    StackPtr op_stack = init_stack();
+    if (!op_stack) {
+        set_error(INTERNAL_ERROR);
+        return NULL;
+    }
+
+    // Initialize operand stack for ASTNode*
+    ASTNodeStackPtr operand_stack = init_ast_node_stack();
+    if (!operand_stack) {
+        set_error(INTERNAL_ERROR);
+        free_resources(op_stack);
+        return NULL;
+    }
+
+    // Begin parsing tokens
+    int paren_counter = 0;
+    while (!is_end_of_expression(paren_counter, *token)) {
+        if (is_operand_token(*token)) {
+            // Create AST node for operand and push to operand stack
+            ASTNode* operand = parse_operand(lexer, token);
+            if (!operand) {
+                // Handle error
+                set_error(SYNTAX_ERROR);
+                free_resources(op_stack);
+                free_ast_node_stack(operand_stack);
+                return NULL;
+            }
+            push_ast_node(operand_stack, operand);
+        } 
+        else if (is_operator_token(*token)) {
+            int op = (*token)->token_type;
+
+            while (!is_empty(op_stack->top) &&
+                   (get_precedence(op) <= get_precedence(top(op_stack)))) {
+                int top_op = top(op_stack);
+
+                pop(op_stack);
+
+                // Attempt to pop two operands
+                ASTNode* right = pop_ast_node(operand_stack);
+                ASTNode* left = pop_ast_node(operand_stack);
+
+                if (!left || !right) {
+                    set_error(SYNTAX_ERROR);
+                    free_resources(op_stack);
+                    free_ast_node_stack(operand_stack);
+                    return NULL;
+                }
+
+                // Create binary operator node
+                ASTNode* op_node = create_binary_op_node(top_op, left, right);
+                if (!op_node) {
+                    set_error(INTERNAL_ERROR);
+                    free_resources(op_stack);
+                    free_ast_node_stack(operand_stack);
+                    return NULL;
+                }
+                push_ast_node(operand_stack, op_node);
+            }
+
+            // Push current operator onto operator stack
+            push(op_stack, op);
+            advance_token(token, lexer);
+        } 
+        else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
+            paren_counter++;
+            push(op_stack, TOKEN_L_PAREN);
+            advance_token(token, lexer);
+        } 
+        else if (check_token(*token, TOKEN_R_PAREN, NULL)) {
+            paren_counter--;
+
+            while (!is_empty(op_stack->top) && top(op_stack) != TOKEN_L_PAREN) {
+                int top_op = top(op_stack);
+
+                pop(op_stack);
+
+                // Attempt to pop two operands
+                ASTNode* right = pop_ast_node(operand_stack);
+                ASTNode* left = pop_ast_node(operand_stack);
+
+                if (!left || !right) {
+                    set_error(SYNTAX_ERROR);
+                    free_resources(op_stack);
+                    free_ast_node_stack(operand_stack);
+                    return NULL;
+                }
+
+                // Create binary operator node
+                ASTNode* op_node = create_binary_op_node(top_op, left, right);
+                if (!op_node) {
+                    set_error(INTERNAL_ERROR);
+                    free_resources(op_stack);
+                    free_ast_node_stack(operand_stack);
+                    return NULL;
+                }
+                push_ast_node(operand_stack, op_node);
+            }
+
+            if (is_empty(op_stack->top)) {
+                // Mismatched parentheses
+                set_error(SYNTAX_ERROR);
+                free_resources(op_stack);
+                free_ast_node_stack(operand_stack);
+                return NULL;
+            }
+
+            // Pop the left parenthesis from the operator stack
+            pop(op_stack);
+            advance_token(token, lexer);
+        } 
+        else {
+            // Idk delete later
+            free_resources(op_stack);
+            free_ast_node_stack(operand_stack);
+            set_error(SYNTAX_ERROR);
+            return NULL;
+            break;
+        }
+    }
+
+    // Pop remaining operators
+    while (!is_empty(op_stack->top)) {
+        int top_op = top(op_stack);
+        pop(op_stack);
+
+        if (top_op == TOKEN_L_PAREN || top_op == TOKEN_R_PAREN) {
+            // Mismatched parentheses
+            set_error(SYNTAX_ERROR);
+            free_resources(op_stack);
+            free_ast_node_stack(operand_stack);
+            return NULL;
+        }
+
+        // Attempt to pop two operands
+        ASTNode* right = pop_ast_node(operand_stack);
+        ASTNode* left = pop_ast_node(operand_stack);
+
+        if (!left || !right) {
+            set_error(SYNTAX_ERROR);
+            free_resources(op_stack);
+            free_ast_node_stack(operand_stack);
+            return NULL;
+        }
+
+        // Create binary operator node
+        ASTNode* op_node = create_binary_op_node(top_op, left, right);
+        if (!op_node) {
+            set_error(INTERNAL_ERROR);
+            free_resources(op_stack);
+            free_ast_node_stack(operand_stack);
+            return NULL;
+        }
+        push_ast_node(operand_stack, op_node);
+    }
+
+    // The result should be the only operand left
+    if (operand_stack->top != 0) {
+        set_error(SYNTAX_ERROR);
+        free_resources(op_stack);
+        free_ast_node_stack(operand_stack);
+        return NULL;
+    }
+
+    ASTNode* expression_node = pop_ast_node(operand_stack);
+
+    // Free the stacks
+    free_resources(op_stack);
+    free_ast_node_stack(operand_stack);
+
+    return expression_node;
 }
 
 int parse_prolog(Lexer* lexer, Token** token) {
@@ -215,11 +480,21 @@ ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
         free_ast_node(const_decl_node);
         return NULL;
     }
-    // Delete later, for now it accepts anything as expression untill it encounters semicolon
-    while (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
-        advance_token(token, lexer);
+
+    advance_token(token, lexer);
+    ASTNode* expression_node = parse_expression(lexer, token);
+    if (expression_node == NULL) {
+        free_ast_node(const_decl_node);
+        return NULL;
     }
-    //ASTNode* expression_node = parser_expression(lexer, token);
+
+    // Connect expression node to const decl node
+    const_decl_node->ConstDecl.expression = expression_node;
+
+    if(!check_token(*token, TOKEN_SEMICOLON, NULL)) {
+        free_ast_node(const_decl_node);
+        return NULL;
+    }
 
     return const_decl_node;
 }
@@ -279,11 +554,20 @@ ASTNode* parse_var_decl(Lexer* lexer, Token** token) {
         free_ast_node(var_decl_node);
         return NULL;
     }
-    // Delete later, for now it accepts anything as expression untill it encounters semicolon
-    while (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
-        advance_token(token, lexer);
+
+    advance_token(token, lexer);
+    ASTNode* expression_node = parse_expression(lexer, token);
+    if (expression_node == NULL) {
+        free_ast_node(var_decl_node);
+        return NULL;
     }
-    // ASTNode* expression_node = parser_expression(lexer, token);
+
+    var_decl_node->VarDecl.expression = expression_node;
+
+    if (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
+        free_ast_node(var_decl_node);
+        return NULL;
+    }
 
     return var_decl_node;
 }
@@ -359,17 +643,24 @@ ASTNode* parse_if_else(Lexer* lexer, Token** token) {
     if (!check_token(*token, TOKEN_L_PAREN, NULL)) {
         return NULL;
     }
-    while (!check_token(*token, TOKEN_R_PAREN, NULL)) {
-        // replace with expression
-        // ASTNode* expression_node = parse_expression
-        advance_token(token, lexer);
+    advance_token(token, lexer);
+    ASTNode* expression_node = parse_expression(lexer, token);
+    if (expression_node == NULL) {
+        return NULL;
+    }
+    if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+        free_ast_node(expression_node);
+        return NULL;
     }
 
     // Create if else node
     ASTNode* if_else_node = create_if_node();
     if (if_else_node == NULL) {
+        free_ast_node(expression_node);
         return NULL;
     }
+    // Assign expression to if else node
+    if_else_node->IfElse.expression = expression_node;
 
     // Check element bind 
     if (parse_element_bind(lexer, token, if_else_node) != 0) {
@@ -410,15 +701,23 @@ ASTNode* parse_while(Lexer* lexer, Token** token) {
         return NULL;
     }
     // Parse expression
-    advance_token(token, lexer); // delete later?
+    advance_token(token, lexer);
+    ASTNode* expression_node = parse_expression(lexer, token);
+    if (expression_node == NULL) {
+        return NULL;
+    }
     if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+        free(expression_node);
         return NULL;
     }
     // Create while node
     ASTNode* while_node = create_while_node();
     if (while_node == NULL) {
+        free(expression_node);
         return NULL;
     }
+    // Add expression node to while node
+    while_node->WhileCycle.expression = expression_node;
     // Parse element bind
     if (parse_element_bind(lexer, token, while_node) != 0) {
         free_ast_node(while_node);
@@ -444,12 +743,7 @@ ASTNode* parse_fn_call(Lexer* lexer, Token** token, char* identifier) {
     while (!(check_token(*token, TOKEN_R_PAREN, NULL))) {
         advance_token(token, lexer);
     }
-    // We got ')' get next token anc check for ';'
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
-        free_ast_node(fn_call);
-        return NULL;
-    }
+    advance_token(token, lexer);   // Advance token for expr_parser
     return fn_call;
 }
 
@@ -485,11 +779,7 @@ ASTNode* parse_builtin_fn_call(Lexer* lexer, Token** token, char* identifier) {
     while (!check_token(*token, TOKEN_R_PAREN, NULL)) {
         advance_token(token, lexer);
     }
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
-        free_ast_node(builtin_fn_call);
-        return NULL;
-    }
+    advance_token(token, lexer); // advance token for expr_parser
     return builtin_fn_call;
 }
 
@@ -578,7 +868,7 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                 char* identifier = strdup((*token)->value);
                 advance_token(token, lexer);
                 if (check_token(*token, TOKEN_ASSIGN, NULL)) {
-                    // parse expression
+                    // assignment node
                 }
                 else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
                     ASTNode* fn_call_node = parse_fn_call(lexer, token, identifier);
@@ -593,6 +883,11 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                         free_ast_node(block_node);
                         return NULL;
                     }
+                    if (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
+                        free(identifier);
+                        free_ast_node(block_node);
+                        return NULL;
+                    }
                 }
                 else if (check_token(*token, TOKEN_DOT, NULL)) {
                     ASTNode* builtin_fn_call = parse_builtin_fn_call(lexer, token, identifier);
@@ -604,6 +899,11 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                     if (append_node_to_block(block_node, builtin_fn_call) != 0) {
                         free(identifier);
                         free_ast_node(builtin_fn_call);
+                        free_ast_node(block_node);
+                        return NULL;
+                    }
+                    if (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
+                        free(identifier);
                         free_ast_node(block_node);
                         return NULL;
                     }
@@ -727,12 +1027,12 @@ ASTNode* parse_tokens(Lexer* lexer) {
     }
     
     // Prolog must be at the start so we check it first?
-    if (!parse_prolog(lexer, &token)) {
+    if (parse_prolog(lexer, &token)) {
         free_token(token);
         set_error(SYNTAX_ERROR);
         return NULL;
     }
-    advance_token(&token, lexer);
+    //advance_token(&token, lexer);
     ASTNode* program_node = create_program_node();  // Create root (program node)
     // Loop until the token is EOF
     while (!check_token(token, TOKEN_EOF, NULL)) {
@@ -749,7 +1049,6 @@ ASTNode* parse_tokens(Lexer* lexer) {
             else {
                 goto error;
             }
- 
         }
         // VAR_DECL
         else if (check_token(token, TOKEN_VAR, NULL)) {
