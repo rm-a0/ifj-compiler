@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 /**
  * @brief Generates code from the provided AST.
@@ -24,5 +25,10 @@ void generate_assignment(ASTNode* node);
 void generate_expression(ASTNode* node);
 void generate_if(ASTNode* node);
 void generate_loop(ASTNode* node);
+
+//GF functions
+bool is_it_global(char* var_name);
+void add_to_global(char* var_name);
+void free_global_vars();
 
 #endif //IFJ_COMPILER_GENERATOR_H
