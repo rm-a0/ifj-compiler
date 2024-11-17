@@ -66,9 +66,24 @@ ASTNode* top_ast_node(ASTNodeStackPtr stack) {
 }
 
 void free_ast_node_stack(ASTNodeStackPtr stack) {
-    if (stack) {
-        // Optionally, free the ASTNodes if they are not managed elsewhere
-        free(stack->arr);
+    if (stack != NULL) {
+        // Free any ASTNodes remaining in the stack
+        while (!is_empty_ast_node_stack(stack)) {
+            ASTNode* node = pop_ast_node(stack);
+            if (node) {
+                free_ast_node(node);  // Ensure this function correctly frees the AST node
+            }
+        }
+
+        // Free the array of ASTNode* pointers
+        if (stack->arr != NULL) {
+            free(stack->arr);
+            stack->arr = NULL; // Optional: Set to NULL to avoid dangling pointer
+        }
+
+        // Free the stack structure itself
         free(stack);
+        stack = NULL; // Optional: Set to NULL to avoid dangling pointer
     }
 }
+

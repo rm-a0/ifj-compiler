@@ -313,6 +313,12 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
 
         if (!left || !right) {
             set_error(SYNTAX_ERROR);
+            if (right) {
+                free_ast_node(right);
+            }
+            if (left) {
+                free_ast_node(left);
+            }
             free_resources(op_stack);
             free_ast_node_stack(operand_stack);
             return NULL;
@@ -322,6 +328,8 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
         ASTNode* op_node = create_binary_op_node(top_op, left, right);
         if (!op_node) {
             set_error(INTERNAL_ERROR);
+            free_ast_node(left);
+            free_ast_node(right);
             free_resources(op_stack);
             free_ast_node_stack(operand_stack);
             return NULL;
