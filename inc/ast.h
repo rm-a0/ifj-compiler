@@ -1,7 +1,7 @@
 /**
  * @file ast.h
  * @brief Header file for ast.c
- * @authors Michal Repcik (xrepcim00)
+ * @authors Michal Repcik (xrepcim00) Simon Bobko (xbobkos00)
 */
 
 #ifndef AST_H

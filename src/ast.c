@@ -1,7 +1,7 @@
 /**
  * @file ast.h
  * @brief Implementation of function that handle nodes of AST
- * @authors Michal Repcik (xrepcim00)
+ * @authors Michal Repcik (xrepcim00) Simon Bobko (xbobkos00)
 */
 #include <stdio.h>
 #include <stdlib.h>
