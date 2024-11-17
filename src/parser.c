@@ -756,6 +756,7 @@ ASTNode* parse_fn_arg(Lexer* lexer, Token** token) {
     ASTNode* expression_node = parse_expression(lexer, token);
     if (expression_node == NULL) {
         free_ast_node(arg_node);
+        return NULL;
     }
     // Add expression to argument node
     arg_node->Argument.expression = expression_node;
