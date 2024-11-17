@@ -3,6 +3,29 @@
 #include "ast_node_stack.h"
 #include <stdio.h>
 
+// ast_node_stack.c
+
+#include "ast_node_stack.h"
+#include "ast.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+
+void print_ast_node_stack(ASTNodeStackPtr stack) {
+    if (is_empty_ast_node_stack(stack)) {
+        printf("ASTNodeStack is empty.\n");
+        return;
+    }
+
+    printf("ASTNodeStack contents (bottom to top):\n");
+    for (int i = 0; i <= stack->top; i++) {
+        printf("  [%d]:\n", i);
+        print_ast_node(stack->arr[i], 2); // Start with indent_level = 2 for readability
+    }
+    printf("\n");
+}
+
+
 ASTNodeStackPtr init_ast_node_stack() {
     ASTNodeStackPtr stack = malloc(sizeof(struct ASTNodeStack));
     if (!stack) {

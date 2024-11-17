@@ -171,7 +171,28 @@ struct ASTNode {
     };
 };
 
-void print_ast(ASTNode* node, int depth);
+const char* token_type_to_string(int token_type);
+
+/**
+ * @brief Converts ASTNodeType enum to its string representation.
+ * @param type The ASTNodeType enum value.
+ * @return String representation of the ASTNodeType.
+ */
+const char* ast_node_type_to_string(ASTNodeType type);
+
+/**
+ * @brief Converts OperatorType enum to its string representation.
+ * @param op_type The OperatorType enum value.
+ * @return String representation of the OperatorType.
+ */
+const char* operator_type_to_string(OperatorType op_type);
+
+/**
+ * @brief Recursively prints the details of an ASTNode.
+ * @param node Pointer to the ASTNode to print.
+ * @param indent_level Current indentation level for pretty printing.
+ */
+void print_ast_node(ASTNode* node, int indent_level);
 
 /**
  * @fn ASTNode* create_identifier_node(char* identifier)

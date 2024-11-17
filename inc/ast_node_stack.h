@@ -15,6 +15,12 @@ typedef struct ASTNodeStack {
     int capacity;      // Current maximum capacity of the stack
 } *ASTNodeStackPtr;
 
+/**
+ * @brief Prints the entire ASTNodeStack from bottom to top.
+ * @param stack Pointer to the ASTNodeStack.
+ */
+void print_ast_node_stack(ASTNodeStackPtr stack);
+
 // Function declarations
 ASTNodeStackPtr init_ast_node_stack();
 void resize_ast_node_stack(ASTNodeStackPtr stack);

@@ -19,53 +19,151 @@
 
 // For testing purposes
 
-void print_ast(ASTNode* node, int depth) {
-    if (node == NULL) return;
+const char* token_type_to_string(int token_type) {
+    switch (token_type) {
+        case TOKEN_PLUS: return "PLUS";
+        case TOKEN_MINUS: return "MINUS";
+        case TOKEN_MULT: return "MULTIPLY";
+        case TOKEN_DIV: return "DIVIDE";
+        case TOKEN_EQU: return "EQUAL";
+        case TOKEN_NOT_EQU: return "NOT_EQUAL";
+        case TOKEN_LESS: return "LESS_THAN";
+        case TOKEN_LESS_EQU: return "LESS_EQUAL";
+        case TOKEN_GREATER: return "GREATER_THAN";
+        case TOKEN_GREATER_EQU: return "GREATER_EQUAL";
+        case TOKEN_IDENTIFIER: return "IDENTIFIER";
+        case TOKEN_INTEGER: return "INTEGER";
+        case TOKEN_FLOAT: return "FLOAT";
+        case TOKEN_STRING: return "STRING";
+        case TOKEN_L_PAREN: return "LEFT_PAREN";
+        case TOKEN_R_PAREN: return "RIGHT_PAREN";
+        case TOKEN_EOF: return "EOF";
+        // Add other tokens as needed
+        default: return "UNKNOWN_TOKEN";
+    }
+}
 
-    for(int i = 0; i < depth; i++) printf("  "); // Indentation
 
-    switch(node->type) {
-        case AST_PROGRAM:
-            printf("Program\n");
-            // Iterate through declarations if applicable
+/**
+ * @brief Converts ASTNodeType enum to its string representation.
+ * @param type The ASTNodeType enum value.
+ * @return String representation of the ASTNodeType.
+ */
+const char* ast_node_type_to_string(ASTNodeType type) {
+    switch (type) {
+        case AST_PROGRAM: return "Program";
+        case AST_FN_DECL: return "Function Declaration";
+        case AST_PARAM: return "Parameter";
+        case AST_VAR_DECL: return "Variable Declaration";
+        case AST_CONST_DECL: return "Constant Declaration";
+        case AST_BLOCK: return "Block";
+        case AST_FN_CALL: return "Function Call";
+        case AST_ARG: return "Argument";
+        case AST_WHILE: return "While Loop";
+        case AST_IF_ELSE: return "If-Else Statement";
+        case AST_BIN_OP: return "Binary Operator";
+        case AST_INT: return "Integer Literal";
+        case AST_FLOAT: return "Float Literal";
+        case AST_STRING: return "String Literal";
+        case AST_IDENTIFIER: return "Identifier";
+        case AST_RETURN: return "Return Statement";
+        case AST_EXPRESSION: return "Expression";
+        default: return "Unknown AST Node Type";
+    }
+}
+
+/**
+ * @brief Converts OperatorType enum to its string representation.
+ * @param op_type The OperatorType enum value.
+ * @return String representation of the OperatorType.
+ */
+const char* operator_type_to_string(OperatorType op_type) {
+    switch (op_type) {
+        case AST_PLUS: return "PLUS (+)";
+        case AST_MINUS: return "MINUS (-)";
+        case AST_MUL: return "MULTIPLY (*)";
+        case AST_DIV: return "DIVIDE (/)";
+        case AST_GREATER: return "GREATER THAN (>)";
+        case AST_GREATER_EQU: return "GREATER THAN OR EQUAL (>=)";
+        case AST_LESS: return "LESS THAN (<)";
+        case AST_LESS_EQU: return "LESS THAN OR EQUAL (<=)";
+        case AST_EQU: return "EQUAL (=)";
+        case AST_NOT_EQU: return "NOT EQUAL (!=)";
+        default: return "Unknown Operator Type";
+    }
+}
+
+void print_ast_node(ASTNode* node, int indent_level) {
+    if (node == NULL) {
+        for (int i = 0; i < indent_level; i++) printf("  ");
+        printf("NULL ASTNode\n");
+        return;
+    }
+
+    for (int i = 0; i < indent_level; i++) printf("  ");
+
+    printf("ASTNode Type: %s\n", ast_node_type_to_string(node->type));
+
+    switch (node->type) {
+        case AST_IDENTIFIER:
+            for (int i = 0; i < indent_level + 1; i++) printf("  ");
+            printf("Identifier: %s\n", node->Identifier.identifier);
             break;
-        case AST_CONST_DECL:
-            printf("ConstDecl: %s\n", node->ConstDecl.const_name);
-            print_ast(node->ConstDecl.expression, depth + 1);
+
+        case AST_INT:
+            for (int i = 0; i < indent_level + 1; i++) printf("  ");
+            printf("Integer Value: %d\n", node->Integer.number);
             break;
-        case AST_VAR_DECL:
-            printf("VarDecl: %s\n", node->VarDecl.var_name);
-            print_ast(node->VarDecl.expression, depth + 1);
+
+        case AST_FLOAT:
+            for (int i = 0; i < indent_level + 1; i++) printf("  ");
+            printf("Float Value: %f\n", node->Float.number);
             break;
-        case AST_FN_DECL:
-            printf("FnDecl: %s\n", node->FnDecl.fn_name);
-            // Print parameters and block
+
+        case AST_STRING:
+            for (int i = 0; i < indent_level + 1; i++) printf("  ");
+            printf("String Value: \"%s\"\n", node->String.string);
             break;
+
+        case AST_BIN_OP:
+            for (int i = 0; i < indent_level + 1; i++) printf("  ");
+            printf("Operator: %s\n", operator_type_to_string(node->BinaryOperator.operator));
+            for (int i = 0; i < indent_level + 1; i++) printf("  ");
+            printf("Left Operand:\n");
+            print_ast_node(node->BinaryOperator.left, indent_level + 2);
+            for (int i = 0; i < indent_level + 1; i++) printf("  ");
+            printf("Right Operand:\n");
+            print_ast_node(node->BinaryOperator.right, indent_level + 2);
+            break;
+
+        // Implement other ASTNodeTypes as needed
+        // Example for AST_RETURN
+        case AST_RETURN:
+            for (int i = 0; i < indent_level + 1; i++) printf("  ");
+            printf("Return Expression:\n");
+            print_ast_node(node->Return.expression, indent_level + 2);
+            break;
+
+        // Example for AST_IF_ELSE
         case AST_IF_ELSE:
-            printf("IfElse\n");
-            print_ast(node->IfElse.expression, depth + 1);
-            print_ast(node->IfElse.if_block, depth + 1);
-            if (node->IfElse.else_block) {
+            for (int i = 0; i < indent_level + 1; i++) printf("  ");
+            printf("If Expression:\n");
+            print_ast_node(node->IfElse.expression, indent_level + 2);
+            for (int i = 0; i < indent_level + 1; i++) printf("  ");
+            printf("If Block:\n");
+            print_ast_node(node->IfElse.if_block, indent_level + 2);
+            if (node->IfElse.else_block != NULL) {
+                for (int i = 0; i < indent_level + 1; i++) printf("  ");
                 printf("Else Block:\n");
-                print_ast(node->IfElse.else_block, depth + 2);
+                print_ast_node(node->IfElse.else_block, indent_level + 2);
             }
             break;
-        case AST_WHILE:
-            printf("WhileCycle\n");
-            print_ast(node->WhileCycle.expression, depth + 1);
-            print_ast(node->WhileCycle.block, depth + 1);
-            break;
-        case AST_FN_CALL:
-            printf("FnCall: %s\n", node->FnCall.fn_name);
-            // Print arguments if applicable
-            break;
-        case AST_BLOCK:
-            printf("Block\n");
-            // Iterate through statements if applicable
-            break;
-        // Handle other AST node types similarly
+
+        // Handle other ASTNodeTypes similarly...
+
         default:
-            printf("Unknown AST Node\n");
+            for (int i = 0; i < indent_level + 1; i++) printf("  ");
+            printf("Details not implemented for this ASTNodeType.\n");
             break;
     }
 }
