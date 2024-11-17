@@ -80,11 +80,15 @@ int check_token(Token* token, TokenType expected_type, const char* expected_valu
     return 1;   // Return true
 }
 
-// Define operator precedence
 int is_end_of_expression(int paren_counter, Token* token) {
-    return (check_token(token, TOKEN_COMMA, NULL) || check_token(token, TOKEN_SEMICOLON, NULL) ||
+    if (token == NULL) {
+        return 1; // Consider NULL token as end of expression
+    }
+    return (check_token(token, TOKEN_COMMA, NULL) ||
+            check_token(token, TOKEN_SEMICOLON, NULL) ||
             (paren_counter == 0 && check_token(token, TOKEN_R_PAREN, NULL)));
 }
+
 
 int get_precedence(TokenType op) {
     switch (op) {
@@ -135,7 +139,16 @@ ASTNode* parse_operand(Lexer* lexer, Token** token) {
 
     if (check_token(*token, TOKEN_IDENTIFIER, NULL)) {
         char* identifier = strdup((*token)->value);
+        if (!identifier) {
+            set_error(INTERNAL_ERROR);
+            return NULL;
+        }
         advance_token(token, lexer);
+        if (*token == NULL || (*token)->token_type == TOKEN_EOF) {
+            set_error(LEXICAL_ERROR);
+            free(identifier);
+            return NULL;
+        }
         if (check_token(*token, TOKEN_L_PAREN, NULL)) {
             node = parse_fn_call(lexer, token, identifier);
         }
@@ -146,25 +159,74 @@ ASTNode* parse_operand(Lexer* lexer, Token** token) {
             node = create_identifier_node(identifier);
         }
         free(identifier);
-    } else if (check_token(*token, TOKEN_INTEGER, NULL)) {
+        if (!node) {  // If AST node creation failed
+            set_error(INTERNAL_ERROR);
+            return NULL;
+        }
+    } 
+    else if (check_token(*token, TOKEN_INTEGER, NULL)) {
         node = create_i32_node(atoi((*token)->value));
+        if (!node) {
+            set_error(INTERNAL_ERROR);
+            return NULL;
+        }
         advance_token(token, lexer);
-    } else if (check_token(*token, TOKEN_FLOAT, NULL)) {
+        if (*token == NULL || (*token)->token_type == TOKEN_EOF) {
+            free_ast_node(node);
+            set_error(LEXICAL_ERROR);
+            return NULL;
+        }
+    } 
+    else if (check_token(*token, TOKEN_FLOAT, NULL)) {
         node = create_f64_node(atof((*token)->value));
+        if (!node) {
+            set_error(INTERNAL_ERROR);
+            return NULL;
+        }
         advance_token(token, lexer);
-    } else if (check_token(*token, TOKEN_STRING, NULL)) {
+        if (*token == NULL || (*token)->token_type == TOKEN_EOF) {
+            set_error(LEXICAL_ERROR);
+            free_ast_node(node);
+            return NULL;
+        }
+    } 
+    else if (check_token(*token, TOKEN_STRING, NULL)) {
         node = create_string_node((*token)->value);
+        if (!node) {
+            set_error(INTERNAL_ERROR);
+            return NULL;
+        }
         advance_token(token, lexer);
-    } else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
+        if (*token == NULL || (*token)->token_type == TOKEN_EOF) {
+            set_error(LEXICAL_ERROR);
+            free_ast_node(node);
+            return NULL;
+        }
+    } 
+    else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
         advance_token(token, lexer);
+        if (*token == NULL || (*token)->token_type == TOKEN_EOF) {
+            set_error(LEXICAL_ERROR);
+            return NULL;
+        }
         node = parse_expression(lexer, token);
+        if (!node) {
+            set_error(INTERNAL_ERROR);
+            return NULL;
+        }
         if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
             set_error(SYNTAX_ERROR);
             free_ast_node(node);
             return NULL;
         }
         advance_token(token, lexer);
-    } else {
+        if (*token == NULL || (*token)->token_type == TOKEN_EOF){
+            set_error(LEXICAL_ERROR);
+            free_ast_node(node);
+            return NULL;
+        }
+    } 
+    else {
         set_error(SYNTAX_ERROR);
         return NULL;
     }
@@ -189,7 +251,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
 
     // Begin parsing tokens
     int paren_counter = 0;
-    while (!is_end_of_expression(paren_counter, *token)) {
+    while (*token != NULL && !check_token(*token, TOKEN_EOF, NULL) && !is_end_of_expression(paren_counter, *token)) {
         if (is_operand_token(*token)) {
             // Create AST node for operand and push to operand stack
             ASTNode* operand = parse_operand(lexer, token);
@@ -236,11 +298,24 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
             // Push current operator onto operator stack
             push(op_stack, op);
             advance_token(token, lexer);
+            if (*token == NULL || (*token)->token_type == TOKEN_EOF){
+                set_error(LEXICAL_ERROR);
+                free_resources(op_stack);
+                free_ast_node_stack(operand_stack);
+                return NULL;
+            }
         } 
         else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
             paren_counter++;
             push(op_stack, TOKEN_L_PAREN);
             advance_token(token, lexer);
+            if (*token == NULL || (*token)->token_type == TOKEN_EOF) {
+                set_error(LEXICAL_ERROR);
+                free_resources(op_stack);
+                free_ast_node_stack(operand_stack);
+                return NULL;
+            }
+
         } 
         else if (check_token(*token, TOKEN_R_PAREN, NULL)) {
             paren_counter--;
@@ -275,6 +350,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
             if (is_empty(op_stack->top)) {
                 // Mismatched parentheses
                 set_error(SYNTAX_ERROR);
+
                 free_resources(op_stack);
                 free_ast_node_stack(operand_stack);
                 return NULL;
@@ -283,25 +359,39 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
             // Pop the left parenthesis from the operator stack
             pop(op_stack);
             advance_token(token, lexer);
+            if (*token == NULL || (*token)->token_type == TOKEN_EOF) {
+                set_error(LEXICAL_ERROR);
+                free_resources(op_stack);
+                free_ast_node_stack(operand_stack);
+                return NULL;
+            }
+
         } 
         else {
-            // Idk delete later
+            // Unknown token encountered
             free_resources(op_stack);
             free_ast_node_stack(operand_stack);
             set_error(SYNTAX_ERROR);
             return NULL;
-            break;
         }
+    }
+    if (*token == NULL) {
+        set_error(LEXICAL_ERROR);
+        free_resources(op_stack);
+        free_ast_node_stack(operand_stack);
+        return NULL;
     }
 
     // Pop remaining operators
     while (!is_empty(op_stack->top)) {
         int top_op = top(op_stack);
+
         pop(op_stack);
 
         if (top_op == TOKEN_L_PAREN || top_op == TOKEN_R_PAREN) {
             // Mismatched parentheses
             set_error(SYNTAX_ERROR);
+
             free_resources(op_stack);
             free_ast_node_stack(operand_stack);
             return NULL;
@@ -313,6 +403,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
 
         if (!left || !right) {
             set_error(SYNTAX_ERROR);
+
             if (right) {
                 free_ast_node(right);
             }
@@ -328,8 +419,10 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
         ASTNode* op_node = create_binary_op_node(top_op, left, right);
         if (!op_node) {
             set_error(INTERNAL_ERROR);
+
             free_ast_node(left);
             free_ast_node(right);
+
             free_resources(op_stack);
             free_ast_node_stack(operand_stack);
             return NULL;
@@ -340,6 +433,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
     // The result should be the only operand left
     if (operand_stack->top != 0) {
         set_error(SYNTAX_ERROR);
+
         free_resources(op_stack);
         free_ast_node_stack(operand_stack);
         return NULL;
@@ -347,11 +441,53 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
 
     ASTNode* expression_node = pop_ast_node(operand_stack);
 
+    if (paren_counter != 0) {
+        set_error(SYNTAX_ERROR);
+        free_resources(op_stack);
+        free_ast_node_stack(operand_stack);
+        free_ast_node(expression_node);
+        return NULL;
+    }
     // Free the stacks
     free_resources(op_stack);
     free_ast_node_stack(operand_stack);
 
     return expression_node;
+}
+
+int parse_prolog(Lexer* lexer, Token** token) {
+    if (!check_token(*token, TOKEN_CONST, NULL)) {
+        return 0;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_IDENTIFIER, "ifj")) {
+        return 0;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_ASSIGN, NULL)) {
+        return 0;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_IMPORT, NULL)) {
+        return 0;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_L_PAREN, NULL)) {
+        return 0;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_STRING, "ifj24.zig")) {
+        return 0;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
+        return 0;
+    }
+    advance_token(token, lexer);
+    if (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
+        return 0;
+    }
+    return 1; // Return true
 }
 
 int parse_prolog(Lexer* lexer, Token** token) {
