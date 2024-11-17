@@ -587,7 +587,7 @@ int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node) {
     // If capacity is reached, double the size of an array
     if (program_node->Program.decl_count >= program_node->Program.decl_capacity) {
         program_node->Program.decl_capacity *= 2;
-        ASTNode** new_decl = realloc(program_node->Program.declarations, program_node->Program.decl_capacity);
+        ASTNode** new_decl = realloc(program_node->Program.declarations, program_node->Program.decl_capacity * sizeof(ASTNode*));
         if (new_decl == NULL) {
             set_error(INTERNAL_ERROR);
             fprintf(stderr, "Failed to reallocate memory for program node declarations\n");
@@ -612,7 +612,7 @@ int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node) {
     // If capacity is reached, double the size of an array
     if (fn_node->FnDecl.param_count >= fn_node->FnDecl.param_capacity) {
         fn_node->FnDecl.param_capacity *= 2;
-        ASTNode** new_params = realloc(fn_node->FnDecl.params, fn_node->FnDecl.param_capacity);
+        ASTNode** new_params = realloc(fn_node->FnDecl.params, fn_node->FnDecl.param_capacity * sizeof(ASTNode*));
         if (new_params == NULL) {
             set_error(INTERNAL_ERROR);
             fprintf(stderr, "Failed to reallocate memory for parameters in function declaration node\n");
@@ -636,7 +636,7 @@ int append_node_to_block(ASTNode* block, ASTNode* node) {
 
     if (block->Block.node_count >= block->Block.node_capacity) {
         block->Block.node_capacity *= 2;
-        ASTNode** new_nodes = realloc(block->Block.nodes, block->Block.node_capacity);
+        ASTNode** new_nodes = realloc(block->Block.nodes, block->Block.node_capacity*sizeof(ASTNode*));
         if (new_nodes == NULL) {
             set_error(INTERNAL_ERROR);
             fprintf(stderr, "Failed to reallocate memory for nodes array in block node\n");
@@ -660,7 +660,7 @@ int append_arg_to_fn(ASTNode* fn_node, ASTNode* arg_node) {
     // If capacity is reached, double the size of an array
     if (fn_node->FnCall.arg_count >= fn_node->FnCall.arg_capacity) {
         fn_node->FnCall.arg_capacity *= 2;
-        ASTNode** new_args = realloc(fn_node->FnCall.args, fn_node->FnCall.arg_capacity);
+        ASTNode** new_args = realloc(fn_node->FnCall.args, fn_node->FnCall.arg_capacity * sizeof(ASTNode*));
         if (new_args == NULL) {
             set_error(INTERNAL_ERROR);
             fprintf(stderr, "Failed to reallocate memory for arguments in function call node\n");

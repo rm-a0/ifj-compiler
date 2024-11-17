@@ -490,41 +490,6 @@ int parse_prolog(Lexer* lexer, Token** token) {
     return 1; // Return true
 }
 
-int parse_prolog(Lexer* lexer, Token** token) {
-    if (!check_token(*token, TOKEN_CONST, NULL)) {
-        return 0;
-    }
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_IDENTIFIER, "ifj")) {
-        return 0;
-    }
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_ASSIGN, NULL)) {
-        return 0;
-    }
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_IMPORT, NULL)) {
-        return 0;
-    }
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_L_PAREN, NULL)) {
-        return 0;
-    }
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_STRING, "ifj24.zig")) {
-        return 0;
-    }
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_R_PAREN, NULL)) {
-        return 0;
-    }
-    advance_token(token, lexer);
-    if (!check_token(*token, TOKEN_SEMICOLON, NULL)) {
-        return 0;
-    }
-    return 1; // Return true
-}
-
 int parse_element_bind(Lexer* lexer, Token** token, ASTNode* node) {
     advance_token(token, lexer);
     // Element bind is not there return success
