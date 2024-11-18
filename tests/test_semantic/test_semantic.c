@@ -13,6 +13,12 @@ int main() {
     // Create the root node for the program
     ASTNode *program_node = create_program_node();
 
+    // Create a constant declaration node for `ifj`
+    ASTNode *ifj_const_node = create_const_decl_node(AST_UNSPECIFIED, "ifj");
+    // Simulate the import by assigning an expression (e.g., a placeholder string)
+    ifj_const_node->ConstDecl.expression = create_string_node("@import(\"ifj24.zig\")");
+    append_decl_to_prog(program_node, ifj_const_node);
+
     // Create the main function declaration node
     ASTNode *main_fn_node = create_fn_decl_node("main");
     main_fn_node->FnDecl.return_type = AST_VOID;
@@ -24,8 +30,6 @@ int main() {
     // Create the argument for the function call (str1)
     ASTNode *arg_node = create_arg_node();
     arg_node->Argument.expression = create_identifier_node("str1");
-
-    // Append the argument to the function call
     append_arg_to_fn(fn_call_node, arg_node);
 
     // Add the function call to the main function's block
@@ -38,9 +42,8 @@ int main() {
     printf("Starting semantic analysis...\n");
     ScopeStack *local_stack = init_scope_stack();
 
-    // Run semantic analysis and expect it to fail due to undefined variable "str1"
+    // Run semantic analysis (expect it to fail due to undefined variable "str1")
     semantic_analysis(program_node, global_table, local_stack);
-
     printf("Semantic analysis completed successfully (this should not happen).\n");
 
     // Cleanup

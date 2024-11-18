@@ -163,6 +163,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             for (int i = 0; i < node->Program.decl_count; i++) {
                 // "node->Program.declarations[i]" can take a shape of fn, var or const
                 semantic_analysis(node->Program.declarations[i], global_table, local_stack);
+                print_global_symbol_table(global_table);
             }
 
             // Check for the presence of a valid 'main' function after processing all declarations
@@ -465,6 +466,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             // Evaluate the type of the expression
             DataType arg_type = evaluate_expression_type(node->Argument.expression, global_table, local_stack);
+            printf("arg_type: %u\n", arg_type);
 
             // Ensure the expression is valid (further checks can be added here if needed)
             if (arg_type == AST_UNSPECIFIED) {
@@ -550,15 +552,19 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 exit(SEMANTIC_ERROR_REDEF);
             }
 
-            // Add the variable to the current frame's symbol table
-            Frame *current_frame = top_frame(local_stack);
-            if (!current_frame || !current_frame->symbol_table) {
-                fprintf(stderr, "Internal Error: No valid scope to declare variable '%s'.\n", var_name);
-                exit(INTERNAL_ERROR);
+            // Add the constant to the appropriate symbol table
+            if (local_stack && local_stack->top >= 0) {
+                Frame *current_frame = top_frame(local_stack);
+                if (current_frame && current_frame->symbol_table) {
+                    add_variable_symbol(current_frame->symbol_table, var_name, data_type);
+                } else {
+                    fprintf(stderr, "Internal Error: No valid scope to declare constant '%s'.\n", var_name);
+                    exit(INTERNAL_ERROR);
+                }
+            } else {
+                // Global scope
+                add_variable_symbol(global_table, var_name, data_type);
             }
-
-            // Add the variable to the symbol table
-            add_variable_symbol(local_stack ? top_frame(local_stack)->symbol_table : global_table, var_name, data_type);
 
             break;
         }
@@ -567,6 +573,9 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             const char *const_name = node->ConstDecl.const_name;
             DataType data_type = node->ConstDecl.data_type;
             ASTNode *expression = node->ConstDecl.expression;
+
+            printf("const_name: %s\n", const_name);
+            printf("data_type: %u\n", node->ConstDecl.data_type);
 
             // Constants must have an expression
             if (!expression) {
@@ -577,6 +586,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             // If data_type is unspecified, deduce it from the expression
             if (data_type == AST_UNSPECIFIED) {
                 data_type = evaluate_expression_type(expression, global_table, local_stack);
+                printf("data_type: %u\n", data_type);
 
                 // If still unspecified after deduction, raise an error
                 if (data_type == AST_UNSPECIFIED) {
@@ -592,16 +602,20 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 exit(SEMANTIC_ERROR_REDEF);
             }
 
-            // Add the constant to the current frame's symbol table
-            Frame *current_frame = top_frame(local_stack);
-            if (!current_frame || !current_frame->symbol_table) {
-                fprintf(stderr, "Internal Error: No valid scope to declare constant '%s'.\n", const_name);
-                exit(INTERNAL_ERROR);
+            // Add the constant to the appropriate symbol table
+            if (local_stack && local_stack->top >= 0) {
+                Frame *current_frame = top_frame(local_stack);
+                if (current_frame && current_frame->symbol_table) {
+                    add_variable_symbol(current_frame->symbol_table, const_name, data_type);
+                } else {
+                    fprintf(stderr, "Internal Error: No valid scope to declare constant '%s'.\n", const_name);
+                    exit(INTERNAL_ERROR);
+                }
+            } else {
+                // Global scope
+                add_variable_symbol(global_table, const_name, data_type);
             }
 
-            // Add the constant as a variable
-            add_variable_symbol(local_stack ? top_frame(local_stack)->symbol_table : global_table, const_name, data_type);
-            
             break;
         }
 
