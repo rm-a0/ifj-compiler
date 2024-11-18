@@ -1,3 +1,9 @@
+/**
+ * @file semantic_analysis.h
+ * @brief Header file for implementation of semantic analysis
+ * @authors Alex Marinica (xmarina00)
+*/
+
 #ifndef SEMANTIC_ANALYSIS_H
 #define SEMANTIC_ANALYSIS_H
 
@@ -5,12 +11,6 @@
 #include "../inc/ast.h"
 #include "../inc/symtable.h"
 #include "../inc/stack.h"
-
-/**
- * @file semantic_analysis.h
- * @brief Header file for implementation of semantic analysis
- * @authors Alex Marinica (xmarina00)
-*/
 
 /**
  * @brief Performs semantic analysis on the given abstract syntax tree (AST).
