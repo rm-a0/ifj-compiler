@@ -417,12 +417,12 @@ int main(int argc, char* argv[]) {
             ASTNode* main_block_3 = create_block_node();
             main_fn_3->FnDecl.block = main_block_3;
 
-            ASTNode* read32_call = create_fn_call_node("ifj.read32");
+            ASTNode* read32_call = create_fn_call_node("ifj.readi32");
             ASTNode* var_num1 = create_var_decl_node(AST_I32, "num1");
             var_num1->VarDecl.expression = read32_call;
             append_node_to_block(main_block_3, var_num1);
 
-            ASTNode* read32_call_2 = create_fn_call_node("ifj.read32");
+            ASTNode* read32_call_2 = create_fn_call_node("ifj.readi32");
             ASTNode* var_num2 = create_var_decl_node(AST_I32, "num2");
             var_num2->VarDecl.expression = read32_call_2;
             append_node_to_block(main_block_3, var_num2);

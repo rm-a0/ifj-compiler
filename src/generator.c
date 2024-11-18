@@ -153,7 +153,26 @@ void generate_code_in_node(ASTNode* node){
                     } else {
                         printf("MOVE LF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->String.string);
                     }
-                } else {
+                } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readstr") == 0){
+                    if (is_it_global(node->ConstDecl.const_name)) {
+                        printf("READ GF@%s string\n", node->ConstDecl.const_name);
+                    } else {
+                        printf("READ LF@%s string\n", node->ConstDecl.const_name);
+                    }
+                } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readi32") == 0){
+                    if (is_it_global(node->ConstDecl.const_name)) {
+                        printf("READ GF@%s int\n", node->ConstDecl.const_name);
+                    } else {
+                        printf("READ LF@%s int\n", node->ConstDecl.const_name);
+                    }
+                } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readf64") == 0){
+                    if (is_it_global(node->ConstDecl.const_name)) {
+                        printf("READ GF@%s float\n", node->ConstDecl.const_name);
+                    } else {
+                        printf("READ LF@%s float\n", node->ConstDecl.const_name);
+                    }
+                }
+                else{
                     generate_code_in_node(node->ConstDecl.expression);
                     pops(node->ConstDecl.const_name);
                 }
@@ -217,7 +236,7 @@ void generate_code_in_node(ASTNode* node){
             // Ak funkcia je WRITE, CONCAT alebo READ, upravíme názov priamo
 
             const char* fn_name = node->FnCall.fn_name;
-            if (strcmp(fn_name, "ifj.write") == 0) {
+            if ((strcmp(fn_name, "ifj.write") == 0)||(strcmp(fn_name, "ifj.writef64") == 0) ) {
                 generate_code_in_node(node->FnCall.args[0]);
                 write(node->FnCall.args[0]->Identifier.identifier);
                 return;

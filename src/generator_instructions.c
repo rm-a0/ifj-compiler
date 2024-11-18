@@ -24,13 +24,13 @@ void label(const char* label_name){
     printf("\033[34mLABEL %s\n\033[0m", label_name);
 }
 void create_frame(){
-    printf("\033[42mCREATEFRAME\033[0m\n");
+    printf("CREATEFRAME\n");
 }
 void push_frame(){
-    printf("\033[43mPUSHFRAME\033[0m\n");
+    printf("PUSHFRAME\n");
 }
 void pop_frame(){
-    printf("\033[43mPOPFRAME\033[0m\n");
+    printf("POPFRAME\n");
 }
 void def_var(const char* var_name, const char* frame_type) {
     if (strcmp(frame_type, "lf") == 0) {
