@@ -6,6 +6,11 @@
 
 #include "../inc/generator_instructions.h"
 const char* frame_prefix(const char* var) {
+    if (var == NULL) {
+        printf("\033[31mERROR: Variable name is NULL in frame_prefix\n\033[0m");
+        return is_it_global(var) ? "GF@" : "LF@";
+        //exit(99); // Interná chyba programu
+    }
     return is_it_global(var) ? "GF@" : "LF@";
 }
 
@@ -208,8 +213,11 @@ void write(const char* symb) {
         printf("WRITE LF@%s\n", symb);  // Lokálna premenná
     }
 }
-void concat(const char* var, const char* symb1, const char* symb2){
-    printf("CONCAT LF@%s %s %s\n", var, symb1, symb2);
+void concat(const char* var, const char* symb1, const char* symb2) {
+    printf("CONCAT %s%s %s%s %s%s\n",
+           frame_prefix(var) ? "GF@" : "LF@", var,
+           frame_prefix(symb1) ? "GF@" : "LF@", symb1,
+           frame_prefix(symb2) ? "GF@" : "LF@", symb2);
 }
 void str_len(const char* var, const char* symb){
     printf("STRLEN LF@%s %s\n", var, symb);

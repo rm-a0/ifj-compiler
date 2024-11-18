@@ -122,14 +122,14 @@ void generate_code_in_node(ASTNode* node){
                 add_to_local(node->FnDecl.params[i]->Param.identifier);
                 pops(node->FnDecl.params[i]->Param.identifier);
             }
-            //def_var(node.Return.expression->Identifier.identifier, "lf");
 
-            generate_code_in_node(node->FnDecl.block);  // Generovanie kódu tela funkcie
+            generate_code_in_node(node->FnDecl.block);
 
             if(node->FnDecl.return_type == AST_VOID) {
 
             } else {
-                pushs(node->Return.expression->Identifier.identifier);
+                //printf("\033[33mPushovanie returnu\033[0m\n");
+                //pushs(node->Return.expression->Identifier.identifier);
 
             }
             break;
@@ -146,29 +146,19 @@ void generate_code_in_node(ASTNode* node){
                 add_to_local(node->VarDecl.var_name);
             }
 
-            //printf("%s\n", node->VarDecl.expression->FnCall.fn_name);
             if (node->ConstDecl.expression) {
                 if (strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.string") == 0) {
-                    // Priama hodnota pre string
                     if (is_it_global(node->ConstDecl.const_name)) {
                         printf("MOVE GF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->String.string);
                     } else {
                         printf("MOVE LF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->String.string);
                     }
                 } else {
-                    // Iné výrazy
                     generate_code_in_node(node->ConstDecl.expression);
                     pops(node->ConstDecl.const_name);
                 }
             }
             break;
-            /*if(node->VarDecl.expression->FnCall.fn_name == "ifj.concat"){
-                if (is_it_global(node->VarDecl.var_name)){
-                    concat(node->VarDecl.expression->FnCall.args[0]->Identifier.identifier, node->VarDecl.expression->FnCall.args[1]->Identifier.identifier);
-                }
-            }*/
-            //TODO: toto s CONCAT musí to ist o uroven vyssie aby som sa mohol dostat k return statement indentifieru
-
 
         case AST_CONST_DECL:
             if (!(is_it_global(node->VarDecl.var_name) || is_it_local(node->VarDecl.var_name))) {
@@ -192,9 +182,33 @@ void generate_code_in_node(ASTNode* node){
             break;
 
         case AST_BLOCK:
-            //TODO: pridanie podpory pre ifj.concat
             for (int i = 0; i < node->Block.node_count; ++i) {
-                generate_code_in_node(node->Block.nodes[i]);
+                ASTNode* block_node = node->Block.nodes[i];
+
+                if (block_node->type == AST_CONST_DECL || block_node->type == AST_VAR_DECL) {
+                    if (block_node->VarDecl.expression &&
+                        block_node->VarDecl.expression->type == AST_FN_CALL &&
+                        strcmp(block_node->VarDecl.expression->FnCall.fn_name, "ifj.concat") == 0) {
+
+                        const char* result = block_node->type == AST_CONST_DECL
+                                             ? block_node->ConstDecl.const_name
+                                             : block_node->VarDecl.var_name;
+
+                        const char* arg1 = block_node->VarDecl.expression->FnCall.args[0]->Identifier.identifier;
+                        const char* arg2 = block_node->VarDecl.expression->FnCall.args[1]->Identifier.identifier;
+
+                        if (!(is_it_global(result) || is_it_local(result))) {
+                            def_var(result, "lf");
+                            add_to_local(result);
+                        }
+
+                        concat(result, arg1, arg2);
+
+                        continue;
+                    }
+                }
+
+                generate_code_in_node(block_node);
             }
             break;
 
@@ -216,26 +230,27 @@ void generate_code_in_node(ASTNode* node){
             {
                 for (int i = node->FnCall.arg_count; i > 0; --i) {      // Generovanie kódu argumentov
                     pushs(node->FnCall.args[i-1]->Identifier.identifier);
-                    //printf("%i\n", (i-1));
                     generate_code_in_node(node->FnCall.args[i]);
                 }
                 call(fn_name);  // Volanie funkcie
-
-                break;
             }
-
-            //else if (strcmp(fn_name, "ifj.concat") == 0) {
-
-            //}
-
-
+            break;
 
         case AST_ARG:
             generate_code_in_node(node->Argument.expression);
             break;
 
         case AST_RETURN:
-            generate_code_in_node(node->Return.expression);
+            if (node->Return.expression && node->Return.expression->type == AST_IDENTIFIER) {
+                const char* return_var = node->Return.expression->Identifier.identifier;
+                if (return_var != NULL) {
+                    pushs(return_var);
+                } else {
+                    printf("\033[31mERROR: Return expression is NULL\033[0m\n");
+                }
+            } else {
+                printf("\033[31mERROR: Invalid return expression\033[0m\n");
+            }
             break;
 
         case AST_BIN_OP:
@@ -273,10 +288,6 @@ void generate_code_in_node(ASTNode* node){
 }
 
 
-
-
-
-
 int generate_code(ASTNode* root){
     if (root == NULL) return 51; // ast root == NULL
 
@@ -285,12 +296,6 @@ int generate_code(ASTNode* root){
     print_new_line();
 
     generate_code_in_node(root);
-
-    /*
-     * for (int i = 0; i < root->Program.decl_count; ++i) {
-        printf("deklaracia #%i\n", (root->Program.decl_count - i));
-    }
-     */
 
     free_var_arrays();
 
