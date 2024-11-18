@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+const char* frame_prefix(const char* var);
 void print_with_indent(const char* text);
 void print_new_line();
 void label(const char* label_name);

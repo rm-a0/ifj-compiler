@@ -5,6 +5,9 @@
 */
 
 #include "../inc/generator_instructions.h"
+const char* frame_prefix(const char* var) {
+    return is_it_global(var) ? "GF@" : "LF@";
+}
 
 void print_with_indent(const char* text) {
     printf("    %s\n", text);  // four spaces before text
@@ -40,11 +43,7 @@ void def_var(const char* var_name, const char* frame_type) {
     }
 }
 void move(const char* var, const char* symb) {
-    if (is_it_global(var)) {
-        printf("MOVE GF@%s %s\n", var, symb);
-    } else {
-        printf("MOVE LF@%s %s\n", var, symb);
-    }
+    printf("MOVE %s%s %s\n", frame_prefix(var), var, symb);
 }
 void call(const char* func){
     printf("CALL %s\n", func);
@@ -53,37 +52,28 @@ void return_f(){
     printf("RETURN\n");
 }
 void pushs(const char* var) {
-    if (is_it_global(var)) {
-        printf("PUSHS GF@%s\n", var);
-    } else {
-        printf("PUSHS LF@%s\n", var);
-    }
+    printf("PUSHS %s%s\n", frame_prefix(var), var);
 }
-
 void pops(const char* var) {
-    if (is_it_global(var)) {
-        printf("POPS GF@%s\n", var);
-    } else {
-        printf("POPS LF@%s\n", var);
-    }
+    printf("POPS %s%s\n", frame_prefix(var), var);
 }
 void clears(){
     printf("CLEARS\n");
 }
 void add(const char* var, const char* symb1, const char* symb2) {
-    printf("ADD %s %s %s\n", is_it_global(var) ? "GF" : "LF", var, symb1, symb2);
+    printf("ADD %s%s %s %s\n", frame_prefix(var), var, symb1, symb2);
 }
 void sub(const char* var, const char* symb1, const char* symb2) {
-    printf("SUB %s %s %s\n", is_it_global(var) ? "GF" : "LF", var, symb1, symb2);
+    printf("SUB %s@%s %s %s\n", frame_prefix(var), var, symb1, symb2);
 }
 void mul(const char* var, const char* symb1, const char* symb2) {
-    printf("MUL %s %s %s\n", is_it_global(var) ? "GF" : "LF", var, symb1, symb2);
+    printf("MUL %s@%s %s %s\n", frame_prefix(var), var, symb1, symb2);
 }
 void div_f(const char* var, const char* symb1, const char* symb2) {
-    printf("DIV %s %s %s\n", is_it_global(var) ? "GF" : "LF", var, symb1, symb2);
+    printf("DIV %s@%s %s %s\n", frame_prefix(var), var, symb1, symb2);
 }
 void idiv(const char* var, const char* symb1, const char* symb2) {
-    printf("IDIV %s %s %s\n", is_it_global(var) ? "GF" : "LF", var, symb1, symb2);
+    printf("IDIV %s@%s %s %s\n", frame_prefix(var), var, symb1, symb2);
 }
 void add_s(const char* var) {
     if (is_it_global((char*)var)) {
@@ -163,16 +153,13 @@ void eqs(const char* label) {
     }
 }
 void and(const char* var, const char* symb1, const char* symb2) {
-    printf("AND %s %s %s\n",
-           is_it_global((char*)var) ? "GF@" : "LF@", var, symb1, symb2);
+    printf("AND %s%s %s %s\n", frame_prefix(var), var, symb1, symb2);
 }
 void or(const char* var, const char* symb1, const char* symb2) {
-    printf("OR %s %s %s\n",
-           is_it_global((char*)var) ? "GF@" : "LF@", var, symb1, symb2);
+    printf("OR %s%s %s %s\n", frame_prefix(var), var, symb1, symb2);
 }
 void not(const char* var, const char* symb) {
-    printf("NOT %s %s\n",
-           is_it_global((char*)var) ? "GF@" : "LF@", var, symb);
+    printf("NOT %s%s %s\n", frame_prefix(var), var, symb);
 }
 void ands(const char* var) {
     printf("ANDS %s%s\n",

@@ -9,10 +9,11 @@
 
 #define MAX_VAR_NAME_LENGTH 128     // Maximálna dĺžka názvu premennej v GF
 #define MAX_GF_VAR_COUNT 1024       // Maximálny počet globálnych premenných
-
+#define MAX_LF_VAR_COUNT 1024       // Maximálny počet lokálnych premenných
 char* gf_vars[MAX_GF_VAR_COUNT] = {NULL}; // Inicializácia všetkých prvkov na NULL
+char* lf_vars[MAX_LF_VAR_COUNT] = {NULL}; // Inicializácia všetkých prvkov na NULL
 
-bool is_it_global(char* var_name){
+bool is_it_global(const char* var_name){
     for (int i = 0; i < MAX_GF_VAR_COUNT; ++i) {
         if (gf_vars[i] != NULL && strcmp(gf_vars[i], var_name) == 0) {
             return true;
@@ -20,7 +21,7 @@ bool is_it_global(char* var_name){
     }
     return false; // Žiadna zhoda
 }
-void add_to_global(char* var_name){
+void add_to_global(const char* var_name){
     for (int i = 0; i < MAX_GF_VAR_COUNT; ++i) {
         if (gf_vars[i] == NULL) {
             gf_vars[i] = malloc(MAX_VAR_NAME_LENGTH);
@@ -37,15 +38,44 @@ void add_to_global(char* var_name){
     fprintf(stderr, "ERROR: Exceeded limit of global variables\n");
     exit(54);
 }
-void free_global_vars() {
+void free_var_arrays() {
     for (int i = 0; i < MAX_GF_VAR_COUNT; ++i) {
         if (gf_vars[i] != NULL) {
             free(gf_vars[i]);
             gf_vars[i] = NULL;
         }
     }
+    for (int i = 0; i < MAX_LF_VAR_COUNT; ++i) {
+        if (lf_vars[i] != NULL) {
+            free(lf_vars[i]);
+            lf_vars[i] = NULL;
+        }
+    }
 }
-// TODO: To implement local frame array functions
+bool is_it_local(const char* var_name){
+    for (int i = 0; i < MAX_LF_VAR_COUNT; ++i) {
+        if (lf_vars[i] != NULL && strcmp(lf_vars[i], var_name) == 0) {
+            return true;
+        }
+    }
+    return false; // Žiadna zhoda
+}
+void add_to_local(const char* var_name){
+    for(int i = 0; i < MAX_LF_VAR_COUNT; i++){
+        if (lf_vars[i] == NULL) {
+            lf_vars[i] = malloc(MAX_VAR_NAME_LENGTH);
+            if (lf_vars[i] == NULL) {
+                fprintf(stderr, "ERROR: Memory allocation failed\n");
+                exit(99); //interná chyba programu - chyba alokácie pamäte
+            }
+            strncpy(lf_vars[i], var_name, MAX_VAR_NAME_LENGTH - 1);
+            lf_vars[i][MAX_VAR_NAME_LENGTH - 1] = '\0';
+            return;
+        }
+    }
+}
+
+
 void generate_code_in_node(ASTNode* node){
     if (node == NULL) return;
 
@@ -60,19 +90,21 @@ void generate_code_in_node(ASTNode* node){
                     pop_frame();    // ?? netusim ci tu treba naspat pop-ovat ramec
                     printf("EXIT int@0\n");  // Ukončí program ?? - je to nutné?
                 }
-                /*else if(node->Program.declarations[i]->type == AST_VAR_DECL)  {
+                else if(node->Program.declarations[i]->type == AST_VAR_DECL)  {
                     def_var(node->Program.declarations[i]->VarDecl.var_name, "gf");
+                    add_to_global(node->Program.declarations[i]->VarDecl.var_name);
                     if (node->Program.declarations[i]->VarDecl.expression) {
                         generate_code_in_node(node->Program.declarations[i]->VarDecl.expression);
                         pops(node->Program.declarations[i]->VarDecl.var_name);
                     }
                 } else if(node->Program.declarations[i]->type == AST_CONST_DECL) {
                     def_var(node->Program.declarations[i]->ConstDecl.const_name, "gf");
+                    add_to_global(node->Program.declarations[i]->ConstDecl.const_name);
                     if (node->Program.declarations[i]->ConstDecl.expression) {
                         generate_code_in_node(node->Program.declarations[i]->ConstDecl.expression);
                         pops(node->Program.declarations[i]->ConstDecl.const_name);
                     }
-                }*/
+                }
                 else {
                     label(node->Program.declarations[i]->FnDecl.fn_name);
                     push_frame();
@@ -87,6 +119,7 @@ void generate_code_in_node(ASTNode* node){
         case AST_FN_DECL:
             for (int i = 0; i < node->FnDecl.param_count; ++i) {
                 def_var(node->FnDecl.params[i]->Param.identifier, "lf");
+                add_to_local(node->FnDecl.params[i]->Param.identifier);
                 pops(node->FnDecl.params[i]->Param.identifier);
             }
             //def_var(node.Return.expression->Identifier.identifier, "lf");
@@ -103,35 +136,46 @@ void generate_code_in_node(ASTNode* node){
 
         case AST_PARAM:
             def_var(node->Param.identifier, "lf");
+            add_to_local(node->Param.identifier);
             // ?? neviem ci toto tu nie je zbytocne
             break;
 
         case AST_VAR_DECL:
-            def_var(node->VarDecl.var_name, "lf");
-            //printf("%s\n", node->VarDecl.expression->FnCall.fn_name);
-            if(strcmp(node->VarDecl.expression->FnCall.fn_name, "ifj.string") == 0){
-
-                if (is_it_global(node->VarDecl.var_name)) {
-                    printf("MOVE GF@%s string@%s\n",node->VarDecl.var_name, node->VarDecl.expression->FnCall.args[0]->String.string);
-                } else {
-                    printf("MOVE LF@%s string@%s\n",node->VarDecl.var_name, node->VarDecl.expression->FnCall.args[0]->String.string);
-                }
-                break;
+            if (!(is_it_global(node->VarDecl.var_name) || is_it_local(node->VarDecl.var_name))){
+                def_var(node->VarDecl.var_name, "lf");
+                add_to_local(node->VarDecl.var_name);
             }
+
+            //printf("%s\n", node->VarDecl.expression->FnCall.fn_name);
+            if (node->ConstDecl.expression) {
+                if (strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.string") == 0) {
+                    // Priama hodnota pre string
+                    if (is_it_global(node->ConstDecl.const_name)) {
+                        printf("MOVE GF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->String.string);
+                    } else {
+                        printf("MOVE LF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->String.string);
+                    }
+                } else {
+                    // Iné výrazy
+                    generate_code_in_node(node->ConstDecl.expression);
+                    pops(node->ConstDecl.const_name);
+                }
+            }
+            break;
             /*if(node->VarDecl.expression->FnCall.fn_name == "ifj.concat"){
                 if (is_it_global(node->VarDecl.var_name)){
                     concat(node->VarDecl.expression->FnCall.args[0]->Identifier.identifier, node->VarDecl.expression->FnCall.args[1]->Identifier.identifier);
                 }
             }*/
             //TODO: toto s CONCAT musí to ist o uroven vyssie aby som sa mohol dostat k return statement indentifieru
-            if (node->VarDecl.expression) {
-                generate_code_in_node(node->VarDecl.expression);
-                pops(node->VarDecl.var_name);
-            }
-            break;
+
 
         case AST_CONST_DECL:
-            def_var(node->ConstDecl.const_name, "lf");
+            if (!(is_it_global(node->VarDecl.var_name) || is_it_local(node->VarDecl.var_name))) {
+                def_var(node->VarDecl.var_name, "lf");
+                add_to_local(node->VarDecl.var_name);
+            }
+
             if(strcmp(node->VarDecl.expression->FnCall.fn_name, "ifj.string") == 0){
 
                 if (is_it_global(node->VarDecl.var_name)) {
@@ -148,6 +192,7 @@ void generate_code_in_node(ASTNode* node){
             break;
 
         case AST_BLOCK:
+            //TODO: pridanie podpory pre ifj.concat
             for (int i = 0; i < node->Block.node_count; ++i) {
                 generate_code_in_node(node->Block.nodes[i]);
             }
@@ -247,7 +292,7 @@ int generate_code(ASTNode* root){
     }
      */
 
-    free_global_vars();
+    free_var_arrays();
 
     return 0;
 }

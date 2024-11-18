@@ -27,8 +27,10 @@ void generate_if(ASTNode* node);
 void generate_loop(ASTNode* node);
 
 //GF functions
-bool is_it_global(char* var_name);
-void add_to_global(char* var_name);
-void free_global_vars();
+bool is_it_global(const char* var_name);
+void add_to_global(const char* var_name);
+void free_var_arrays();
+bool is_it_local(const char* var_name);
+void add_to_local(const char* var_name);
 
 #endif //IFJ_COMPILER_GENERATOR_H
