@@ -1,3 +1,9 @@
+/**
+ * @file symtable.h
+ * @brief Source file implementing symbol table
+ * @authors Alex Marinica (xmarina00)
+*/
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
@@ -8,7 +14,8 @@
 #define INITIAL_CAPACITY 10
 #define LOAD_FACTOR 0.75
 
-/* Hash function using djb2 */
+/* Hash function using djb2 algorithm
+   source: https://www.cse.yorku.ca/~oz/hash.html */
 static unsigned int hash(const char *key, int capacity) {
     unsigned long hash = 5381;
     int c;

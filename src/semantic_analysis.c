@@ -1,3 +1,10 @@
+/**
+ * @file semantic_analysis.c
+ * @brief File implementing semantic analysis through recursive descent
+ * @authors Alex Marinica (xmarina00)
+*/
+
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>

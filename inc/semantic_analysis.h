@@ -7,6 +7,12 @@
 #include "../inc/stack.h"
 
 /**
+ * @file semantic_analysis.h
+ * @brief Header file for implementation of semantic analysis
+ * @authors Alex Marinica (xmarina00)
+*/
+
+/**
  * @brief Performs semantic analysis on the given abstract syntax tree (AST).
  *
  * Recursively traverses the AST and performs semantic checks, such as type compatibility,

@@ -1,6 +1,11 @@
+/**
+ * @file symtable.h
+ * @brief Header file for implementation of symbol table
+ * @authors Alex Marinica (xmarina00)
+*/
+
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
-
 #include "ast.h"
 struct ScopeStack;
 typedef struct ScopeStack ScopeStack;

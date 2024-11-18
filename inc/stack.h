@@ -1,3 +1,9 @@
+/**
+ * @file stack.h
+ * @brief Header file for implementation of stack data structure
+ * @authors Alex Marinica (xmarina00)
+*/
+
 #ifndef STACK_H
 #define STACK_H
 

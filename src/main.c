@@ -1,7 +1,7 @@
 /**
  * @file main.c
  * @brief Main program
- * @authors Michal Repcik (xrepcim00)
+ * @authors Michal Repcik (xrepcim00), Alex Marinica (xmarina00)
 */
 #include <stdlib.h>
 #include <time.h>

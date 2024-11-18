@@ -1,3 +1,9 @@
+/**
+ * @file stack.h
+ * @brief Source files implementating stack data structure
+ * @authors Alex Marinica (xmarina00)
+*/
+
 #include <stdlib.h>
 #include <string.h>
 #include "../inc/stack.h"
