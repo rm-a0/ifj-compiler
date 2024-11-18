@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "token.h"
 #include "ast.h"
 #include "error.h"
 
@@ -14,6 +15,155 @@
 #define DEFAULT_FN_ARG_CNT          3   ///< Used for pre-allocating memory for argument array inside function declaration node
 #define DEFAULT_FN_PARAM_CNT        3   ///< Used for pre-allocating memory for parameter array inside function call node
 #define DEFAULT_BLOCK_NODE_CNT      5   ///< Used for pre-allocating memory for node array inside block
+
+ASTNode* create_assignment_node(char* identifier) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        return NULL;
+    }
+
+    node->Assignment.identifier = strdup(identifier);
+    if (node->Assignment.identifier == NULL) {
+        free(node);
+        return NULL;
+    }
+
+    node->type = AST_ASSIGNMENT;
+    node->Assignment.expression = NULL;
+    return node;
+}
+
+ASTNode* create_binary_op_node(int operator, ASTNode* left, ASTNode* right) {
+    // Map the operator token to the OperatorType enum
+    OperatorType op_type;
+    switch (operator) {
+        case TOKEN_PLUS:
+            op_type = AST_PLUS;
+            break;
+        case TOKEN_MINUS:
+            op_type = AST_MINUS;
+            break;
+        case TOKEN_MULT:
+            op_type = AST_MUL;
+            break;
+        case TOKEN_DIV:
+            op_type = AST_DIV;
+            break;
+        case TOKEN_LESS:
+            op_type = AST_LESS;
+            break;
+        case TOKEN_LESS_EQU:
+            op_type = AST_LESS_EQU;
+            break;
+        case TOKEN_GREATER:
+            op_type = AST_GREATER;
+            break;
+        case TOKEN_GREATER_EQU:
+            op_type = AST_GREATER_EQU;
+            break;
+        case TOKEN_EQU:
+            op_type = AST_EQU;
+            break;
+        case TOKEN_NOT_EQU:
+            op_type = AST_NOT_EQU;
+            break;
+        // Add other operators as needed
+        default:
+            // Invalid operator token
+            set_error(SYNTAX_ERROR);
+            return NULL;
+    }
+
+    // Allocate memory for the ASTNode
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        set_error(INTERNAL_ERROR);
+        return NULL;
+    }
+
+    // Set the node type
+    node->type = AST_BIN_OP;
+
+    // Initialize the BinaryOperator struct
+    node->BinaryOperator.operator = op_type;
+    node->BinaryOperator.left = left;
+    node->BinaryOperator.right = right;
+
+    return node;
+}
+
+ASTNode* create_identifier_node(char* identifier) {
+    // Allocate memory for the ASTNode
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        // Handle memory allocation failure
+        set_error(INTERNAL_ERROR);
+        return NULL;
+    }
+
+    // Set the node type
+    node->type = AST_IDENTIFIER;
+
+    // Initialize the Identifier struct
+    node->Identifier.identifier = strdup(identifier);
+    if (node->Identifier.identifier == NULL) {
+        // Handle memory allocation failure
+        set_error(INTERNAL_ERROR);
+        free(node);
+        return NULL;
+    }
+
+    return node;
+}
+
+ASTNode* create_i32_node(int value) {
+    // Allocate memory for the ASTNode
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        // Handle memory allocation failure
+        set_error(INTERNAL_ERROR);
+        return NULL;
+    }
+
+    // Set the node type
+    node->type = AST_INT;
+
+    // Set the integer value
+    node->Integer.number = value;
+
+    return node;
+}
+
+ASTNode* create_f64_node(double value) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        set_error(INTERNAL_ERROR);
+        return NULL;
+    }
+
+    node->type = AST_FLOAT;
+    node->Float.number = value;
+
+    return node;
+}
+
+ASTNode* create_string_node(char* value) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        set_error(INTERNAL_ERROR);
+        return NULL;
+    }
+
+    node->type = AST_STRING;
+    node->String.string = strdup(value);
+    if (node->String.string == NULL) {
+        set_error(INTERNAL_ERROR);
+        free(node);
+        return NULL;
+    }
+
+    return node;
+}
 
 ASTNode* create_program_node() {
     ASTNode* node = malloc(sizeof(ASTNode));
@@ -282,6 +432,29 @@ void free_ast_node(ASTNode* node) {
     }
 
     switch (node->type) {
+        case AST_ASSIGNMENT:
+            free(node->Assignment.identifier);
+            free_ast_node(node->Assignment.expression);
+            break;
+        case AST_BIN_OP:
+            // Recursively free left and right operands
+            free_ast_node(node->BinaryOperator.left);
+            free_ast_node(node->BinaryOperator.right);
+            break;
+        case AST_IDENTIFIER:
+            if (node->Identifier.identifier != NULL) {
+                free(node->Identifier.identifier);
+            }
+            break;
+        case AST_INT:
+            break;
+        case AST_FLOAT:
+            break;
+        case AST_STRING:
+            if (node->String.string != NULL) {
+                free(node->String.string);
+            }
+            break;
         case AST_PROGRAM:
             // Free all declarations recursively
             for (int i = 0; i < node->Program.decl_count; i++) {
@@ -477,3 +650,29 @@ int append_node_to_block(ASTNode* block, ASTNode* node) {
     block->Block.node_count++;
     return 0;
 }
+
+int append_arg_to_fn(ASTNode* fn_node, ASTNode* arg_node) {
+    if (fn_node == NULL || arg_node == NULL) {
+        set_error(INTERNAL_ERROR);
+        return 1;
+    }
+
+    // If capacity is reached, double the size of an array
+    if (fn_node->FnCall.arg_count >= fn_node->FnCall.arg_capacity) {
+        fn_node->FnCall.arg_capacity *= 2;
+        ASTNode** new_args = realloc(fn_node->FnCall.args, fn_node->FnCall.arg_capacity);
+        if (new_args == NULL) {
+            set_error(INTERNAL_ERROR);
+            fprintf(stderr, "Failed to reallocate memory for arguments in function call node\n");
+            return 1;
+        }
+
+        fn_node->FnCall.args = new_args;
+
+    }
+    // Append node to parameter pointer array
+    fn_node->FnCall.args[fn_node->FnCall.arg_count] = arg_node;
+    fn_node->FnCall.arg_count++;
+    return 0;
+}
+

@@ -1,56 +1,21 @@
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include "stack.h"
-#include "symtable.h"
+#include "../inc/stack.h"
+#include "../inc/symtable.h"
 
-// Resize the RootStack by doubling its capacity
-void resize_root_stack(RootStack *root_stack) {
-    root_stack->capacity *= 2;
-    root_stack->function_names = realloc(root_stack->function_names, root_stack->capacity * sizeof(char *));
-    root_stack->functions = realloc(root_stack->functions, root_stack->capacity * sizeof(ScopeStack *));
+/**
+ * @brief Resizes the ScopeStack by doubling its capacity.
+ * @param scopeStack Pointer to the ScopeStack to resize.
+ */
+void resize_scope_stack(ScopeStack *scopeStack) {
+    scopeStack->capacity *= 2;
+    scopeStack->frames = realloc(scopeStack->frames, scopeStack->capacity * sizeof(Frame *));
 }
 
-// Resize the ScopeStack by doubling its capacity
-void resize_scope_stack(ScopeStack *scope_stack) {
-    scope_stack->capacity *= 2;
-    scope_stack->frames = realloc(scope_stack->frames, scope_stack->capacity * sizeof(Frame *));
-}
-
-// Initialize the RootStack for global function management
-RootStack *init_root_stack() {
-    RootStack *root = malloc(sizeof(RootStack));
-    if (root) {
-        root->global_symbol_table = init_symbol_table(); // Initialize global symbol table
-        root->function_names = malloc(10 * sizeof(char *));
-        root->functions = malloc(10 * sizeof(ScopeStack *));
-        root->function_count = 0;
-        root->capacity = 10;
-    }
-    return root;
-}
-
-// Add a new function ScopeStack to the RootStack
-void add_function(RootStack *root_stack, const char *function_name) {
-    if (root_stack->function_count >= root_stack->capacity) {
-        resize_root_stack(root_stack); // Resize if capacity is reached
-    }
-    root_stack->function_names[root_stack->function_count] = strdup(function_name);
-    root_stack->functions[root_stack->function_count] = init_scope_stack();
-    root_stack->function_count++;
-}
-
-// Retrieve the ScopeStack of a specific function by name
-ScopeStack *get_function_stack(RootStack *root_stack, const char *function_name) {
-    for (int i = 0; i < root_stack->function_count; i++) {
-        if (strcmp(root_stack->function_names[i], function_name) == 0) {
-            return root_stack->functions[i];
-        }
-    }
-    return NULL; // Not found
-}
-
-// Initialize a new ScopeStack for managing frames within a function
+/**
+ * @brief Initializes a new ScopeStack for managing frames within a function.
+ * @return Pointer to the initialized ScopeStack, or NULL if memory allocation fails.
+ */
 ScopeStack *init_scope_stack() {
     ScopeStack *scope_stack = malloc(sizeof(ScopeStack));
     if (scope_stack) {
@@ -61,24 +26,70 @@ ScopeStack *init_scope_stack() {
     return scope_stack;
 }
 
-// Push a new frame onto the ScopeStack
-void push_frame(ScopeStack *scope_stack, FrameType type) {
+/**
+ * @brief Looks up a symbol in the local stack and global table.
+ * 
+ * This function searches for a symbol starting from the top frame of the local stack 
+ * and then falls back to the global table if not found in the local scopes.
+ * 
+ * @param global_table Pointer to the global symbol table.
+ * @param local_stack Pointer to the local scope stack.
+ * @param name Name of the symbol to look for.
+ * @return Pointer to the found symbol or NULL if not found.
+ */
+Symbol *lookup_symbol_in_scopes(SymbolTable *global_table, ScopeStack *local_stack, const char *name) {
+    // Check local stack first
+    if (local_stack != NULL) {
+        for (int i = local_stack->top; i >= 0; i--) {
+            Frame *frame = local_stack->frames[i];
+            Symbol *symbol = lookup_symbol(frame->symbol_table, name);
+            if (symbol != NULL) {
+                return symbol; // Found in local scope
+            }
+        }
+    }
+
+    // Fall back to global table
+    if (global_table != NULL) {
+        Symbol *symbol = lookup_symbol(global_table, name);
+        if (symbol != NULL) {
+            return symbol; // Found in global scope
+        }
+    }
+
+    // Symbol not found
+    return NULL;
+}
+
+/**
+ * @brief Pushes a new frame onto the ScopeStack, resizing if needed.
+ * @param scope_stack Pointer to the ScopeStack where the frame will be pushed.
+ */
+void push_frame(ScopeStack *scope_stack) {
     if (scope_stack->top + 1 >= scope_stack->capacity) {
         resize_scope_stack(scope_stack); // Resize if capacity is reached
     }
     Frame *frame = init_frame();
-    frame->type = type;  // Set frame type
     scope_stack->frames[++scope_stack->top] = frame;
 }
 
-// Pop the top frame from the ScopeStack
+/**
+ * @brief Removes the top frame from the ScopeStack.
+ * @param scope_stack Pointer to the ScopeStack to pop from.
+ */
 void pop_frame(ScopeStack *scope_stack) {
     if (scope_stack->top >= 0) {
         free(scope_stack->frames[scope_stack->top--]);
     }
 }
 
-// Retrieve the top frame of the ScopeStack
+
+
+/**
+ * @brief Retrieves the top frame of the ScopeStack without removing it.
+ * @param scope_stack Pointer to the ScopeStack.
+ * @return Pointer to the top Frame, or NULL if the stack is empty.
+ */
 Frame *top_frame(ScopeStack *scope_stack) {
     if (scope_stack->top >= 0) {
         return scope_stack->frames[scope_stack->top];
@@ -86,7 +97,47 @@ Frame *top_frame(ScopeStack *scope_stack) {
     return NULL;
 }
 
-// Initialize a Frame with a new symbol table
+/**
+ * @brief Frees the memory associated with a single frame.
+ * 
+ * @param frame Pointer to the Frame to be freed.
+ */
+void free_frame(Frame *frame) {
+    if (!frame) return;
+
+    // Free the symbol table within the frame
+    if (frame->symbol_table) {
+        free_symbol_table(frame->symbol_table);
+    }
+
+    // Free the frame itself
+    free(frame);
+}
+
+/**
+ * @brief Frees the memory associated with a ScopeStack.
+ * 
+ * @param stack Pointer to the ScopeStack to be freed.
+ */
+void free_scope_stack(ScopeStack *stack) {
+    if (!stack) return;
+
+    // Free each frame in the stack
+    for (int i = 0; i <= stack->top; i++) {
+        free_frame(stack->frames[i]);
+    }
+
+    // Free the frames array
+    free(stack->frames);
+
+    // Free the stack itself
+    free(stack);
+}
+
+/**
+ * @brief Initializes a Frame with a new symbol table.
+ * @return Pointer to the initialized Frame, or NULL if memory allocation fails.
+ */
 Frame *init_frame() {
     Frame *frame = malloc(sizeof(Frame));
     if (frame) {
@@ -95,37 +146,30 @@ Frame *init_frame() {
     return frame;
 }
 
-// Add a global variable to the RootStack's global symbol table
-void add_global_variable(RootStack *root_stack, const char *name, int value) {
-    add_symbol(root_stack->global_symbol_table, name, value);
-}
+#include <stdio.h>
 
-// Lookup a global variable in the RootStack's global symbol table
-Symbol *lookup_global_variable(RootStack *root_stack, const char *name) {
-    return lookup_symbol(root_stack->global_symbol_table, name);
-}
-
-// Print the contents of the ScopeStack for debugging
+/**
+ * @brief Prints the contents of a function's ScopeStack for debugging.
+ * 
+ * @param scope_stack Pointer to the ScopeStack to print.
+ */
 void print_scope_stack(ScopeStack *scope_stack) {
     for (int i = 0; i <= scope_stack->top; i++) {
         Frame *frame = scope_stack->frames[i];
-        printf("Frame %d: Type = ", i);
-        if (frame->type == IF_COND_STATEMENT) {
-            printf("IF_COND_STATEMENT\n");
-        } else if (frame->type == WHILE_STATEMENT) {
-            printf("WHILE_STATEMENT\n");
-        }
+        printf("Frame %d\n", i);
         print_symbol_table(frame->symbol_table);
     }
 }
 
-// Print the contents of the RootStack for debugging
-void print_root_stack(RootStack *root_stack) {
-    printf("Global Variables:\n");
-    print_symbol_table(root_stack->global_symbol_table);
+/**
+ * @brief Prints the contents of the root_stack for debugging.
+ * 
+ * @param root_stack Pointer to the root_stack to print.
+ */
+// void print_root_stack(RootStack *root_stack) {
+//     for (int i = 0; i < root_stack->declerations_count; i++) {
+//         printf("Decl: %s\n", root_stack->function_names[i]);
+//         print_scope_stack(root_stack->declerations[i]);
+//     }
+// }
 
-    for (int i = 0; i < root_stack->function_count; i++) {
-        printf("\nFunction: %s\n", root_stack->function_names[i]);
-        print_scope_stack(root_stack->functions[i]);
-    }
-}
