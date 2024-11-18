@@ -6,7 +6,7 @@ pub fn sum(x : f64, y : f64) f64 {
 }
 
 pub fn main() void {
-    var x : ?f64 = 1.5;
-    var y : ?f64 = 2.5;
-    var z = sum(x, y);
+    const x : ?f64 = 1.5;
+    const y : ?f64 = 2.5;
+    const z = sum(x, y);
 }

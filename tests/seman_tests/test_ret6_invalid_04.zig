@@ -3,6 +3,6 @@ const ifj = @import("ifj24.zig");
 
 pub fn main() i32 {
     if (1 < 2) {
-        var x = 4;
+        const x = 4;
     }
 }
