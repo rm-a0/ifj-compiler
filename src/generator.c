@@ -7,11 +7,11 @@
 #include "../inc/generator.h"
 #include "../inc/generator_instructions.h"
 
-#define MAX_VAR_NAME_LENGTH 128     // Maximálna dĺžka názvu premennej v GF
-#define MAX_GF_VAR_COUNT 1024       // Maximálny počet globálnych premenných
-#define MAX_LF_VAR_COUNT 1024       // Maximálny počet lokálnych premenných
-char* gf_vars[MAX_GF_VAR_COUNT] = {NULL}; // Inicializácia všetkých prvkov na NULL
-char* lf_vars[MAX_LF_VAR_COUNT] = {NULL}; // Inicializácia všetkých prvkov na NULL
+#define MAX_VAR_NAME_LENGTH 128             // Maximálna dĺžka názvu premennej v GF
+#define MAX_GF_VAR_COUNT 1024               // Maximálny počet globálnych premenných
+#define MAX_LF_VAR_COUNT 1024               // Maximálny počet lokálnych premenných
+char* gf_vars[MAX_GF_VAR_COUNT] = {NULL};   // Inicializácia všetkých prvkov na NULL
+char* lf_vars[MAX_LF_VAR_COUNT] = {NULL};   // Inicializácia všetkých prvkov na NULL
 
 bool is_it_global(const char* var_name){
     for (int i = 0; i < MAX_GF_VAR_COUNT; ++i) {
@@ -124,14 +124,14 @@ void generate_code_in_node(ASTNode* node){
             }
 
             generate_code_in_node(node->FnDecl.block);
-
-            if(node->FnDecl.return_type == AST_VOID) {
+            //TODO: úplne useless totok dole
+            /*if(node->FnDecl.return_type == AST_VOID) {
 
             } else {
                 //printf("\033[33mPushovanie returnu\033[0m\n");
                 //pushs(node->Return.expression->Identifier.identifier);
 
-            }
+            }*/
             break;
 
         case AST_PARAM:

@@ -291,97 +291,153 @@ void print_ast(ASTNode* node, int indent_level, FILE* output_file) {
 }
 
 
-int main() {
-    // Create the root program node
-    ASTNode* program_node = create_program_node();
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s -[test_number]\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
 
-    // Create the 'build' function declaration
-    ASTNode* build_fn = create_fn_decl_node("build");
-    build_fn->FnDecl.return_type = AST_SLICE;
+    int test_number = atoi(argv[1] + 1); // Parsovanie čísla testu z argumentu, napr. "-1"
+    if (test_number < 1 || test_number > 3) {
+        fprintf(stderr, "Invalid test number: %s. Use -1, -2, or -3.\n", argv[1]);
+        exit(EXIT_FAILURE);
+    }
 
-    // Create parameters 'x' and 'y' of type '[]u8'
-    ASTNode* param_x = create_param_node(AST_SLICE, "x");
-    ASTNode* param_y = create_param_node(AST_SLICE, "y");
-    append_param_to_fn(build_fn, param_x);
-    append_param_to_fn(build_fn, param_y);
+    ASTNode* program_node = NULL;
 
-    // Create the block for 'build' function
-    ASTNode* build_block = create_block_node();
-    build_fn->FnDecl.block = build_block;
+    switch (test_number) {
+        case 1:
+            // Test 1: Pôvodný testovací kód
+            program_node = create_program_node();
 
-    // Build function body: const res = ifj.concat(x, y);
-    ASTNode* concat_call = create_fn_call_node("ifj.concat");
-    ASTNode* id_x = create_identifier_node("x");
-    ASTNode* id_y = create_identifier_node("y");
-    append_arg_to_fn_call(concat_call, id_x);
-    append_arg_to_fn_call(concat_call, id_y);
+            // 'build' function declaration
+            ASTNode* build_fn = create_fn_decl_node("build");
+            build_fn->FnDecl.return_type = AST_SLICE;
 
-    ASTNode* const_res = create_const_decl_node(AST_SLICE, "res");
-    const_res->ConstDecl.expression = concat_call;
-    append_node_to_block(build_block, const_res);
+            ASTNode* param_x = create_param_node(AST_SLICE, "x");
+            ASTNode* param_y = create_param_node(AST_SLICE, "y");
+            append_param_to_fn(build_fn, param_x);
+            append_param_to_fn(build_fn, param_y);
 
-    // Return statement: return res;
-    ASTNode* return_node = create_return_node();
-    return_node->Return.expression = create_identifier_node("res");
-    append_node_to_block(build_block, return_node);
+            ASTNode* build_block = create_block_node();
+            build_fn->FnDecl.block = build_block;
 
-    // Add 'build' function to the program
-    append_decl_to_prog(program_node, build_fn);
+            ASTNode* concat_call = create_fn_call_node("ifj.concat");
+            append_arg_to_fn_call(concat_call, create_identifier_node("x"));
+            append_arg_to_fn_call(concat_call, create_identifier_node("y"));
 
-    // Create the 'main' function declaration
-    ASTNode* main_fn = create_fn_decl_node("main");
-    main_fn->FnDecl.return_type = AST_VOID;
+            ASTNode* const_res = create_const_decl_node(AST_SLICE, "res");
+            const_res->ConstDecl.expression = concat_call;
+            append_node_to_block(build_block, const_res);
 
-    // Create the block for 'main' function
-    ASTNode* main_block = create_block_node();
-    main_fn->FnDecl.block = main_block;
+            ASTNode* return_node = create_return_node();
+            return_node->Return.expression = create_identifier_node("res");
+            append_node_to_block(build_block, return_node);
 
-    // Main function body:
-    // const a = ifj.string("ahoj ");
-    ASTNode* string_call_ahoj = create_fn_call_node("ifj.string");
-    ASTNode* str_ahoj = create_string_node("ahoj ");
-    append_arg_to_fn_call(string_call_ahoj, str_ahoj);
+            append_decl_to_prog(program_node, build_fn);
 
-    ASTNode* const_a = create_const_decl_node(AST_SLICE, "a");
-    const_a->ConstDecl.expression = string_call_ahoj;
-    append_node_to_block(main_block, const_a);
+            // 'main' function declaration
+            ASTNode* main_fn = create_fn_decl_node("main");
+            main_fn->FnDecl.return_type = AST_VOID;
 
-    // var ct : []u8 = ifj.string("svete");
-    ASTNode* string_call_svete = create_fn_call_node("ifj.string");
-    ASTNode* str_svete = create_string_node("svete");
-    append_arg_to_fn_call(string_call_svete, str_svete);
+            ASTNode* main_block = create_block_node();
+            main_fn->FnDecl.block = main_block;
 
-    ASTNode* var_ct = create_var_decl_node(AST_SLICE, "ct");
-    var_ct->VarDecl.expression = string_call_svete;
-    append_node_to_block(main_block, var_ct);
+            ASTNode* string_call_ahoj = create_fn_call_node("ifj.string");
+            append_arg_to_fn_call(string_call_ahoj, create_string_node("ahoj "));
 
-    // ct = build(a, ct);
+            ASTNode* const_a = create_const_decl_node(AST_SLICE, "a");
+            const_a->ConstDecl.expression = string_call_ahoj;
+            append_node_to_block(main_block, const_a);
 
-    ASTNode* build_call = create_fn_call_node("build");
-    append_arg_to_fn_call(build_call, create_identifier_node("a"));
-    append_arg_to_fn_call(build_call, create_identifier_node("ct"));
+            ASTNode* string_call_svete = create_fn_call_node("ifj.string");
+            append_arg_to_fn_call(string_call_svete, create_string_node("svete"));
 
-    ASTNode* assign_ct = create_var_decl_node(AST_SLICE, "ct");
-    assign_ct->VarDecl.expression = build_call;
-    append_node_to_block(main_block, assign_ct);
+            ASTNode* var_ct = create_var_decl_node(AST_SLICE, "ct");
+            var_ct->VarDecl.expression = string_call_svete;
+            append_node_to_block(main_block, var_ct);
 
-    /*
-    ASTNode* build_call = create_fn_call_node("build");
-    ASTNode* id_a = create_identifier_node("a");
-    ASTNode* id_ct = create_identifier_node("ct");
-    append_arg_to_fn_call(build_call, id_a);
-    append_arg_to_fn_call(build_call, id_ct);
+            ASTNode* build_call = create_fn_call_node("build");
+            append_arg_to_fn_call(build_call, create_identifier_node("a"));
+            append_arg_to_fn_call(build_call, create_identifier_node("ct"));
 
-    ASTNode* assign_ct = create_binary_op_node(AST_EQU, create_identifier_node("ct"), build_call);
-    append_node_to_block(main_block, assign_ct);
-*/
-    // ifj.write(ct);
-    ASTNode* write_call = create_fn_call_node("ifj.write");
-    append_arg_to_fn_call(write_call, create_identifier_node("ct"));
-    append_node_to_block(main_block, write_call);
+            ASTNode* assign_ct = create_var_decl_node(AST_SLICE, "ct");
+            assign_ct->VarDecl.expression = build_call;
+            append_node_to_block(main_block, assign_ct);
 
-    // Add 'main' function to the program
-    append_decl_to_prog(program_node, main_fn);
+            ASTNode* write_call = create_fn_call_node("ifj.write");
+            append_arg_to_fn_call(write_call, create_identifier_node("ct"));
+            append_node_to_block(main_block, write_call);
+
+            append_decl_to_prog(program_node, main_fn);
+            break;
+
+        case 2:
+            // Test 2: Načítanie dvoch reťazcov, ich konkatenácia a výpis
+            program_node = create_program_node();
+
+            ASTNode* main_fn_2 = create_fn_decl_node("main");
+            main_fn_2->FnDecl.return_type = AST_VOID;
+
+            ASTNode* main_block_2 = create_block_node();
+            main_fn_2->FnDecl.block = main_block_2;
+
+            ASTNode* readstr_call_1 = create_fn_call_node("ifj.readstr");
+            ASTNode* var_str1 = create_var_decl_node(AST_SLICE, "str1");
+            var_str1->VarDecl.expression = readstr_call_1;
+            append_node_to_block(main_block_2, var_str1);
+
+            ASTNode* readstr_call_2 = create_fn_call_node("ifj.readstr");
+            ASTNode* var_str2 = create_var_decl_node(AST_SLICE, "str2");
+            var_str2->VarDecl.expression = readstr_call_2;
+            append_node_to_block(main_block_2, var_str2);
+
+            ASTNode* concat_call_2 = create_fn_call_node("ifj.concat");
+            append_arg_to_fn_call(concat_call_2, create_identifier_node("str1"));
+            append_arg_to_fn_call(concat_call_2, create_identifier_node("str2"));
+
+            ASTNode* var_result = create_var_decl_node(AST_SLICE, "result");
+            var_result->VarDecl.expression = concat_call_2;
+            append_node_to_block(main_block_2, var_result);
+
+            ASTNode* write_call_2 = create_fn_call_node("ifj.write");
+            append_arg_to_fn_call(write_call_2, create_identifier_node("result"));
+            append_node_to_block(main_block_2, write_call_2);
+
+            append_decl_to_prog(program_node, main_fn_2);
+            break;
+
+        case 3:
+            // Test 3: Načítanie dvoch hodnôt a ich výpis
+            program_node = create_program_node();
+
+            ASTNode* main_fn_3 = create_fn_decl_node("main");
+            main_fn_3->FnDecl.return_type = AST_VOID;
+
+            ASTNode* main_block_3 = create_block_node();
+            main_fn_3->FnDecl.block = main_block_3;
+
+            ASTNode* read32_call = create_fn_call_node("ifj.read32");
+            ASTNode* var_num1 = create_var_decl_node(AST_I32, "num1");
+            var_num1->VarDecl.expression = read32_call;
+            append_node_to_block(main_block_3, var_num1);
+
+            ASTNode* read32_call_2 = create_fn_call_node("ifj.read32");
+            ASTNode* var_num2 = create_var_decl_node(AST_I32, "num2");
+            var_num2->VarDecl.expression = read32_call_2;
+            append_node_to_block(main_block_3, var_num2);
+
+            ASTNode* write_call_3 = create_fn_call_node("ifj.write");
+            append_arg_to_fn_call(write_call_3, create_identifier_node("num1"));
+            append_node_to_block(main_block_3, write_call_3);
+
+            ASTNode* write_call_4 = create_fn_call_node("ifj.write");
+            append_arg_to_fn_call(write_call_4, create_identifier_node("num2"));
+            append_node_to_block(main_block_3, write_call_4);
+
+            append_decl_to_prog(program_node, main_fn_3);
+            break;
+    }
 
     // Open the output file
     FILE* output_file = fopen("testCG.out", "w");
@@ -391,18 +447,14 @@ int main() {
     }
 
     // Print the AST to the output file
-    fprintf(output_file, "Abstract Syntax Tree for the provided Zig code:\n");
+    fprintf(output_file, "Abstract Syntax Tree for Test %d:\n", test_number);
     print_ast(program_node, 0, output_file);
-    // Close the output file
     fclose(output_file);
 
-    //generate_code(program_node);
-    printf("Generovanie kódu ukončené hodnotou: %i\n",generate_code(program_node));
-
-    // Free the AST nodes
-    free_ast_node(program_node);
-
-    printf("AST has been successfully created and written to testCG.out.\n");
+    // Generate code
+    printf("\033[44mGenerated code for Test %d:\033[0m\n", test_number);
+    generate_code(program_node);
 
     return 0;
 }
+

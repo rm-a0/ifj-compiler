@@ -21,29 +21,30 @@ void print_new_line() {
     printf("\n");
 }
 void label(const char* label_name){
-    printf("LABEL %s\n", label_name);
+    printf("\033[34mLABEL %s\n\033[0m", label_name);
 }
 void create_frame(){
-    printf("CREATEFRAME\n");
+    printf("\033[42mCREATEFRAME\033[0m\n");
 }
 void push_frame(){
-    printf("PUSHFRAME\n");
+    printf("\033[43mPUSHFRAME\033[0m\n");
 }
 void pop_frame(){
-    printf("POPFRAME\n");
+    printf("\033[43mPOPFRAME\033[0m\n");
 }
 void def_var(const char* var_name, const char* frame_type) {
     if (strcmp(frame_type, "lf") == 0) {
         printf("DEFVAR LF@%s\n", var_name);
+        //add_to_local((char*)var_name);
     } else if (strcmp(frame_type, "gf") == 0) {
-        if (!is_it_global((char*)var_name)) {  // Pretypovanie
-            add_to_global((char*)var_name);   // Pretypovanie
+        if (!is_it_global((char*)var_name)) {
+            add_to_global((char*)var_name);
             printf("DEFVAR GF@%s\n", var_name);
         } else {
             //fprintf(stderr, "WARNING: Global variable '%s' already defined, skipping.\n", var_name);
         }
     } else {
-        fprintf(stderr, "ERROR: Invalid frame type '%s' in def_var with '%s'\n", frame_type, var_name);
+        fprintf(stderr, "\033[31mERROR: Invalid frame type '%s' in def_var with '%s'\n\033[0m", frame_type, var_name);
         exit(53);
     }
 }
@@ -215,9 +216,9 @@ void write(const char* symb) {
 }
 void concat(const char* var, const char* symb1, const char* symb2) {
     printf("CONCAT %s%s %s%s %s%s\n",
-           frame_prefix(var) ? "GF@" : "LF@", var,
-           frame_prefix(symb1) ? "GF@" : "LF@", symb1,
-           frame_prefix(symb2) ? "GF@" : "LF@", symb2);
+           frame_prefix(var), var,
+           frame_prefix(symb1), symb1,
+           frame_prefix(symb2), symb2);
 }
 void str_len(const char* var, const char* symb){
     printf("STRLEN LF@%s %s\n", var, symb);
