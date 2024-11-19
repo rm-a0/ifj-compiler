@@ -13,6 +13,8 @@
 char* gf_vars[MAX_GF_VAR_COUNT] = {NULL};   // Inicializácia všetkých prvkov na NULL
 char* lf_vars[MAX_LF_VAR_COUNT] = {NULL};   // Inicializácia všetkých prvkov na NULL
 
+
+
 bool is_it_global(const char* var_name){
     for (int i = 0; i < MAX_GF_VAR_COUNT; ++i) {
         if (gf_vars[i] != NULL && strcmp(gf_vars[i], var_name) == 0) {
@@ -76,6 +78,7 @@ void add_to_local(const char* var_name){
 }
 
 
+
 void generate_code_in_node(ASTNode* node){
     if (node == NULL) return;
 
@@ -122,16 +125,7 @@ void generate_code_in_node(ASTNode* node){
                 add_to_local(node->FnDecl.params[i]->Param.identifier);
                 pops(node->FnDecl.params[i]->Param.identifier);
             }
-
             generate_code_in_node(node->FnDecl.block);
-            //TODO: úplne useless totok dole
-            /*if(node->FnDecl.return_type == AST_VOID) {
-
-            } else {
-                //printf("\033[33mPushovanie returnu\033[0m\n");
-                //pushs(node->Return.expression->Identifier.identifier);
-
-            }*/
             break;
 
         case AST_PARAM:
@@ -171,6 +165,36 @@ void generate_code_in_node(ASTNode* node){
                     } else {
                         printf("READ LF@%s float\n", node->ConstDecl.const_name);
                     }
+                }else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.add") == 0){
+                        printf("ADD %s%s %s%s %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
+                               frame_prefix(node->ConstDecl.expression->FnCall.args[0]->String.string),
+                               node->ConstDecl.expression->FnCall.args[0]->String.string,
+                               frame_prefix(node->ConstDecl.expression->FnCall.args[1]->String.string),
+                               node->ConstDecl.expression->FnCall.args[1]->String.string);
+                }else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.sub") == 0){
+                    printf("SUB %s%s %s%s %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
+                           frame_prefix(node->ConstDecl.expression->FnCall.args[0]->String.string),
+                           node->ConstDecl.expression->FnCall.args[0]->String.string,
+                           frame_prefix(node->ConstDecl.expression->FnCall.args[1]->String.string),
+                           node->ConstDecl.expression->FnCall.args[1]->String.string);
+                }else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.mul") == 0){
+                    printf("MUL %s%s %s%s %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
+                           frame_prefix(node->ConstDecl.expression->FnCall.args[0]->String.string),
+                           node->ConstDecl.expression->FnCall.args[0]->String.string,
+                           frame_prefix(node->ConstDecl.expression->FnCall.args[1]->String.string),
+                           node->ConstDecl.expression->FnCall.args[1]->String.string);
+                }else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.div") == 0){
+                    printf("DIV %s%s %s%s %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
+                           frame_prefix(node->ConstDecl.expression->FnCall.args[0]->String.string),
+                           node->ConstDecl.expression->FnCall.args[0]->String.string,
+                           frame_prefix(node->ConstDecl.expression->FnCall.args[1]->String.string),
+                           node->ConstDecl.expression->FnCall.args[1]->String.string);
+                }else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.idiv") == 0){
+                    printf("IDIV %s%s %s%s %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
+                           frame_prefix(node->ConstDecl.expression->FnCall.args[0]->String.string),
+                           node->ConstDecl.expression->FnCall.args[0]->String.string,
+                           frame_prefix(node->ConstDecl.expression->FnCall.args[1]->String.string),
+                           node->ConstDecl.expression->FnCall.args[1]->String.string);
                 }
                 else{
                     generate_code_in_node(node->ConstDecl.expression);
@@ -232,9 +256,6 @@ void generate_code_in_node(ASTNode* node){
             break;
 
         case AST_FN_CALL:
-            //TODO: upraviť že "ifj.write" -> "WRITE" atď.
-            // Ak funkcia je WRITE, CONCAT alebo READ, upravíme názov priamo
-
             const char* fn_name = node->FnCall.fn_name;
             if ((strcmp(fn_name, "ifj.write") == 0)||(strcmp(fn_name, "ifj.writef64") == 0) ) {
                 generate_code_in_node(node->FnCall.args[0]);
@@ -306,10 +327,9 @@ void generate_code_in_node(ASTNode* node){
     }
 }
 
-
 int generate_code(ASTNode* root){
     if (root == NULL) return 51; // ast root == NULL
-
+    //int while_counter = 1420;
     printf(".IFJcode24\n");
     printf("JUMP main\n");
     print_new_line();
@@ -317,6 +337,5 @@ int generate_code(ASTNode* root){
     generate_code_in_node(root);
 
     free_var_arrays();
-
     return 0;
 }

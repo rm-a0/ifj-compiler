@@ -298,7 +298,7 @@ int main(int argc, char* argv[]) {
     }
 
     int test_number = atoi(argv[1] + 1); // Parsovanie čísla testu z argumentu, napr. "-1"
-    if (test_number < 1 || test_number > 3) {
+    if (test_number < 1 || test_number > 6) {
         fprintf(stderr, "Invalid test number: %s. Use -1, -2, or -3.\n", argv[1]);
         exit(EXIT_FAILURE);
     }
@@ -436,6 +436,154 @@ int main(int argc, char* argv[]) {
             append_node_to_block(main_block_3, write_call_4);
 
             append_decl_to_prog(program_node, main_fn_3);
+            break;
+        case 4:
+            // Test 4: Jednoduchý aritmetický príklad (sčítanie a odčítanie)
+            program_node = create_program_node();
+
+            ASTNode* main_fn_4 = create_fn_decl_node("main");
+            main_fn_4->FnDecl.return_type = AST_VOID;
+
+            ASTNode* main_block_4 = create_block_node();
+            main_fn_4->FnDecl.block = main_block_4;
+
+            // Čítanie dvoch hodnôt
+            ASTNode* read32_call_1 = create_fn_call_node("ifj.readi32");
+            ASTNode* var_num1_4 = create_var_decl_node(AST_I32, "num1");
+            var_num1_4->VarDecl.expression = read32_call_1;
+            append_node_to_block(main_block_4, var_num1_4);
+
+            ASTNode* read32_call__2 = create_fn_call_node("ifj.readi32");
+            ASTNode* var_num2_4 = create_var_decl_node(AST_I32, "num2");
+            var_num2_4->VarDecl.expression = read32_call__2;
+            append_node_to_block(main_block_4, var_num2_4);
+
+            // Sčítanie
+            ASTNode* add_call_4 = create_fn_call_node("ifj.add");
+            append_arg_to_fn_call(add_call_4, create_identifier_node("num1"));
+            append_arg_to_fn_call(add_call_4, create_identifier_node("num2"));
+
+            ASTNode* var_sum_4 = create_var_decl_node(AST_I32, "sum");
+            var_sum_4->VarDecl.expression = add_call_4;
+            append_node_to_block(main_block_4, var_sum_4);
+
+            // Odčítanie
+            ASTNode* sub_call_4 = create_fn_call_node("ifj.sub");
+            append_arg_to_fn_call(sub_call_4, create_identifier_node("num1"));
+            append_arg_to_fn_call(sub_call_4, create_identifier_node("num2"));
+
+            ASTNode* var_diff_4 = create_var_decl_node(AST_I32, "diff");
+            var_diff_4->VarDecl.expression = sub_call_4;
+            append_node_to_block(main_block_4, var_diff_4);
+
+            // Výpis výsledkov
+            ASTNode* write_sum_4 = create_fn_call_node("ifj.write");
+            append_arg_to_fn_call(write_sum_4, create_identifier_node("sum"));
+            append_node_to_block(main_block_4, write_sum_4);
+
+            ASTNode* write_diff_4 = create_fn_call_node("ifj.write");
+            append_arg_to_fn_call(write_diff_4, create_identifier_node("diff"));
+            append_node_to_block(main_block_4, write_diff_4);
+
+            append_decl_to_prog(program_node, main_fn_4);
+            break;
+        case 5:
+            // Test 5: Násobenie a delenie
+            program_node = create_program_node();
+
+            ASTNode* main_fn_5 = create_fn_decl_node("main");
+            main_fn_5->FnDecl.return_type = AST_VOID;
+
+            ASTNode* main_block_5 = create_block_node();
+            main_fn_5->FnDecl.block = main_block_5;
+
+            // Čítanie dvoch hodnôt
+            ASTNode* read32_call__1 = create_fn_call_node("ifj.readi32");
+            ASTNode* var_num1_5 = create_var_decl_node(AST_I32, "num1");
+            var_num1_5->VarDecl.expression = read32_call__1;
+            append_node_to_block(main_block_5, var_num1_5);
+
+            ASTNode* read32_call___2 = create_fn_call_node("ifj.readi32");
+            ASTNode* var_num2_5 = create_var_decl_node(AST_I32, "num2");
+            var_num2_5->VarDecl.expression = read32_call___2;
+            append_node_to_block(main_block_5, var_num2_5);
+
+            // Násobenie
+            ASTNode* mul_call_5 = create_fn_call_node("ifj.mul");
+            append_arg_to_fn_call(mul_call_5, create_identifier_node("num1"));
+            append_arg_to_fn_call(mul_call_5, create_identifier_node("num2"));
+
+            ASTNode* var_prod_5 = create_var_decl_node(AST_I32, "prod");
+            var_prod_5->VarDecl.expression = mul_call_5;
+            append_node_to_block(main_block_5, var_prod_5);
+
+            // Delenie
+            ASTNode* div_call_5 = create_fn_call_node("ifj.div");
+            append_arg_to_fn_call(div_call_5, create_identifier_node("num1"));
+            append_arg_to_fn_call(div_call_5, create_identifier_node("num2"));
+
+            ASTNode* var_quot_5 = create_var_decl_node(AST_I32, "quot");
+            var_quot_5->VarDecl.expression = div_call_5;
+            append_node_to_block(main_block_5, var_quot_5);
+
+            // Výpis výsledkov
+            ASTNode* write_prod_5 = create_fn_call_node("ifj.write");
+            append_arg_to_fn_call(write_prod_5, create_identifier_node("prod"));
+            append_node_to_block(main_block_5, write_prod_5);
+
+            ASTNode* write_quot_5 = create_fn_call_node("ifj.write");
+            append_arg_to_fn_call(write_quot_5, create_identifier_node("quot"));
+            append_node_to_block(main_block_5, write_quot_5);
+
+            append_decl_to_prog(program_node, main_fn_5);
+            break;
+        case 6:
+            // Test 6: Nested Arithmetic Expression a = ((b + 4 - 6) * 5) / 2
+            ASTNode* main_fn_6 = create_fn_decl_node("main");
+            main_fn_6->FnDecl.return_type = AST_VOID;
+
+            // Create the block for 'main' function
+            ASTNode* main_block_6 = create_block_node();
+            main_fn_6->FnDecl.block = main_block_6;
+
+            // Variable b: READ input value
+            ASTNode* var_b_6 = create_var_decl_node(AST_I32, "b");
+            var_b_6->VarDecl.expression = create_fn_call_node("ifj.read32");
+            append_node_to_block(main_block_6, var_b_6);
+
+            // Intermediate calculations for expression
+            // temp1 = b + 4
+            ASTNode* temp1_add = create_binary_op_node(AST_PLUS, create_identifier_node("b"), create_integer_node(4));
+            ASTNode* var_temp1 = create_var_decl_node(AST_I32, "temp1");
+            var_temp1->VarDecl.expression = temp1_add;
+            append_node_to_block(main_block_6, var_temp1);
+
+            // temp2 = temp1 - 6
+            ASTNode* temp2_sub = create_binary_op_node(AST_MINUS, create_identifier_node("temp1"), create_integer_node(6));
+            ASTNode* var_temp2 = create_var_decl_node(AST_I32, "temp2");
+            var_temp2->VarDecl.expression = temp2_sub;
+            append_node_to_block(main_block_6, var_temp2);
+
+            // temp3 = temp2 * 5
+            ASTNode* temp3_mul = create_binary_op_node(AST_MUL, create_identifier_node("temp2"), create_integer_node(5));
+            ASTNode* var_temp3 = create_var_decl_node(AST_I32, "temp3");
+            var_temp3->VarDecl.expression = temp3_mul;
+            append_node_to_block(main_block_6, var_temp3);
+
+            // temp4 = temp3 / 2
+            ASTNode* temp4_div = create_binary_op_node(AST_DIV, create_identifier_node("temp3"), create_integer_node(2));
+            ASTNode* var_temp4 = create_var_decl_node(AST_I32, "a");
+            var_temp4->VarDecl.expression = temp4_div;
+            append_node_to_block(main_block_6, var_temp4);
+
+            // WRITE a
+            ASTNode* write_a_6 = create_fn_call_node("ifj.write");
+            append_arg_to_fn_call(write_a_6, create_identifier_node("a"));
+            append_node_to_block(main_block_6, write_a_6);
+
+            // Add 'main' function to the program
+            append_decl_to_prog(program_node, main_fn_6);
+
             break;
     }
 
