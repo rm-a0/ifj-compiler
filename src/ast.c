@@ -392,7 +392,7 @@ ASTNode* create_fn_call_node(char* fn_name) {
         fprintf(stderr, "Memory allocation for function name in function call node failed\n");
         return NULL;
     }
-
+    node->FnCall.is_builtin = false;
     node->FnCall.arg_count = 0;
     // Allocate memory for default arguemnt count (can be re-allocated later)
     node->FnCall.arg_capacity = DEFAULT_FN_ARG_CNT;

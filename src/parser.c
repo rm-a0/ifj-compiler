@@ -874,6 +874,7 @@ ASTNode* parse_builtin_fn_call(Lexer* lexer, Token** token, char* identifier) {
     if (builtin_fn_call == NULL) {
         return NULL;
     }
+    builtin_fn_call->FnCall.is_builtin = true;
     advance_token(token, lexer);
     if (!check_token(*token, TOKEN_L_PAREN, NULL)) {
         free(builtin_fn_call);
