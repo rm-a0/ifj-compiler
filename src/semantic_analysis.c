@@ -231,39 +231,42 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             ScopeStack *function_stack = init_scope_stack();
 
             // Push a new frame for the function body
-            push_frame(function_stack);
+            push_frame(local_stack);
+
+            printf("pushed frame\n");
 
             // Process function parameters
             for (int i = 0; i < node->FnDecl.param_count; i++) {
-                // ASTNode *param = node->FnDecl.params[i];
-
-                // TODO: check if syntax error or semantic, for example no func. decleration as param.
+                ASTNode *param_node = node->FnDecl.params[i];
 
                 // Ensure the parameter node is valid
-                // if (param->type != AST_PARAM) {
-                //     fprintf(stderr, "Semantic Error: Invalid parameter in function '%s'.\n", fn_name);
-                //     exit(SEMANTIC_ERROR_PARAMS);
-                // }
+                if (param_node->type != AST_PARAM) {
+                    fprintf(stderr, "Semantic Error: Invalid parameter in function '%s'.\n", fn_name);
+                    exit(SEMANTIC_ERROR_PARAMS);
+                }
 
-                // const char *param_name = param->Param.identifier;
-                // DataType param_type = param->Param.data_type;
+                const char *param_name = param_node->Param.identifier;
+                DataType param_type = param_node->Param.data_type;
 
-                // TODO: If two parameters in the same function have the same name is it syntax or semantic error ?
-
-                // Check if the parameter already exists in the local scope
-                // Symbol *existing_param = lookup_symbol(function_stack->frames[function_stack->top]->symbol_table, param_name);
-                // if (existing_param != NULL) {
-                //     fprintf(stderr, "Semantic Error: Duplicate parameter name '%s' in function '%s'.\n", param_name, fn_name);
-                //     exit(SEMANTIC_ERROR_PARAMS);
-                // }
+                // Check for duplicate parameter names
+                if (lookup_symbol(top_frame(local_stack)->symbol_table, param_name)) {
+                    fprintf(stderr, "Semantic Error: Duplicate parameter name '%s' in function '%s'.\n", param_name, fn_name);
+                    exit(SEMANTIC_ERROR_PARAMS);
+                }
 
                 // Add the parameter to the current frame's symbol table
-                semantic_analysis(node->FnDecl.params[i], global_table, local_stack);
+                add_variable_symbol(top_frame(local_stack)->symbol_table, param_name, param_type);
             }
 
             // Recursively analyze the function block
             // TODO: check if it is error if NULL
-            semantic_analysis(node->FnDecl.block, global_table, function_stack);
+                // Analyze the function block recursively
+            if (node->FnDecl.block) {
+                semantic_analysis(node->FnDecl.block, global_table, local_stack);
+            } else {
+                fprintf(stderr, "Semantic Error: Function '%s' must have a body.\n", fn_name);
+                exit(SEMANTIC_ERROR_UNDEFINED);
+            }
 
             // TODO: Check if 2 return statements is semantic or syntax error
             // Check for a return statement
@@ -314,6 +317,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             //         param_symbol->var.nullable = true;
             //     }
             // }
+            
             break;
         }
 
@@ -398,7 +402,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             // Analyze the condition expression
             if (node->IfElse.expression) {
                 DataType condition_type = evaluate_expression_type(node->IfElse.expression, global_table, local_stack);
-                if (condition_type != AST_I32) { // True false (1, 0)
+                if (condition_type != AST_I32) { // True False (1, 0)
                     fprintf(stderr, "Semantic Error: If-Else condition must evaluate to int.\n");
                     exit(SEMANTIC_ERROR_TYPE_COMPAT);
                 }
@@ -479,8 +483,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
                 break;
             }
-
-            printf("should not get here\n");
 
             // If not a built-in function, check user-defined functions
             Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
