@@ -16,6 +16,18 @@
 #define DEFAULT_FN_PARAM_CNT        3   ///< Used for pre-allocating memory for parameter array inside function call node
 #define DEFAULT_BLOCK_NODE_CNT      5   ///< Used for pre-allocating memory for node array inside block
 
+ASTNode* create_null_node(){
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        set_error(INTERNAL_ERROR);
+        fprintf(stderr, "Memory allocation for null node failed\n");
+        return NULL;
+    }
+
+    node->type = AST_NULL;
+    return node;
+}
+
 ASTNode* create_assignment_node(char* identifier) {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
@@ -446,10 +458,16 @@ void free_ast_node(ASTNode* node) {
                 free(node->Identifier.identifier);
             }
             break;
+            
         case AST_INT:
             break;
+
         case AST_FLOAT:
             break;
+
+        case AST_NULL:
+            break;
+
         case AST_STRING:
             if (node->String.string != NULL) {
                 free(node->String.string);

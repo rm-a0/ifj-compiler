@@ -202,7 +202,28 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
         free_resources(op_stack);
         return NULL;
     }
-
+    // If null token
+    if (check_token(*token, TOKEN_NULL, NULL)) {
+        ASTNode* node = create_null_node();
+        if (!node) {
+            set_error(INTERNAL_ERROR);
+            free_resources(op_stack);
+            free_ast_node_stack(operand_stack);
+            return NULL;
+        }
+        advance_token(token, lexer);
+        if (!is_end_of_expression(0, *token) || *token == NULL) {
+            set_error(SYNTAX_ERROR);  // Change error type to SYNTAX_ERROR
+            free_resources(op_stack);
+            free_ast_node_stack(operand_stack);
+            free_ast_node(node);
+            return NULL;
+        }
+        free_resources(op_stack);
+        free_ast_node_stack(operand_stack);
+        return node;
+    }
+    
     // Begin parsing tokens
     int paren_counter = 0;
     while (*token != NULL && !check_token(*token, TOKEN_EOF, NULL) && !is_end_of_expression(paren_counter, *token)) {

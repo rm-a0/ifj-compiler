@@ -30,7 +30,8 @@ typedef enum {
     AST_STRING,         ///< Node for stirg
     AST_IDENTIFIER,     ///< Node for identifier
     AST_ASSIGNMENT,     ///< Node for assignment
-    AST_RETURN          ///< Node for return statement
+    AST_RETURN,         ///< Node for return statement
+    AST_NULL            ///< Node for null
 } ASTNodeType;
 
 /**
@@ -177,6 +178,8 @@ struct ASTNode {
         } Assignment;
     };
 };
+
+ASTNode* create_null_node();
 
 ASTNode* create_assignment_node(char* identifier);
 
