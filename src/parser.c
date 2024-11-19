@@ -70,7 +70,8 @@ int is_operand_token(Token* token) {
         token->token_type == TOKEN_IDENTIFIER ||
         token->token_type == TOKEN_INTEGER ||
         token->token_type == TOKEN_FLOAT ||
-        token->token_type == TOKEN_STRING
+        token->token_type == TOKEN_STRING ||
+        token->token_type == TOKEN_NULL
     );
 }
 
@@ -117,7 +118,20 @@ ASTNode* parse_operand(Lexer* lexer, Token** token) {
             set_error(INTERNAL_ERROR);
             return NULL;
         }
-    } 
+    }
+    else if (check_token(*token, TOKEN_NULL, NULL)) {
+        node = create_null_node();
+        if (!node) {
+            set_error(INTERNAL_ERROR);
+            return NULL;
+        }
+        advance_token(token, lexer);
+        if (*token == NULL || (*token)->token_type == TOKEN_EOF) {
+            set_error(LEXICAL_ERROR);
+            free_ast_node(node);
+            return NULL;
+        }
+    }
     else if (check_token(*token, TOKEN_INTEGER, NULL)) {
         node = create_i32_node(atoi((*token)->value));
         if (!node) {
@@ -201,27 +215,6 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
         set_error(INTERNAL_ERROR);
         free_resources(op_stack);
         return NULL;
-    }
-    // If null token
-    if (check_token(*token, TOKEN_NULL, NULL)) {
-        ASTNode* node = create_null_node();
-        if (!node) {
-            set_error(INTERNAL_ERROR);
-            free_resources(op_stack);
-            free_ast_node_stack(operand_stack);
-            return NULL;
-        }
-        advance_token(token, lexer);
-        if (!is_end_of_expression(0, *token) || *token == NULL) {
-            set_error(SYNTAX_ERROR);  // Change error type to SYNTAX_ERROR
-            free_resources(op_stack);
-            free_ast_node_stack(operand_stack);
-            free_ast_node(node);
-            return NULL;
-        }
-        free_resources(op_stack);
-        free_ast_node_stack(operand_stack);
-        return node;
     }
     
     // Begin parsing tokens
