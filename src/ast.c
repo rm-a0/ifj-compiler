@@ -1,12 +1,13 @@
 /**
  * @file ast.h
  * @brief Implementation of function that handle nodes of AST
- * @authors Michal Repcik (xrepcim00)
+ * @authors Michal Repcik (xrepcim00) Simon Bobko (xbobkos00)
 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "token.h"
 #include "ast.h"
 #include "error.h"
 #include "token.h"
@@ -16,7 +17,34 @@
 #define DEFAULT_FN_PARAM_CNT        3   ///< Used for pre-allocating memory for parameter array inside function call node
 #define DEFAULT_BLOCK_NODE_CNT      5   ///< Used for pre-allocating memory for node array inside block
 
-// Expression nodes
+ASTNode* create_null_node(){
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        set_error(INTERNAL_ERROR);
+        fprintf(stderr, "Memory allocation for null node failed\n");
+        return NULL;
+    }
+
+    node->type = AST_NULL;
+    return node;
+}
+
+ASTNode* create_assignment_node(char* identifier) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (node == NULL) {
+        return NULL;
+    }
+
+    node->Assignment.identifier = strdup(identifier);
+    if (node->Assignment.identifier == NULL) {
+        free(node);
+        return NULL;
+    }
+
+    node->type = AST_ASSIGNMENT;
+    node->Assignment.expression = NULL;
+    return node;
+}
 
 ASTNode* create_binary_op_node(int operator, ASTNode* left, ASTNode* right) {
     // Map the operator token to the OperatorType enum
@@ -150,9 +178,6 @@ ASTNode* create_string_node(char* value) {
     return node;
 }
 
-
-//
-
 ASTNode* create_program_node() {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (node == NULL) {
@@ -162,7 +187,6 @@ ASTNode* create_program_node() {
     }
 
     node->type = AST_PROGRAM;
-    node->Program.has_prolog = false;
     node->Program.decl_count = 0;
 
     // Allocate meory for default size (can be reallocated later)
@@ -218,6 +242,7 @@ ASTNode* create_fn_decl_node(char* fn_name) {
     }
 
     node->FnDecl.block = NULL;
+    node->FnDecl.nullable = false;
     node->FnDecl.return_type = AST_UNSPECIFIED; // Not specified when creating node
 
     return node;
@@ -232,6 +257,7 @@ ASTNode* create_param_node(DataType data_type, char* identifier) {
     }
 
     node->type = AST_PARAM;
+    node->Param.nullable = false;
     node->Param.data_type = data_type;
     node->Param.identifier = strdup(identifier);
     if (node->Param.identifier == NULL) {
@@ -268,6 +294,7 @@ ASTNode* create_var_decl_node(DataType data_type, char* var_name) {
     node->type = AST_VAR_DECL;
     node->VarDecl.data_type = data_type;
     node->VarDecl.expression = NULL;
+    node->VarDecl.nullable = false;
     node->VarDecl.var_name = strdup(var_name);
     if (node->VarDecl.var_name == NULL) {
         set_error(INTERNAL_ERROR);
@@ -290,6 +317,7 @@ ASTNode* create_const_decl_node(DataType data_type, char* const_name) {
     node->type = AST_CONST_DECL;
     node->ConstDecl.data_type = data_type;
     node->ConstDecl.expression = NULL;
+    node->ConstDecl.nullable = false;
     node->ConstDecl.const_name = strdup(const_name);
     if (node->VarDecl.var_name == NULL) {
         set_error(INTERNAL_ERROR);
@@ -377,9 +405,8 @@ ASTNode* create_fn_call_node(char* fn_name) {
         fprintf(stderr, "Memory allocation for function name in function call node failed\n");
         return NULL;
     }
-
+    node->FnCall.is_builtin = false;
     node->FnCall.arg_count = 0;
-
     // Allocate memory for default arguemnt count (can be re-allocated later)
     node->FnCall.arg_capacity = DEFAULT_FN_ARG_CNT;
     node->FnCall.args = malloc(DEFAULT_FN_ARG_CNT * sizeof(ASTNode*));
@@ -418,27 +445,35 @@ void free_ast_node(ASTNode* node) {
     }
 
     switch (node->type) {
+        case AST_ASSIGNMENT:
+            free(node->Assignment.identifier);
+            free_ast_node(node->Assignment.expression);
+            break;
         case AST_BIN_OP:
             // Recursively free left and right operands
             free_ast_node(node->BinaryOperator.left);
             free_ast_node(node->BinaryOperator.right);
-            // Free the node itself
             break;
         case AST_IDENTIFIER:
             if (node->Identifier.identifier != NULL) {
                 free(node->Identifier.identifier);
             }
             break;
+            
         case AST_INT:
-            // No additional memory to free for AST_INT nodes
             break;
+
         case AST_FLOAT:
-            // No additional memory to free for AST_INT nodes
             break;
+
+        case AST_NULL:
+            break;
+
         case AST_STRING:
             if (node->String.string != NULL) {
                 free(node->String.string);
             }
+            break;
         case AST_PROGRAM:
             // Free all declarations recursively
             for (int i = 0; i < node->Program.decl_count; i++) {
@@ -571,7 +606,7 @@ int append_decl_to_prog(ASTNode* program_node, ASTNode* decl_node) {
     // If capacity is reached, double the size of an array
     if (program_node->Program.decl_count >= program_node->Program.decl_capacity) {
         program_node->Program.decl_capacity *= 2;
-        ASTNode** new_decl = realloc(program_node->Program.declarations, program_node->Program.decl_capacity);
+        ASTNode** new_decl = realloc(program_node->Program.declarations, program_node->Program.decl_capacity * sizeof(ASTNode*));
         if (new_decl == NULL) {
             set_error(INTERNAL_ERROR);
             fprintf(stderr, "Failed to reallocate memory for program node declarations\n");
@@ -596,7 +631,7 @@ int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node) {
     // If capacity is reached, double the size of an array
     if (fn_node->FnDecl.param_count >= fn_node->FnDecl.param_capacity) {
         fn_node->FnDecl.param_capacity *= 2;
-        ASTNode** new_params = realloc(fn_node->FnDecl.params, fn_node->FnDecl.param_capacity);
+        ASTNode** new_params = realloc(fn_node->FnDecl.params, fn_node->FnDecl.param_capacity * sizeof(ASTNode*));
         if (new_params == NULL) {
             set_error(INTERNAL_ERROR);
             fprintf(stderr, "Failed to reallocate memory for parameters in function declaration node\n");
@@ -620,7 +655,7 @@ int append_node_to_block(ASTNode* block, ASTNode* node) {
 
     if (block->Block.node_count >= block->Block.node_capacity) {
         block->Block.node_capacity *= 2;
-        ASTNode** new_nodes = realloc(block->Block.nodes, block->Block.node_capacity);
+        ASTNode** new_nodes = realloc(block->Block.nodes, block->Block.node_capacity*sizeof(ASTNode*));
         if (new_nodes == NULL) {
             set_error(INTERNAL_ERROR);
             fprintf(stderr, "Failed to reallocate memory for nodes array in block node\n");
@@ -632,5 +667,30 @@ int append_node_to_block(ASTNode* block, ASTNode* node) {
     // Append node to node pointer array
     block->Block.nodes[block->Block.node_count] = node;
     block->Block.node_count++;
+    return 0;
+}
+
+int append_arg_to_fn(ASTNode* fn_node, ASTNode* arg_node) {
+    if (fn_node == NULL || arg_node == NULL) {
+        set_error(INTERNAL_ERROR);
+        return 1;
+    }
+
+    // If capacity is reached, double the size of an array
+    if (fn_node->FnCall.arg_count >= fn_node->FnCall.arg_capacity) {
+        fn_node->FnCall.arg_capacity *= 2;
+        ASTNode** new_args = realloc(fn_node->FnCall.args, fn_node->FnCall.arg_capacity * sizeof(ASTNode*));
+        if (new_args == NULL) {
+            set_error(INTERNAL_ERROR);
+            fprintf(stderr, "Failed to reallocate memory for arguments in function call node\n");
+            return 1;
+        }
+
+        fn_node->FnCall.args = new_args;
+
+    }
+    // Append node to parameter pointer array
+    fn_node->FnCall.args[fn_node->FnCall.arg_count] = arg_node;
+    fn_node->FnCall.arg_count++;
     return 0;
 }

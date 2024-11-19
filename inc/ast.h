@@ -1,7 +1,7 @@
 /**
  * @file ast.h
  * @brief Header file for ast.c
- * @authors Michal Repcik (xrepcim00)
+ * @authors Michal Repcik (xrepcim00) Simon Bobko (xbobkos00)
 */
 
 #ifndef AST_H
@@ -29,8 +29,9 @@ typedef enum {
     AST_FLOAT,          ///< Node for float
     AST_STRING,         ///< Node for string
     AST_IDENTIFIER,     ///< Node for identifier
+    AST_ASSIGNMENT,     ///< Node for assignment
     AST_RETURN,         ///< Node for return statement
-    AST_EXPRESSION      ///< Node for expression
+    AST_NULL            ///< Node for null
 } ASTNodeType;
 
 /**
@@ -75,7 +76,6 @@ struct ASTNode {
     ASTNodeType type;
     union {
         struct {
-            bool has_prolog;        ///< Flag for prolog (@import)
             int decl_capacity;      ///< Number of allocated pointers to declaration nodes
             int decl_count;         ///< Number of top level declarations
             ASTNode** declarations; ///< Top level declaration (fn, var, const)
@@ -87,22 +87,26 @@ struct ASTNode {
             int param_capacity;     ///< Number of allocated pointers to parameter nodes
             ASTNode** params;       ///< Array of pointers to function parameters
             ASTNode* block;         ///< Pointer to node encapsulating content of the function
+            bool nullable;          ///< Flag if the function return type is nullable
             DataType return_type;   ///< Return type
         } FnDecl;
 
         struct {
             DataType data_type;     ///< Expected data type
+            bool nullable;          ///< Flag if the parameter is nullable
             char* identifier;       ///< Name of varaible used in function
         } Param;
 
         struct {
             char* var_name;         ///< Variable name
+            bool nullable;          ///< Flag if the variable is nullable
             DataType data_type;     ///< Data type (optional)
             ASTNode* expression;    ///< Expression/identifier/number
         } VarDecl;
 
         struct {
             char* const_name;       ///< Constant name
+            bool nullable;          ///< Flag if the constant is nullable
             DataType data_type;     ///< Data type (optional)
             ASTNode* expression;    ///< Expression/identifier/number
         } ConstDecl;
@@ -130,6 +134,7 @@ struct ASTNode {
             char* fn_name;          ///< Function name
             int arg_count;          ///< Number of arguments
             int arg_capacity;       ///< Number of allocated pointers to function arguments
+            bool is_builtin;        ///< Flag for builtin function
             ASTNode** args;         ///< Array of pointers to function arguments
         } FnCall;
 
@@ -165,9 +170,12 @@ struct ASTNode {
 
         struct {
             ASTNode* binary_operator;
-            // Technically just a packer node for binary operator
-            // Not necessary
         } Expression;
+
+        struct {
+            char* identifier;
+            ASTNode* expression;
+        } Assignment;
     };
 };
 /**
@@ -210,6 +218,73 @@ ASTNode* create_binary_op_node(int operator, ASTNode* left, ASTNode* right);
 ASTNode* create_i32_node(int value);
 
 ASTNode* create_f64_node(double value);
+ASTNode* create_string_node(char* value);
+
+ASTNode* create_null_node();
+
+ASTNode* create_assignment_node(char* identifier);
+
+/**
+ * @fn ASTNode* create_identifier_node(char* identifier)
+ * @brief Function that creates an identifier node
+ * 
+ * Node type is set to AST_IDENTIFIER, and the Identifier struct's `identifier` field
+ * is set based on the argument. Memory is allocated for the identifier string using
+ * strdup (must be freed later).
+ * 
+ * @param[in] identifier The identifier string (e.g., variable name)
+ * @return Returns pointer to ASTNode or NULL if memory allocation failed
+ */
+ASTNode* create_identifier_node(char* identifier);
+
+/**
+ * @fn ASTNode* create_binary_op_node(int operator, ASTNode* left, ASTNode* right)
+ * @brief Function that creates a binary operator node
+ * 
+ * Node type is set to AST_BIN_OP, and the BinaryOperator struct's fields are set
+ * based on the arguments. The operator is mapped from the token type to the OperatorType enum.
+ * 
+ * @param[in] operator The operator token type (int)
+ * @param[in] left The left operand ASTNode
+ * @param[in] right The right operand ASTNode
+ * @return Returns pointer to ASTNode or NULL if memory allocation failed or if operator is invalid
+ */
+ASTNode* create_binary_op_node(int operator, ASTNode* left, ASTNode* right);
+
+/**
+ * @fn ASTNode* create_i32_node(int value)
+ * @brief Function that creates an integer literal node
+ * 
+ * Node type is set to AST_INT, and the Integer struct's `number` field
+ * is set based on the argument.
+ * 
+ * @param[in] value The integer value
+ * @return Returns pointer to ASTNode or NULL if memory allocation failed
+ */
+ASTNode* create_i32_node(int value);
+
+/**
+ * @fn ASTNode* create_f64_node(double value)
+ * @brief Function that creates a float literal node
+ * 
+ * Node type is set to AST_FLOAT, and the Float struct's `number` field
+ * is set based on the argument.
+ * 
+ * @param[in] value The integer value
+ * @return Returns pointer to ASTNode or NULL if memory allocation failed
+ */
+ASTNode* create_f64_node(double value);
+
+/**
+ * @fn ASTNode* create_string_node(char* value)
+ * @brief Function that creates a string literal node
+ * 
+ * Node type is set to AST_STRING, and the Float struct's `number` field
+ * is set based on the argument.
+ * 
+ * @param[in] value The integer value
+ * @return Returns pointer to ASTNode or NULL if memory allocation failed
+ */
 ASTNode* create_string_node(char* value);
 
 /**
@@ -408,5 +483,18 @@ int append_param_to_fn(ASTNode* fn_node, ASTNode* param_node);
  * @return 0 if success, otherwise return 1
 */
 int append_node_to_block(ASTNode* block, ASTNode* node);
+
+/**
+ * @fn int append_arg_to_fn(ASTNode* fn_node, ASTNode* arg_node)
+ * @brief Function that appends argument node to function node
+ * 
+ * Functions reallocates memory for pointer array of nodes inside fn_call node
+ * if node count reaches node capacity and appends new node into array.
+ * 
+ * @param[in, out] fn_node Pointer to a fn call node
+ * @param[in] arg_node Pointer to an argument node
+ * @return 0 if success, otherwise return 1
+*/
+int append_arg_to_fn(ASTNode* fn_node, ASTNode* arg_node);
 
 #endif // AST_H

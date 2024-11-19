@@ -1,5 +1,8 @@
-// ast_node_stack.h
-
+/**
+ * @file ast_node_stack.h
+ * @brief Implementation of stack for ASTNodes
+ * @authors Simon Bobko (xbobkos00)
+*/
 #ifndef AST_NODE_STACK_H
 #define AST_NODE_STACK_H
 

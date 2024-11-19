@@ -11,7 +11,9 @@
 #include "lexer.h"  // Include definition of lexer struct
 #include "ast.h"    // Include definition of ASTNodes
 
-ASTNode* parse_fn_call(Lexer* lexer, Token** token, char* identifier);
+
+ASTNode* parse_builtin_fn_call(Lexer* lexer, Token** token, char* identifier);
+ASTNode* parse_expression(Lexer* lexer, Token** token);
 
 /**
  * @fn void advance_token(Token** token, Lexer* lexer);
@@ -56,6 +58,20 @@ ASTNode* parse_expression(Lexer* lexer, Token** token);
 int parse_prolog(Lexer* lexer, Token** token);
 
 /**
+ * @fn int parse_element_bind(Lexer* lexer, Token** token, ASTNode* node)
+ * @brief Parses element bind
+ * 
+ * This function parses source code and checks if the element bind
+ * is valid or not. 
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @param[in, out] node pointer to a node element bind is connected to
+ * @return 0 if element bind is not there or valid and 1 if the element bind is invalid
+*/
+int parse_element_bind(Lexer* lexer, Token** token, ASTNode* node);
+
+/**
  * @fn ASTNode* parse_const_decl(Lexer* lexer, Token** token)
  * @brief Parses constant declarations and constructs var_decl node of AST
  * 
@@ -66,8 +82,8 @@ int parse_prolog(Lexer* lexer, Token** token);
  * @param[in, out] token Pointer to a pointer of token
  * @return AST constant declaration node or NULL if syntax is invalid
 */
-ASTNode* parse_const_decl(Lexer* lexer, Token** token);
 
+ASTNode* parse_const_decl(Lexer* lexer, Token** token);
 /**
  * @fn ASTNode* parse_var_decl(Lexer* lexer, Token** token)
  * @brief Parses variable declarations and constructs var_decl node of AST
@@ -145,6 +161,21 @@ ASTNode* parse_if_else(Lexer* lexer, Token** token);
  * @return AST if/else node or NULL if syntax is invalid
 */ 
 ASTNode* parse_while(Lexer* lexer, Token** token);
+
+/** 
+ * @fn ASTNode* parse_fn_call(Lexer* lexer, Token** token, char* identifier)
+ * @brief Parses function call aand construct fn_call node
+ * 
+ * This function parses source code and checks if the function call
+ * is valid or not while constructing AST fn_call node.
+ * 
+ * @param[in] lexer Pointer to a lexer struct
+ * @param[in, out] token Pointer to a pointer of token
+ * @param[in] identifier Identifier of a function
+ * @return AST fn call node or NULL if syntax is invalid
+*/ 
+ASTNode* parse_fn_call(Lexer* lexer, Token** token, char* identifier);
+
 /** 
  * @fn ASTNode* parse_tokens(Lexer* lexer)
  * @brief Parses stream of tokens and creates an Abstract Syntax Tree (AST).
