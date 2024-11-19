@@ -4,10 +4,14 @@
  * @authors Alex Marinica (xmarina00)
 */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "../inc/stack.h"
 #include "../inc/symtable.h"
+#include "../inc/error.h"
+
+#define INITIAL_STACK_CAPACITY 10
 
 /**
  * @brief Resizes the ScopeStack by doubling its capacity.
@@ -23,14 +27,21 @@ void resize_scope_stack(ScopeStack *scopeStack) {
  * @return Pointer to the initialized ScopeStack, or NULL if memory allocation fails.
  */
 ScopeStack *init_scope_stack() {
-    ScopeStack *scope_stack = malloc(sizeof(ScopeStack));
-    if (scope_stack) {
-        scope_stack->frames = malloc(10 * sizeof(Frame *));
-        scope_stack->top = -1;
-        scope_stack->capacity = 10;
+    ScopeStack *stack = malloc(sizeof(ScopeStack));
+    if (!stack) {
+        fprintf(stderr, "Error: Failed to allocate memory for scope stack.\n");
+        exit(INTERNAL_ERROR);
     }
-    return scope_stack;
+    stack->top = -1; // Initialize stack as empty
+    stack->capacity = INITIAL_STACK_CAPACITY; // Ensure capacity is set
+    stack->frames = malloc(sizeof(Frame *) * stack->capacity);
+    if (!stack->frames) {
+        fprintf(stderr, "Error: Failed to allocate memory for stack frames.\n");
+        exit(INTERNAL_ERROR);
+    }
+    return stack;
 }
+
 
 /**
  * @brief Looks up a symbol in the local stack and global table.
@@ -71,13 +82,28 @@ Symbol *lookup_symbol_in_scopes(SymbolTable *global_table, ScopeStack *local_sta
  * @brief Pushes a new frame onto the ScopeStack, resizing if needed.
  * @param scope_stack Pointer to the ScopeStack where the frame will be pushed.
  */
-void push_frame(ScopeStack *scope_stack) {
-    if (scope_stack->top + 1 >= scope_stack->capacity) {
-        resize_scope_stack(scope_stack); // Resize if capacity is reached
+void push_frame(ScopeStack *stack) {
+    if (!stack) {
+        fprintf(stderr, "Error: Null stack passed to push_frame.\n");
+        exit(INTERNAL_ERROR);
     }
-    Frame *frame = init_frame();
-    scope_stack->frames[++scope_stack->top] = frame;
+    if (stack->top + 1 >= stack->capacity) {
+        stack->capacity *= 2;
+        stack->frames = realloc(stack->frames, sizeof(Frame *) * stack->capacity);
+        if (!stack->frames) {
+            fprintf(stderr, "Error: Failed to reallocate memory for stack frames.\n");
+            exit(INTERNAL_ERROR);
+        }
+    }
+    stack->top++;
+    stack->frames[stack->top] = malloc(sizeof(Frame));
+    if (!stack->frames[stack->top]) {
+        fprintf(stderr, "Error: Failed to allocate memory for frame.\n");
+        exit(INTERNAL_ERROR);
+    }
+    stack->frames[stack->top]->symbol_table = init_symbol_table();
 }
+
 
 /**
  * @brief Removes the top frame from the ScopeStack.
@@ -88,8 +114,6 @@ void pop_frame(ScopeStack *scope_stack) {
         free(scope_stack->frames[scope_stack->top--]);
     }
 }
-
-
 
 /**
  * @brief Retrieves the top frame of the ScopeStack without removing it.
