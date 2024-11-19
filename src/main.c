@@ -9,6 +9,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "error.h"
+#include "generator.h"
 
 #define RESET   "\x1b[0m"
 #define GREEN   "\x1b[32m"
@@ -109,11 +110,10 @@ int main(int argc, char** argv) {
         destroy_lexer(&lexer);
         exit(error_tracker);
     }
-    else {
-        fprintf(stderr, "Syntax is correct\n");
-        free_ast_node(root);
-    }
-
+    // Add semantic analysis
+    generate_code(root);
+        
+    free_ast_node(root);
     destroy_lexer(&lexer);
     fprintf(stderr, "Time: %.3g\n", (double)(clock()-start)/CLOCKS_PER_SEC);
 

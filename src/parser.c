@@ -1298,7 +1298,6 @@ ASTNode* parse_tokens(Lexer* lexer) {
         // set error ot syntax error if no lexical or internal error was found before
         if (output_file == NULL) {  // Ensure it's only opened on error
             output_file = fopen("tests/test.out", "w");
-            print_ast(program_node, 0, output_file);
             fclose(output_file);
         }
         set_error(SYNTAX_ERROR);
