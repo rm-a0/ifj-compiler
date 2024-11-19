@@ -87,7 +87,9 @@ void check_main_function(SymbolTable *global_table) {
     }
 
     // Check if the main function has zero parameters
-    if (main_symbol->func.scope_stack == NULL || main_symbol->func.scope_stack->top != -1) {
+    ScopeStack *main_scope_stack = main_symbol->func.scope_stack;
+
+    if (main_scope_stack == NULL || main_scope_stack->frames[0]->symbol_table->count > 0) {
         fprintf(stderr, "Semantic Error: 'main' function must have zero parameters.\n");
         exit(SEMANTIC_ERROR_PARAMS);
     }
@@ -210,7 +212,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             const char *fn_name = node->FnDecl.fn_name;
             DataType return_type = node->FnDecl.return_type;
 
-            // Check if the function is already declared in the global symbol table
+            // Check if the function is already declared
             Symbol *existing_symbol = lookup_symbol(global_table, fn_name);
             if (existing_symbol != NULL) {
                 fprintf(stderr, "Semantic Error: Function '%s' is already declared.\n", fn_name);
@@ -220,20 +222,21 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             // Add the function symbol to the global symbol table
             add_function_symbol(global_table, fn_name, return_type);
 
-            // Retrieve the function symbol to access its scope stack to check if the function was defined
+            // Retrieve the function symbol to access its scope stack
             Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
             if (fn_symbol == NULL || fn_symbol->type != SYMBOL_FUNC) {
                 fprintf(stderr, "Internal Error: Failed to retrieve function '%s' symbol.\n", fn_name);
                 exit(SEMANTIC_ERROR_UNDEFINED);
             }
 
-            // Create a local stack for the function
-            ScopeStack *function_stack = init_scope_stack();
+            // Initialize the scope stack for the function if not already initialized
+            if (!fn_symbol->func.scope_stack) {
+                fn_symbol->func.scope_stack = init_scope_stack();
+            }
+            ScopeStack *function_stack = fn_symbol->func.scope_stack;
 
-            // Push a new frame for the function body
-            push_frame(local_stack);
-
-            printf("pushed frame\n");
+            // Push a frame for the function parameters
+            push_frame(function_stack);
 
             // Process function parameters
             for (int i = 0; i < node->FnDecl.param_count; i++) {
@@ -248,51 +251,49 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 const char *param_name = param_node->Param.identifier;
                 DataType param_type = param_node->Param.data_type;
 
-                // Check for duplicate parameter names
-                if (lookup_symbol(top_frame(local_stack)->symbol_table, param_name)) {
+                // Check for duplicate parameters
+                Symbol *existing_param = lookup_symbol(function_stack->frames[function_stack->top]->symbol_table, param_name);
+                if (existing_param != NULL) {
                     fprintf(stderr, "Semantic Error: Duplicate parameter name '%s' in function '%s'.\n", param_name, fn_name);
                     exit(SEMANTIC_ERROR_PARAMS);
                 }
 
-                // Add the parameter to the current frame's symbol table
-                add_variable_symbol(top_frame(local_stack)->symbol_table, param_name, param_type);
+                // Add the parameter to the local scope
+                add_variable_symbol(function_stack->frames[function_stack->top]->symbol_table, param_name, param_type);
             }
+
+            // Push a new frame for the function body
+            push_frame(function_stack);
 
             // Recursively analyze the function block
-            // TODO: check if it is error if NULL
-                // Analyze the function block recursively
             if (node->FnDecl.block) {
-                semantic_analysis(node->FnDecl.block, global_table, local_stack);
-            } else {
-                fprintf(stderr, "Semantic Error: Function '%s' must have a body.\n", fn_name);
-                exit(SEMANTIC_ERROR_UNDEFINED);
+                semantic_analysis(node->FnDecl.block, global_table, function_stack);
             }
 
-            // TODO: Check if 2 return statements is semantic or syntax error
-            // Check for a return statement
-            bool return_found = false;
-            for (int i = 0; i < node->FnDecl.block->Block.node_count; i++) {
-                ASTNode *child_node = node->FnDecl.block->Block.nodes[i];
-                if (child_node->type == AST_RETURN) {
-                    semantic_analysis(child_node, global_table, function_stack);
-                    return_found = true;
+            // Ensure non-void functions have a return statement
+            if (return_type != AST_VOID) {
+                bool return_found = false;
+                for (int i = 0; i < node->FnDecl.block->Block.node_count; i++) {
+                    ASTNode *child_node = node->FnDecl.block->Block.nodes[i];
+                    if (child_node->type == AST_RETURN) {
+                        return_found = true;
+                        break;
+                    }
+                }
+
+                if (!return_found) {
+                    fprintf(stderr, "Semantic Error: Function '%s' must have a return statement.\n", fn_name);
+                    exit(SEMANTIC_ERROR_RETURN);
                 }
             }
 
-            // If no return statement is found, enforce rules for non-void functions
-            if (!return_found && return_type != AST_VOID) {
-                fprintf(stderr, "Semantic Error: Function '%s' must have a return statement.\n", fn_name);
-                exit(SEMANTIC_ERROR_RETURN);
-            }
-
-            // Cleanup the function's scope stack
-            while (function_stack->top >= 0) {
-                pop_frame(function_stack);
-            }
-
-            free_scope_stack(function_stack);
+            // Cleanup the function's scope stack (pop all frames)
+            // while (function_stack->top >= 0) {
+            pop_frame(function_stack);
+            // }
             break;
-        }    
+        }
+    
 
         case AST_PARAM: {
             // Retrieve parameter details
@@ -334,7 +335,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 semantic_analysis(child_node, global_table, local_stack);
             }
 
-            // After analyzing all nodes in the block, check for unused variables
+            // Check for unused variables in the current frame
             Frame *current_frame = top_frame(local_stack);
             if (current_frame && current_frame->symbol_table) {
                 SymbolTable *current_table = current_frame->symbol_table;
@@ -343,7 +344,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     Symbol *symbol = current_table->symbols[j];
                     if (symbol && symbol->type == SYMBOL_VAR && !symbol->var.used) {
                         fprintf(stderr, "Semantic Error: Variable '%s' declared in the block was never used.\n", symbol->var.name);
-                        exit(SEMANTIC_ERROR_UNUSED_VAR); // Use appropriate error code
+                        exit(SEMANTIC_ERROR_UNUSED_VAR);
                     }
                 }
             }
@@ -352,6 +353,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             pop_frame(local_stack);
             break;
         }
+
 
         case AST_WHILE: {
             // Evaluate the condition expression of the while loop
@@ -562,15 +564,33 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 exit(SEMANTIC_ERROR_RETURN);
             }
 
-            // Retrieve the current function's symbol table and its return type
-            Frame *current_frame = local_stack->frames[0]; // The first frame in the stack corresponds to the function's scope
+            // Retrieve the current frame
+            Frame *current_frame = top_frame(local_stack);
             if (!current_frame || !current_frame->symbol_table) {
                 fprintf(stderr, "Internal Error: Function context not properly initialized.\n");
                 exit(INTERNAL_ERROR);
             }
 
             // Lookup the function declaration in the global symbol table
-            Symbol *function_symbol = lookup_symbol(global_table, current_frame->symbol_table->symbols[0]->func.name); // Assuming the first symbol is the function name
+            const char *function_name = NULL;
+
+            // Ensure the symbol table has symbols and find the function name
+            for (int i = 0; i < current_frame->symbol_table->capacity; i++) {
+                Symbol *symbol = current_frame->symbol_table->symbols[i];
+                if (symbol && symbol->type == SYMBOL_FUNC) {
+                    function_name = symbol->func.name;
+                    break;
+                }
+            }
+
+            // Check if the function name was found
+            if (!function_name) {
+                fprintf(stderr, "Internal Error: No function declaration found in the current frame.\n");
+                exit(INTERNAL_ERROR);
+            }
+
+            // Lookup the function symbol in the global table
+            Symbol *function_symbol = lookup_symbol(global_table, function_name);
             if (!function_symbol || function_symbol->type != SYMBOL_FUNC) {
                 fprintf(stderr, "Internal Error: Function context symbol not found.\n");
                 exit(INTERNAL_ERROR);
@@ -600,6 +620,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             break;
         }
+
 
         case AST_VAR_DECL: {
             const char *var_name = node->VarDecl.var_name;

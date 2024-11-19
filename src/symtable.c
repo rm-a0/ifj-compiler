@@ -135,6 +135,7 @@ void add_variable_symbol(SymbolTable *table, const char *name, DataType type) {
 
 /* Lookup a symbol by name */
 Symbol *lookup_symbol(SymbolTable *table, const char *name) {
+    printf("name: %s\n", name);
     unsigned int index = hash(name, table->capacity);
     while (table->symbols[index] != NULL) {
         const char *current_name = table->symbols[index]->type == SYMBOL_FUNC

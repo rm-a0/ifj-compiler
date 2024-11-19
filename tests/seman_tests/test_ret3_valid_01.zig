@@ -1,4 +1,4 @@
-// Test for recursive function
+// Test for recursive function, fail due to the param in main func.
 const ifj = @import("ifj24.zig");
 
 var x = 1;
