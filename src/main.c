@@ -10,6 +10,7 @@
 #include "parser.h"
 #include "error.h"
 #include "generator.h"
+#include "ast_utils.h"
 
 #define RESET   "\x1b[0m"
 #define GREEN   "\x1b[32m"
@@ -111,7 +112,9 @@ int main(int argc, char** argv) {
         exit(error_tracker);
     }
     // Add semantic analysis
+    print_ast_node(root, 0);
     generate_code(root);
+    //printovanie ast stromu do
         
     free_ast_node(root);
     destroy_lexer(&lexer);

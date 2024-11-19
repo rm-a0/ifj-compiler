@@ -5,6 +5,8 @@
 */
 
 #include "../inc/generator_instructions.h"
+#include "../inc/generator.h"
+
 const char* frame_prefix(const char* var) {
     if (var == NULL) {
         printf("\033[31mERROR: Variable name is NULL in frame_prefix\n\033[0m");

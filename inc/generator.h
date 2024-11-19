@@ -26,7 +26,7 @@ void generate_expression(ASTNode* node);
 void generate_if(ASTNode* node);
 void generate_loop(ASTNode* node);
 
-//GF functions
+//GF & LF functions
 bool is_it_global(const char* var_name);
 void add_to_global(const char* var_name);
 void free_var_arrays();

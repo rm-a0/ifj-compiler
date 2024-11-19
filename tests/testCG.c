@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "error.h"
-#include "../inc/ast.h"  // Include the header file containing ASTNode definitions
-#include "../inc/generator.h"
-#include "../src/generator.c"
+//#include "../inc/ast.h"  // Include the header file containing ASTNode definitions
+#include "testCG.h"
+//#include "../src/generator.c"
 
 /**
  * @brief Function that appends an argument node to a function call node
@@ -111,7 +111,7 @@ void print_ast(ASTNode* node, int indent_level, FILE* output_file) {
             print_indent(indent_level, output_file);
             fprintf(output_file, "Program Node:\n");
             print_indent(indent_level, output_file);
-            fprintf(output_file, "Has Prolog: %s\n", node->Program.has_prolog ? "Yes" : "No");
+            //fprintf(output_file, "Has Prolog: %s\n", node->Program ? "Yes" : "No");
             print_indent(indent_level, output_file);
             fprintf(output_file, "Declaration Count: %d\n", node->Program.decl_count);
             print_indent(indent_level, output_file);
@@ -275,7 +275,7 @@ void print_ast(ASTNode* node, int indent_level, FILE* output_file) {
             fprintf(output_file, "Identifier: %s\n", node->Identifier.identifier);
             break;
 
-        case AST_EXPRESSION:
+        case AST_ASSIGNMENT:
             print_indent(indent_level, output_file);
             fprintf(output_file, "Expression Node:\n");
             print_indent(indent_level + 1, output_file);
@@ -290,15 +290,28 @@ void print_ast(ASTNode* node, int indent_level, FILE* output_file) {
     }
 }
 
+void print_ast_to_file(ASTNode* program_node, int test_number) {
+    // Open the output file
+    FILE* output_file = fopen("testCG.out", "w");
+    if (output_file == NULL) {
+        perror("Failed to open testCG.out for writing");
+        exit(EXIT_FAILURE);
+    }
 
-int main(int argc, char* argv[]) {
+    // Print the AST to the output file
+    fprintf(output_file, "Abstract Syntax Tree for Test %d:\n", test_number);
+    print_ast(program_node, 0, output_file);
+    fclose(output_file);
+}
+
+int test_gen(int argc, char* argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Usage: %s -[test_number]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
     int test_number = atoi(argv[1] + 1); // Parsovanie čísla testu z argumentu, napr. "-1"
-    if (test_number < 1 || test_number > 6) {
+    if (test_number < 1 || test_number > 5) {
         fprintf(stderr, "Invalid test number: %s. Use -1, -2, or -3.\n", argv[1]);
         exit(EXIT_FAILURE);
     }
@@ -537,7 +550,7 @@ int main(int argc, char* argv[]) {
 
             append_decl_to_prog(program_node, main_fn_5);
             break;
-        case 6:
+        /*case 6:
             // Test 6: Nested Arithmetic Expression a = ((b + 4 - 6) * 5) / 2
             ASTNode* main_fn_6 = create_fn_decl_node("main");
             main_fn_6->FnDecl.return_type = AST_VOID;
@@ -584,7 +597,7 @@ int main(int argc, char* argv[]) {
             // Add 'main' function to the program
             append_decl_to_prog(program_node, main_fn_6);
 
-            break;
+            break;*/
     }
 
     // Open the output file
