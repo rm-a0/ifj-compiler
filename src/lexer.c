@@ -342,6 +342,7 @@ Token* get_token(Lexer* lexer) {
                     append(lexer, &idx, c);
                 }
                 else if (c >= '0' && c <= '9') {
+                    exp_flag = 1;
                     lexer->state = EXPONENT_NUM;
                     append(lexer, &idx, c);
                 }
