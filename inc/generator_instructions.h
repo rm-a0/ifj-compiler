@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+char* escape_string(const char* input);
 const char* frame_prefix(const char* var);
 void print_with_indent(const char* text);
 void print_new_line();

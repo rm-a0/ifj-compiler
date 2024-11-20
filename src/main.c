@@ -112,10 +112,13 @@ int main(int argc, char** argv) {
         exit(error_tracker);
     }
     // Add semantic analysis
+
+
     print_ast_node(root, 0);
-    generate_code(root);
     //printovanie ast stromu do
-        
+    generate_code(root);
+
+
     free_ast_node(root);
     destroy_lexer(&lexer);
     fprintf(stderr, "Time: %.3g\n", (double)(clock()-start)/CLOCKS_PER_SEC);

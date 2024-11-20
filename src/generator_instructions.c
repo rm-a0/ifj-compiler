@@ -7,6 +7,48 @@
 #include "../inc/generator_instructions.h"
 #include "../inc/generator.h"
 
+char* escape_string(const char* input) {
+    if (input == NULL) return NULL;
+
+    size_t length = strlen(input);
+    size_t buffer_size = length * 4 + 1; // Predpokladáme max. veľkosť po rozšírení
+    char* output = malloc(buffer_size);
+    if (output == NULL) {
+        fprintf(stderr, "ERROR: Memory allocation failed\n");
+        exit(99);
+    }
+
+    size_t j = 0;
+    for (size_t i = 0; i < length; i++) {
+        if (input[i] == '\\' && input[i + 1] == 'n') {
+            // Ak sa nájde sekvencia "\n", nahradiť "\010"
+            strcpy(&output[j], "\\010");
+            j += 4;
+            i++; // Preskočíme aj znak 'n'
+        } else {
+            switch (input[i]) {
+                case ' ':
+                    strcpy(&output[j], "\\032");
+                    j += 4;
+                    break;
+                case '\\':
+                    strcpy(&output[j], "\\092");
+                    j += 4;
+                    break;
+                case '#':
+                    strcpy(&output[j], "\\035");
+                    j += 4;
+                    break;
+                default:
+                    output[j++] = input[i];
+            }
+        }
+    }
+    output[j] = '\0'; // Ukončenie reťazca
+    return output;
+}
+
+
 const char* frame_prefix(const char* var) {
     if (var == NULL) {
         printf("\033[31mERROR: Variable name is NULL in frame_prefix\n\033[0m");

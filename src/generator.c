@@ -13,6 +13,8 @@
 char* gf_vars[MAX_GF_VAR_COUNT] = {NULL};   // Inicializácia všetkých prvkov na NULL
 char* lf_vars[MAX_LF_VAR_COUNT] = {NULL};   // Inicializácia všetkých prvkov na NULL
 
+static int if_counter = 1420; // Počiatočné číslovanie pre unikátne labely
+static int while_counter = 1420; // Počiatočné číslovanie pre unikátne labely
 
 
 bool is_it_global(const char* var_name){
@@ -143,9 +145,9 @@ void generate_code_in_node(ASTNode* node){
             if (node->ConstDecl.expression) {
                 if (strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.string") == 0) {
                     if (is_it_global(node->ConstDecl.const_name)) {
-                        printf("MOVE GF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->String.string);
+                        printf("MOVE GF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string);
                     } else {
-                        printf("MOVE LF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->String.string);
+                        printf("MOVE LF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string);
                     }
                 } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readstr") == 0){
                     if (is_it_global(node->ConstDecl.const_name)) {
@@ -165,36 +167,6 @@ void generate_code_in_node(ASTNode* node){
                     } else {
                         printf("READ LF@%s float\n", node->ConstDecl.const_name);
                     }
-                }else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.add") == 0){
-                        printf("ADD %s%s %s%s %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
-                               frame_prefix(node->ConstDecl.expression->FnCall.args[0]->String.string),
-                               node->ConstDecl.expression->FnCall.args[0]->String.string,
-                               frame_prefix(node->ConstDecl.expression->FnCall.args[1]->String.string),
-                               node->ConstDecl.expression->FnCall.args[1]->String.string);
-                }else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.sub") == 0){
-                    printf("SUB %s%s %s%s %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
-                           frame_prefix(node->ConstDecl.expression->FnCall.args[0]->String.string),
-                           node->ConstDecl.expression->FnCall.args[0]->String.string,
-                           frame_prefix(node->ConstDecl.expression->FnCall.args[1]->String.string),
-                           node->ConstDecl.expression->FnCall.args[1]->String.string);
-                }else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.mul") == 0){
-                    printf("MUL %s%s %s%s %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
-                           frame_prefix(node->ConstDecl.expression->FnCall.args[0]->String.string),
-                           node->ConstDecl.expression->FnCall.args[0]->String.string,
-                           frame_prefix(node->ConstDecl.expression->FnCall.args[1]->String.string),
-                           node->ConstDecl.expression->FnCall.args[1]->String.string);
-                }else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.div") == 0){
-                    printf("DIV %s%s %s%s %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
-                           frame_prefix(node->ConstDecl.expression->FnCall.args[0]->String.string),
-                           node->ConstDecl.expression->FnCall.args[0]->String.string,
-                           frame_prefix(node->ConstDecl.expression->FnCall.args[1]->String.string),
-                           node->ConstDecl.expression->FnCall.args[1]->String.string);
-                }else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.idiv") == 0){
-                    printf("IDIV %s%s %s%s %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
-                           frame_prefix(node->ConstDecl.expression->FnCall.args[0]->String.string),
-                           node->ConstDecl.expression->FnCall.args[0]->String.string,
-                           frame_prefix(node->ConstDecl.expression->FnCall.args[1]->String.string),
-                           node->ConstDecl.expression->FnCall.args[1]->String.string);
                 }
                 else{
                     generate_code_in_node(node->ConstDecl.expression);
@@ -204,23 +176,41 @@ void generate_code_in_node(ASTNode* node){
             break;
 
         case AST_CONST_DECL:
-            if (!(is_it_global(node->VarDecl.var_name) || is_it_local(node->VarDecl.var_name))) {
+            if (!(is_it_global(node->VarDecl.var_name) || is_it_local(node->VarDecl.var_name))){
                 def_var(node->VarDecl.var_name, "lf");
                 add_to_local(node->VarDecl.var_name);
             }
 
-            if(strcmp(node->VarDecl.expression->FnCall.fn_name, "ifj.string") == 0){
-
-                if (is_it_global(node->VarDecl.var_name)) {
-                    printf("MOVE GF@%s string@%s\n",node->VarDecl.var_name, node->VarDecl.expression->FnCall.args[0]->String.string);
-                } else {
-                    printf("MOVE LF@%s string@%s\n",node->VarDecl.var_name, node->VarDecl.expression->FnCall.args[0]->String.string);
-                }
-                break;
-            }
             if (node->ConstDecl.expression) {
-                generate_code_in_node(node->ConstDecl.expression);
-                pops(node->ConstDecl.const_name);
+                if (strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.string") == 0) {
+                    if (is_it_global(node->ConstDecl.const_name)) {
+                        printf("MOVE GF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string);
+                    } else {
+                        printf("MOVE LF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string);
+                    }
+                } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readstr") == 0){
+                    if (is_it_global(node->ConstDecl.const_name)) {
+                        printf("READ GF@%s string\n", node->ConstDecl.const_name);
+                    } else {
+                        printf("READ LF@%s string\n", node->ConstDecl.const_name);
+                    }
+                } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readi32") == 0){
+                    if (is_it_global(node->ConstDecl.const_name)) {
+                        printf("READ GF@%s int\n", node->ConstDecl.const_name);
+                    } else {
+                        printf("READ LF@%s int\n", node->ConstDecl.const_name);
+                    }
+                } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readf64") == 0){
+                    if (is_it_global(node->ConstDecl.const_name)) {
+                        printf("READ GF@%s float\n", node->ConstDecl.const_name);
+                    } else {
+                        printf("READ LF@%s float\n", node->ConstDecl.const_name);
+                    }
+                }
+                else{
+                    generate_code_in_node(node->ConstDecl.expression);
+                    pops(node->ConstDecl.const_name);
+                }
             }
             break;
 
@@ -237,14 +227,17 @@ void generate_code_in_node(ASTNode* node){
                                              ? block_node->ConstDecl.const_name
                                              : block_node->VarDecl.var_name;
 
-                        const char* arg1 = block_node->VarDecl.expression->FnCall.args[0]->Identifier.identifier;
-                        const char* arg2 = block_node->VarDecl.expression->FnCall.args[1]->Identifier.identifier;
+                        const char* arg1 = block_node->VarDecl.expression->FnCall.args[0]->Argument.expression->Identifier.identifier;
+                        const char* arg2 = block_node->VarDecl.expression->FnCall.args[1]->Argument.expression->Identifier.identifier;
 
                         if (!(is_it_global(result) || is_it_local(result))) {
                             def_var(result, "lf");
                             add_to_local(result);
                         }
-
+                        if(block_node->VarDecl.expression->FnCall.args[0]->type == AST_ARG){
+                            //printf("string");
+                            //debug function
+                        }
                         concat(result, arg1, arg2);
 
                         continue;
@@ -258,22 +251,68 @@ void generate_code_in_node(ASTNode* node){
         case AST_FN_CALL:
             const char* fn_name = node->FnCall.fn_name;
             if ((strcmp(fn_name, "ifj.write") == 0)||(strcmp(fn_name, "ifj.writef64") == 0) ) {
-                generate_code_in_node(node->FnCall.args[0]);
-                write(node->FnCall.args[0]->Identifier.identifier);
-                return;
-            } else if(strcmp(fn_name, "ifj.string") == 0){
-                pushs(node->FnCall.args[0]->Identifier.identifier);
-                //move(node->FnCall.args[0]->Identifier.identifier, "string@");
-                return;
+                //generate_code_in_node(node->FnCall.args[0]);
+                //write(node->FnCall.args[0]->Argument.expression->Identifier.identifier);
+                ASTNode *expression = node->FnCall.args[0]->Argument.expression;
+                switch (expression->type) {
+                    case AST_STRING: {
+                        char *escaped_string = escape_string(expression->String.string);
+                        printf("WRITE string@%s\n", escaped_string);
+                        free(escaped_string);
+                        break;
+                    }
+                    case AST_INT:
+                        printf("WRITE int@%d\n", expression->Integer.number);
+                        break;
+                    case AST_FLOAT:
+                        printf("WRITE float@%f\n", expression->Float.number);
+                        break;
+                    case AST_IDENTIFIER:
+                        printf("WRITE %s%s\n", frame_prefix(expression->Identifier.identifier),
+                               expression->Identifier.identifier);
+                        break;
+                    default:
+                        fprintf(stderr, "ERROR: Unsupported argument type for ifj.write\n");
+                        exit(99);
+                }
             }
             else
             {
                 for (int i = node->FnCall.arg_count; i > 0; --i) {      // Generovanie kódu argumentov
-                    pushs(node->FnCall.args[i-1]->Identifier.identifier);
+                    pushs(node->FnCall.args[i-1]->Argument.expression->Identifier.identifier);
                     generate_code_in_node(node->FnCall.args[i]);
                 }
                 call(fn_name);  // Volanie funkcie
             }
+            break;
+        case AST_ASSIGNMENT:
+            generate_code_in_node(node->Assignment.expression);
+            if (is_it_global(node->Assignment.identifier)) {
+                pops(node->Assignment.identifier);
+            } else {
+                pops(node->Assignment.identifier);
+            }
+            break;
+        case AST_IF_ELSE:
+            int current_if = if_counter++; // Unikátne číslo pre aktuálny if-else blok
+            //printf("if instruction --debug\n");
+            // Vygenerovanie podmienky
+            generate_code_in_node(node->IfElse.expression);
+            printf("PUSHS bool@true\n");
+            printf("JUMPIFEQ else_block_%d\n", current_if);
+
+            // Telo IF
+            generate_code_in_node(node->IfElse.if_block);
+            printf("JUMP end_block_%d\n", current_if);
+
+            // ELSE blok (ak existuje)
+            printf("LABEL else_block_%d\n", current_if);
+            if (node->IfElse.else_block) {
+                generate_code_in_node(node->IfElse.else_block);
+            }
+
+            // Koniec celého bloku
+            printf("LABEL end_block_%d\n", current_if);
             break;
 
         case AST_ARG:
@@ -296,29 +335,50 @@ void generate_code_in_node(ASTNode* node){
         case AST_BIN_OP:
             generate_code_in_node(node->BinaryOperator.left);
             generate_code_in_node(node->BinaryOperator.right);
+
             switch (node->BinaryOperator.operator) {
-                case AST_PLUS: add_s("result"); break;
-                case AST_MINUS: sub_s("result"); break;
-                case AST_MUL: mul_s("result"); break;
-                case AST_DIV: div_s("result"); break;
-                default: print_with_indent("UNKNOWN_OPERATOR"); break;
+                case AST_PLUS: printf("ADDS\n"); break;
+                case AST_MINUS: printf("SUBS\n"); break;
+                case AST_MUL: printf("MULS\n"); break;
+                case AST_DIV: printf("DIVS\n"); break;
+                case AST_GREATER: printf("GTS\n"); break;
+                case AST_GREATER_EQU:
+                    printf("LTS\n");
+                    printf("NOTS\n");
+                    break;
+                case AST_LESS: printf("LTS\n"); break;
+                case AST_LESS_EQU:
+                    printf("GTS\n");
+                    printf("NOTS\n");
+                    break;
+                case AST_EQU: printf("EQS\n"); break;
+                case AST_NOT_EQU:
+                    printf("EQS\n");
+                    printf("NOTS\n");
+                    break;
+                default:
+                    fprintf(stderr, "ERROR: Unknown binary operator type\n");
+                    exit(99);
             }
             break;
 
         case AST_INT:
-            //printf("PUSHS int@%d\n", node->Integer.number);
+            printf("PUSHS int@%d\n", node->Integer.number);
             break;
 
         case AST_FLOAT:
-            //printf("PUSHS float@%f\n", node->Float.number);
+            printf("PUSHS float@%f\n", node->Float.number);
             break;
 
-        case AST_STRING:
-            //printf("PUSHS string@%s\n", node->String.string);
+        case AST_STRING: {
+            char* escaped_string = escape_string(node->String.string);
+            printf("PUSHS string@%s\n", escaped_string);
+            free(escaped_string);
             break;
+        }
 
         case AST_IDENTIFIER:
-            //printf("PUSHS LF@%s\n", node->Identifier.identifier);
+            printf("PUSHS %s%s\n", frame_prefix(node->Identifier.identifier), node->Identifier.identifier);
             break;
 
         default:
@@ -329,10 +389,9 @@ void generate_code_in_node(ASTNode* node){
 
 int generate_code(ASTNode* root){
     if (root == NULL) return 51; // ast root == NULL
-    //int while_counter = 1420;
+
     printf(".IFJcode24\n");
-    printf("JUMP main\n");
-    print_new_line();
+    printf("JUMP main\n");    print_new_line();
 
     generate_code_in_node(root);
 
