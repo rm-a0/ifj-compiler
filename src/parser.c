@@ -9,6 +9,65 @@
 #include "stack.h"
 #include "ast_node_stack.h"
 
+#include <ctype.h>
+
+int validate_and_convert_float(const char* str, double* value) {
+    const char* ptr = str;
+    int has_fractional_part = 0;
+    int has_exponent_part = 0;
+
+    if (isdigit(*ptr)) {
+        while (isdigit(*ptr)) {
+            ptr++;
+        }
+    } else {
+        return 0;
+    }
+
+    if (*ptr == '.') {
+        ptr++;  // Skip the dot
+        if (isdigit(*ptr)) {
+            has_fractional_part = 1;
+            while (isdigit(*ptr)) {
+                ptr++;
+            }
+        } else {
+            return 0;
+        }
+    }
+
+    if (*ptr == 'e' || *ptr == 'E') {
+        ptr++; 
+        has_exponent_part = 1;
+
+        if (*ptr == '+' || *ptr == '-') {
+            ptr++;
+        }
+
+        if (isdigit(*ptr)) {
+            while (isdigit(*ptr)) {
+                ptr++;
+            }
+        } else {
+            return 0;
+        }
+    }
+    if (*ptr != '\0') {
+        return 0;
+    }
+    if (!has_fractional_part && !has_exponent_part) {
+        return 0;
+    }
+
+    char* endptr;
+    *value = strtod(str, &endptr);
+    if (endptr != ptr) {
+        return 0;
+    }
+    return 1;
+}
+
+
 void advance_token(Token** token, Lexer* lexer) {
     if (token && *token) {
         free_token(*token);
@@ -159,10 +218,19 @@ ASTNode* parse_operand(Lexer* lexer, Token** token) {
         }
     } 
     else if (check_token(*token, TOKEN_STRING, NULL)) {
-        node = create_string_node((*token)->value);
-        if (!node) {
-            set_error(INTERNAL_ERROR);
-            return NULL;
+        double float_value;
+        if (validate_and_convert_float((*token)->value, &float_value)) {
+            node = create_f64_node(float_value);
+            if (!node) {
+                set_error(INTERNAL_ERROR);
+                return NULL;
+            }
+        } else {
+            node = create_string_node((*token)->value);
+            if (!node) {
+                set_error(INTERNAL_ERROR);
+                return NULL;
+            }
         }
         advance_token(token, lexer);
         if (*token == NULL || (*token)->token_type == TOKEN_EOF) {
@@ -170,7 +238,7 @@ ASTNode* parse_operand(Lexer* lexer, Token** token) {
             free_ast_node(node);
             return NULL;
         }
-    } 
+    }
     else if (check_token(*token, TOKEN_L_PAREN, NULL)) {
         advance_token(token, lexer);
         if (*token == NULL || (*token)->token_type == TOKEN_EOF) {
