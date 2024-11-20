@@ -143,6 +143,22 @@ void generate_code_in_node(ASTNode* node){
             }
 
             if (node->ConstDecl.expression) {
+                if(node->VarDecl.expression->type == AST_INT){
+                    printf("MOVE %s%s int@%d\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name, node->VarDecl.expression->Integer.number);
+                    break;
+                }
+                else if(node->VarDecl.expression->type == AST_FLOAT){
+                    printf("MOVE %s%s float@%a\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name, node->VarDecl.expression->Float.number);
+                    break;
+                }
+                else if(node->VarDecl.expression->type == AST_STRING){
+                    printf("MOVE %s%s string@%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name, node->VarDecl.expression->String.string);
+                    break;
+                }
+                /*else if(node->VarDecl.expression->type == AST_FN_CALL){
+                    generate_code_in_node(node->VarDecl.expression);
+                    pops(node->VarDecl.var_name);
+                }*/
                 if (strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.string") == 0) {
                     if (is_it_global(node->ConstDecl.const_name)) {
                         printf("MOVE GF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string);
@@ -361,6 +377,26 @@ void generate_code_in_node(ASTNode* node){
                     exit(99);
             }
             break;
+
+        case AST_WHILE: {
+            int current_while = while_counter++; // Unikátne číslo pre while slučku
+
+            // Vytváranie labelov
+            printf("LABEL while_start_%d\n", current_while); // Začiatok while cyklu
+
+            // Generovanie kódu pre podmienku
+            generate_code_in_node(node->WhileCycle.expression);
+            printf("PUSHS bool@true\n"); // Očakávame, že podmienka vráti bool
+            printf("JUMPIFNEQ while_end_%d\n", current_while); // Ak nie je splnená, skáčeme na koniec
+
+            // Generovanie tela slučky
+            generate_code_in_node(node->WhileCycle.block);
+            printf("JUMP while_start_%d\n", current_while); // Návrat na začiatok
+
+            // Label pre koniec while slučky
+            printf("LABEL while_end_%d\n", current_while);
+            break;
+        }
 
         case AST_INT:
             printf("PUSHS int@%d\n", node->Integer.number);
