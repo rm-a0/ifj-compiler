@@ -37,64 +37,6 @@ FILE* process_file(int argc, char**  argv) {
     return fp;
 }
 
-int print_token(Lexer* lexer) {
-    const char* tok_name[] = {
-    "INVALID",
-    "TOKEN_CONST",
-    "TOKEN_ELSE",
-    "TOKEN_FN",
-    "TOKEN_IF",
-    "TOKEN_I32",
-    "TOKEN_F64",
-    "TOKEN_NULL",
-    "TOKEN_PUB",
-    "TOKEN_RETURN",
-    "TOKEN_U8",
-    "TOKEN_VAR",
-    "TOKEN_VOID",
-    "TOKEN_WHILE",
-    "TOKEN_IDENTIFIER",
-    "TOKEN_STRING",
-    "TOKEN_INTEGER",
-    "TOKEN_FLOAT",
-    "TOKENS_SLICE",
-    "TOKEN_L_PAREN",
-    "TOKEN_R_PAREN",
-    "TOKEN_L_BRACE",
-    "TOKEN_R_BRACE",
-    "TOKEN_DOT",
-    "TOKEN_COMA",
-    "TOKEN_COLON",
-    "TOKEN_SEMICOLON",
-    "TOKEN_PIPE",
-    "TOKEN_PLUS",
-    "TOKEN_MINUS",
-    "TOKEN_MULT",
-    "TOKEN_DIV",
-    "TOKEN_ASSIGN",
-    "TOKEN_Q_MARK",
-    "TOKEN_LESS",
-    "TOKEN_GREATER",
-    "TOKEN_EXCM",
-    "TOKEN_LESS_EQU",
-    "TOKEN_GREATER_EQU",
-    "TOKEN_NOT_EQU",
-    "TOKEN_EQU",
-    "TOKEN_IMPORT",
-    };
-
-    Token* token;
-    while((token = get_token(lexer)) != NULL) {
-        fprintf(stdout, "Token type: ");
-        fprintf(stdout, BOLD_GREEN "%-25s" RESET, tok_name[token->token_type]);
-
-        fprintf(stdout, "Token value: ");
-        fprintf(stdout, BOLD_GREEN " %s\n" RESET, token->value);
-        free_token(token);
-    }
-
-    return NO_ERROR; 
-}
 
 int main(int argc, char** argv) {
     clock_t start;

@@ -29,13 +29,13 @@ $(TARGET): $(OBJ_FILES)
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(INC_FILES)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-run: $(TARGET)
+run: all
 	./$(TARGET)
 
 clean:
 	rm -rf $(TARGET) $(BUILD_DIR)
 
 zip:
-	zip -r ifj.zip $(SRC_DIR) $(INC_DIR)
+	zip -r xrepcim00.zip Makefile *.c *.h rozdeleni
 
 .PHONY: all run clean zip
