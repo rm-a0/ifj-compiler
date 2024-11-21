@@ -17,7 +17,7 @@ char* escape_string(const char* input) {
         fprintf(stderr, "ERROR: Memory allocation failed\n");
         exit(99);
     }
-
+    //register_allocation(output);
     size_t j = 0;
     for (size_t i = 0; i < length; i++) {
         if (input[i] == '\\' && input[i + 1] == 'n') {

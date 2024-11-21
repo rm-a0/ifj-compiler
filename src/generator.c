@@ -160,7 +160,10 @@ void generate_code_in_node(ASTNode* node){
                     break;
                 }
                 else if(node->VarDecl.expression->type == AST_STRING){
-                    printf("MOVE %s%s string@%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name, node->VarDecl.expression->String.string);
+                    char* escape_string_string = escape_string(node->VarDecl.expression->String.string);
+                    printf("MOVE %s%s string@%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
+                           escape_string_string);
+                    free(escape_string_string);
                     break;
                 }
                 /*else if(node->VarDecl.expression->type == AST_FN_CALL){
@@ -215,7 +218,10 @@ void generate_code_in_node(ASTNode* node){
                     break;
                 }
                 else if(node->VarDecl.expression->type == AST_STRING){
-                    printf("MOVE %s%s string@%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name, node->VarDecl.expression->String.string);
+                    char* escape_string_string = escape_string(node->VarDecl.expression->String.string);
+                    printf("MOVE %s%s string@%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
+                           escape_string_string);
+                    free(escape_string_string);
                     break;
                 }
 
@@ -307,9 +313,164 @@ void generate_code_in_node(ASTNode* node){
                 generate_code_in_node(block_node);
             }
             break;
-
         case AST_FN_CALL:
             const char* fn_name = node->FnCall.fn_name;
+
+            if (strcmp(fn_name, "ifj.length") == 0) {
+                // TODO: nepotrebný push ale neviem sa ho ľahko zbaviť
+                generate_code_in_node(node->FnCall.args[0]->Argument.expression);
+                char temp_var[32];
+                snprintf(temp_var, sizeof(temp_var), "LF@tmp_length_%d", tmp_counter++);
+                printf("DEFVAR %s\n", temp_var);
+                printf("STRLEN %s %s%s\n", temp_var,
+                       frame_prefix(node->FnCall.args[0]->Argument.expression->Identifier.identifier),
+                       node->FnCall.args[0]->Argument.expression->Identifier.identifier);
+                printf("PUSHS %s\n", temp_var);
+                break;
+            }
+            if (strcmp(fn_name, "ifj.substring") == 0) {
+                // Generovanie argumentov: s, i, j
+                generate_code_in_node(node->FnCall.args[0]->Argument.expression); // s
+                generate_code_in_node(node->FnCall.args[1]->Argument.expression); // i
+                generate_code_in_node(node->FnCall.args[2]->Argument.expression); // j
+
+                // Pridanie pomocných premenných
+                char temp_s[32], temp_i[32], temp_j[32], temp_result[32], temp_char[32];
+                snprintf(temp_s, sizeof(temp_s), "LF@tmp_s_%d", tmp_counter++);
+                snprintf(temp_i, sizeof(temp_i), "LF@tmp_i_%d", tmp_counter++);
+                snprintf(temp_j, sizeof(temp_j), "LF@tmp_j_%d", tmp_counter++);
+                snprintf(temp_result, sizeof(temp_result), "LF@tmp_result_%d", tmp_counter++);
+                snprintf(temp_char, sizeof(temp_char), "LF@tmp_char_%d", tmp_counter++);
+
+                printf("DEFVAR %s\n", temp_s);
+                printf("DEFVAR %s\n", temp_i);
+                printf("DEFVAR %s\n", temp_j);
+                printf("DEFVAR %s\n", temp_result);
+                printf("DEFVAR %s\n", temp_char);
+
+                // Uloženie argumentov do pomocných premenných
+                printf("POPS %s\n", temp_j);
+                printf("POPS %s\n", temp_i);
+                printf("POPS %s\n", temp_s);
+
+                // Inicializácia výsledného reťazca
+                printf("MOVE %s string@\n", temp_result);
+
+                // Kontroly pre validáciu
+                printf("PUSHS %s\n", temp_i);
+                printf("PUSHS int@0\n");
+                printf("LTS\n");
+                printf("JUMPIFNEQ invalid_substring\n");
+
+                printf("PUSHS %s\n", temp_j);
+                printf("PUSHS int@0\n");
+                printf("LTS\n");
+                printf("JUMPIFNEQ invalid_substring\n");
+
+                printf("PUSHS %s\n", temp_i);
+                printf("PUSHS %s\n", temp_j);
+                printf("GTS\n");
+                printf("JUMPIFNEQ invalid_substring\n");
+
+                printf("STRLEN %s %s\n", temp_char, temp_s); // Dĺžka reťazca
+                printf("PUSHS %s\n", temp_i);
+                printf("PUSHS %s\n", temp_char);
+                printf("GTS\n");
+                printf("JUMPIFNEQ invalid_substring\n");
+
+                printf("PUSHS %s\n", temp_j);
+                printf("PUSHS %s\n", temp_char);
+                printf("GTS\n");
+                printf("JUMPIFNEQ invalid_substring\n");
+
+                // Ak je validné, vytvor substring
+                printf("LABEL substring_loop_start\n");
+                printf("PUSHS %s\n", temp_i);
+                printf("PUSHS %s\n", temp_j);
+                printf("LTS\n");
+                printf("JUMPIFNEQ substring_loop_end\n");
+
+                printf("GETCHAR %s %s %s\n", temp_char, temp_s, temp_i); // Získanie znaku na indexe `i`
+                printf("CONCAT %s %s %s\n", temp_result, temp_result, temp_char); // Pridanie znaku do výsledku
+                printf("ADD %s %s int@1\n", temp_i, temp_i); // Zvýšenie `i`
+                printf("JUMP substring_loop_start\n");
+
+                printf("LABEL substring_loop_end\n");
+                printf("PUSHS %s\n", temp_result); // Push výsledný substring na zásobník
+                printf("JUMP end_substring\n");
+
+                // Neplatný podreťazec
+                printf("LABEL invalid_substring\n");
+                printf("PUSHS nil@nil\n");
+
+                printf("LABEL end_substring\n");
+                break;
+            }
+            if (strcmp(fn_name, "ifj.strcmp") == 0) {
+                // Generate code for both string arguments
+                generate_code_in_node(node->FnCall.args[0]->Argument.expression);
+                generate_code_in_node(node->FnCall.args[1]->Argument.expression);
+
+                // Create a temporary variable for comparison result
+                char temp_var[32];
+                snprintf(temp_var, sizeof(temp_var), "LF@tmp_cmp_%d", tmp_counter++);
+                printf("DEFVAR %s\n", temp_var);
+
+                // Compare the strings
+                printf("JUMPIFEQS strcmp_equal_%d\n", tmp_counter);
+                printf("LT %s %s%s %s%s\n", temp_var,
+                       frame_prefix(node->FnCall.args[0]->Argument.expression->Identifier.identifier),
+                       node->FnCall.args[0]->Argument.expression->Identifier.identifier,
+                       frame_prefix(node->FnCall.args[1]->Argument.expression->Identifier.identifier),
+                       node->FnCall.args[1]->Argument.expression->Identifier.identifier);
+                printf("JUMP strcmp_end_%d\n", tmp_counter);
+                printf("LABEL strcmp_equal_%d\n", tmp_counter);
+                printf("MOVE %s int@0\n", temp_var);
+                printf("LABEL strcmp_end_%d\n", tmp_counter);
+
+                // Push the result
+                printf("PUSHS %s\n", temp_var);
+                break;
+            }
+            if (strcmp(fn_name, "ifj.ord") == 0) {
+                // Generate code for string and index
+                generate_code_in_node(node->FnCall.args[0]->Argument.expression);
+                generate_code_in_node(node->FnCall.args[1]->Argument.expression);
+
+                // Create a temporary variable for the result
+                char temp_var[32];
+                snprintf(temp_var, sizeof(temp_var), "LF@tmp_ord_%d", tmp_counter++);
+                printf("DEFVAR %s\n", temp_var);
+
+                // Get the character and convert to ASCII
+                printf("STRI2INT %s %s%s %s%s\n", temp_var,
+                       frame_prefix(node->FnCall.args[0]->Argument.expression->Identifier.identifier),
+                       node->FnCall.args[0]->Argument.expression->Identifier.identifier,
+                       frame_prefix(node->FnCall.args[1]->Argument.expression->Identifier.identifier),
+                       node->FnCall.args[1]->Argument.expression->Identifier.identifier);
+
+                // Push the result
+                printf("PUSHS %s\n", temp_var);
+                break;
+            }
+            if (strcmp(fn_name, "ifj.chr") == 0) {
+                // Generate code for the ASCII value
+                generate_code_in_node(node->FnCall.args[0]->Argument.expression);
+
+                // Create a temporary variable for the result
+                char temp_var[32];
+                snprintf(temp_var, sizeof(temp_var), "LF@tmp_chr_%d", tmp_counter++);
+                printf("DEFVAR %s\n", temp_var);
+
+                // Convert ASCII to character
+                printf("INT2CHAR %s %s%s\n", temp_var,
+                       frame_prefix(node->FnCall.args[0]->Argument.expression->Identifier.identifier),
+                       node->FnCall.args[0]->Argument.expression->Identifier.identifier);
+
+                // Push the result
+                printf("PUSHS %s\n", temp_var);
+                break;
+            }
 
             // Vestavěná funkce i2f
             if (strcmp(fn_name, "ifj.i2f") == 0) {
