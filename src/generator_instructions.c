@@ -4,8 +4,8 @@
  * @authors Martin Kandera (xkande00)
 */
 
-#include "../inc/generator_instructions.h"
-#include "../inc/generator.h"
+#include "generator_instructions.h"
+#include "generator.h"
 
 char* escape_string(const char* input) {
     if (input == NULL) return NULL;

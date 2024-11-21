@@ -10,11 +10,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <float.h>
-#include "../inc/parser.h"
-#include "../inc/ast.h"
-#include "../inc/stack.h"
-#include "../inc/error.h"
-#include "../inc/semantic_analysis.h"
+#include "parser.h"
+#include "ast.h"
+#include "stack.h"
+#include "error.h"
+#include "semantic_analysis.h"
 
 typedef struct {
     const char *name;         // Name of the built-in function

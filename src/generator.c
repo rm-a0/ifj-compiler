@@ -4,8 +4,8 @@
  * @authors Martin Kandera (xkande00)
 */
 
-#include "../inc/generator.h"
-#include "../inc/generator_instructions.h"
+#include "generator.h"
+#include "generator_instructions.h"
 
 #define MAX_VAR_NAME_LENGTH 128             // Maximálna dĺžka názvu premennej v GF
 #define MAX_GF_VAR_COUNT 1024               // Maximálny počet globálnych premenných
