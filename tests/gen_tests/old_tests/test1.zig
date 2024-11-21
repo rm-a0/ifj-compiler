@@ -12,6 +12,10 @@ pub fn main() void {
         } else {
             var vysledok: i32 = 1;
             var d = val;
+            while (d) |i| {
+                vysledok = vysledok * i;
+                d = d - 1;
+            }
             ifj.write("Vysledek: ");
             ifj.write(vysledok);
             ifj.write("\n");

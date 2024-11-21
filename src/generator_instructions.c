@@ -65,7 +65,7 @@ void print_new_line() {
     printf("\n");
 }
 void label(const char* label_name){
-    printf("\033[34mLABEL %s\n\033[0m", label_name);
+    printf("LABEL %s\n", label_name);
 }
 void create_frame(){
     printf("CREATEFRAME\n");

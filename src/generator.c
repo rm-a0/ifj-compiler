@@ -15,6 +15,8 @@ char* lf_vars[MAX_LF_VAR_COUNT] = {NULL};   // Inicializácia všetkých prvkov 
 
 static int if_counter = 1420; // Počiatočné číslovanie pre unikátne labely
 static int while_counter = 1420; // Počiatočné číslovanie pre unikátne labely
+static int tmp_counter = 0; // Počiatočné číslovanie pre unikátne premenné
+static bool read_used = false; // Bol použitý read?
 
 
 bool is_it_global(const char* var_name){
@@ -94,6 +96,12 @@ void generate_code_in_node(ASTNode* node){
                     generate_code_in_node(node->Program.declarations[i]);  // Generovanie kódu `main`
                     pop_frame();    // ?? netusim ci tu treba naspat pop-ovat ramec
                     printf("EXIT int@0\n");  // Ukončí program ?? - je to nutné?
+                    print_new_line();
+                    if(read_used == true) {
+                        label("read_not_valid");
+                        printf("WRITE string@Nebyla\\032zadana\\032platna\\032hodnota\\010\n");
+                        printf("EXIT int@4\n"); // ?? neviem aky exit code pre nil dať
+                    }
                 }
                 else if(node->Program.declarations[i]->type == AST_VAR_DECL)  {
                     def_var(node->Program.declarations[i]->VarDecl.var_name, "gf");
@@ -166,23 +174,23 @@ void generate_code_in_node(ASTNode* node){
                         printf("MOVE LF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string);
                     }
                 } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readstr") == 0){
-                    if (is_it_global(node->ConstDecl.const_name)) {
-                        printf("READ GF@%s string\n", node->ConstDecl.const_name);
-                    } else {
-                        printf("READ LF@%s string\n", node->ConstDecl.const_name);
-                    }
+                    read_used = true;
+                    printf("READ %s%s string\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
+                    printf("PUSHS %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
+                    printf("PUSHS nil@nil\n");
+                    printf("JUMPIFEQ read_not_valid\n");
                 } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readi32") == 0){
-                    if (is_it_global(node->ConstDecl.const_name)) {
-                        printf("READ GF@%s int\n", node->ConstDecl.const_name);
-                    } else {
-                        printf("READ LF@%s int\n", node->ConstDecl.const_name);
-                    }
+                    read_used = true;
+                    printf("READ %s%s int\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
+                    printf("PUSHS %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
+                    printf("PUSHS nil@nil\n");
+                    printf("JUMPIFEQ read_not_valid\n");
                 } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readf64") == 0){
-                    if (is_it_global(node->ConstDecl.const_name)) {
-                        printf("READ GF@%s float\n", node->ConstDecl.const_name);
-                    } else {
-                        printf("READ LF@%s float\n", node->ConstDecl.const_name);
-                    }
+                    read_used = true;
+                    printf("READ %s%s float\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
+                    printf("PUSHS %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
+                    printf("PUSHS nil@nil\n");
+                    printf("JUMPIFEQ read_not_valid\n");
                 }
                 else{
                     generate_code_in_node(node->ConstDecl.expression);
@@ -196,8 +204,21 @@ void generate_code_in_node(ASTNode* node){
                 def_var(node->VarDecl.var_name, "lf");
                 add_to_local(node->VarDecl.var_name);
             }
-
             if (node->ConstDecl.expression) {
+
+                if(node->VarDecl.expression->type == AST_INT){
+                    printf("MOVE %s%s int@%d\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name, node->VarDecl.expression->Integer.number);
+                    break;
+                }
+                else if(node->VarDecl.expression->type == AST_FLOAT){
+                    printf("MOVE %s%s float@%a\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name, node->VarDecl.expression->Float.number);
+                    break;
+                }
+                else if(node->VarDecl.expression->type == AST_STRING){
+                    printf("MOVE %s%s string@%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name, node->VarDecl.expression->String.string);
+                    break;
+                }
+
                 if (strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.string") == 0) {
                     if (is_it_global(node->ConstDecl.const_name)) {
                         printf("MOVE GF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string);
@@ -205,23 +226,23 @@ void generate_code_in_node(ASTNode* node){
                         printf("MOVE LF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string);
                     }
                 } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readstr") == 0){
-                    if (is_it_global(node->ConstDecl.const_name)) {
-                        printf("READ GF@%s string\n", node->ConstDecl.const_name);
-                    } else {
-                        printf("READ LF@%s string\n", node->ConstDecl.const_name);
-                    }
+                    read_used = true;
+                    printf("READ %s%s string\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
+                    printf("PUSHS %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
+                    printf("PUSHS nil@nil\n");
+                    printf("JUMPIFEQ read_not_valid\n");
                 } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readi32") == 0){
-                    if (is_it_global(node->ConstDecl.const_name)) {
-                        printf("READ GF@%s int\n", node->ConstDecl.const_name);
-                    } else {
-                        printf("READ LF@%s int\n", node->ConstDecl.const_name);
-                    }
+                    read_used = true;
+                    printf("READ %s%s int\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
+                    printf("PUSHS %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
+                    printf("PUSHS nil@nil\n");
+                    printf("JUMPIFEQ read_not_valid\n");
                 } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readf64") == 0){
-                    if (is_it_global(node->ConstDecl.const_name)) {
-                        printf("READ GF@%s float\n", node->ConstDecl.const_name);
-                    } else {
-                        printf("READ LF@%s float\n", node->ConstDecl.const_name);
-                    }
+                    read_used = true;
+                    printf("READ %s%s float\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
+                    printf("PUSHS %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
+                    printf("PUSHS nil@nil\n");
+                    printf("JUMPIFEQ read_not_valid\n");
                 }
                 else{
                     generate_code_in_node(node->ConstDecl.expression);
@@ -255,17 +276,61 @@ void generate_code_in_node(ASTNode* node){
                             //debug function
                         }
                         concat(result, arg1, arg2);
-
-                        continue;
+                        generate_code_in_node(block_node);
+                        break;
                     }
                 }
+                if (block_node->type == AST_CONST_DECL || block_node->type == AST_VAR_DECL) {
+                    if (block_node->VarDecl.expression &&
+                        block_node->VarDecl.expression->type == AST_FN_CALL &&
+                        strcmp(block_node->VarDecl.expression->FnCall.fn_name, "ifj.strlen") == 0) {
 
+                        const char* result = block_node->type == AST_CONST_DECL
+                                             ? block_node->ConstDecl.const_name
+                                             : block_node->VarDecl.var_name;
+
+                        const char* arg1 = block_node->VarDecl.expression->FnCall.args[0]->Argument.expression->Identifier.identifier;
+
+                        if (!(is_it_global(result) || is_it_local(result))) {
+                            def_var(result, "lf");
+                            add_to_local(result);
+                        }
+                        if(block_node->VarDecl.expression->FnCall.args[0]->type == AST_ARG){
+                            //printf("string");
+                            //debug function
+                        }
+                        printf("STRLEN %s%s %s%s\n", frame_prefix(result), result, frame_prefix(arg1), arg1);
+                        generate_code_in_node(block_node);
+                        break;
+                    }
+                }
                 generate_code_in_node(block_node);
             }
             break;
 
         case AST_FN_CALL:
             const char* fn_name = node->FnCall.fn_name;
+
+            // Vestavěná funkce i2f
+            if (strcmp(fn_name, "ifj.i2f") == 0) {
+                generate_code_in_node(node->FnCall.args[0]->Argument.expression);
+                printf("INT2FLOATS\n");
+                break;
+            }
+                // Vestavěná funkce f2i
+            if (strcmp(fn_name, "ifj.f2i") == 0) {
+                generate_code_in_node(node->FnCall.args[0]->Argument.expression);
+                printf("FLOAT2INTS\n");
+                break;
+            }
+                // Vestavěná funkce length
+
+            if (strcmp(fn_name, "ifj.length") == 0) {
+                generate_code_in_node(node->FnCall.args[0]->Argument.expression);
+                //printf("STRLEN %s
+                //pr
+            }
+
             if ((strcmp(fn_name, "ifj.write") == 0)||(strcmp(fn_name, "ifj.writef64") == 0) ) {
                 //generate_code_in_node(node->FnCall.args[0]);
                 //write(node->FnCall.args[0]->Argument.expression->Identifier.identifier);
@@ -314,7 +379,7 @@ void generate_code_in_node(ASTNode* node){
             //printf("if instruction --debug\n");
             // Vygenerovanie podmienky
             generate_code_in_node(node->IfElse.expression);
-            printf("PUSHS bool@true\n");
+            printf("PUSHS bool@false\n");
             printf("JUMPIFEQ else_block_%d\n", current_if);
 
             // Telo IF

@@ -113,10 +113,11 @@ int main(int argc, char** argv) {
     }
     // Add semantic analysis
 
-
     print_ast_node(root, 0);
     //printovanie ast stromu do
+    printf("\033[34m");
     generate_code(root);
+    printf("\033[0m");
 
 
     free_ast_node(root);
