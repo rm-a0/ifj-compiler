@@ -160,6 +160,7 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
         case AST_STRING:
             return AST_SLICE;
         case AST_IDENTIFIER: {
+            printf("got_here\n");
             Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, node->Identifier.identifier);
             if (!symbol) {
                 fprintf(stderr, "Semantic Error: Undeclared variable '%s'.\n", node->Identifier.identifier);
@@ -337,6 +338,16 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
                 // Perform semantic analysis on each child node
                 semantic_analysis(child_node, global_table, local_stack);
+
+                // Check if the child node is a function call and its return value is discarded
+                if (child_node->type == AST_FN_CALL) {
+                    Symbol *fn_symbol = lookup_symbol(global_table, child_node->FnCall.fn_name);
+                    if (fn_symbol && fn_symbol->type == SYMBOL_FUNC && fn_symbol->func.type != AST_VOID) {
+                        fprintf(stderr, "Semantic Error: Function '%s' has a non-void return type, but its value is discarded.\n",
+                                child_node->FnCall.fn_name);
+                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                    }
+                }
             }
             
             // Check for unused variables in the current frame
@@ -352,26 +363,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     }
                 }
             }
-
-
-            for (int i = 0; i < node->Block.node_count; i++) {
-                ASTNode *child_node = node->Block.nodes[i];
-
-                // Check if the child node is a function call and its return value is discarded
-                if (child_node->type == AST_FN_CALL) {
-                    Symbol *fn_symbol = lookup_symbol(global_table, child_node->FnCall.fn_name);
-                    if (fn_symbol && fn_symbol->type == SYMBOL_FUNC && fn_symbol->func.type != AST_VOID) {
-                        fprintf(stderr, "Semantic Error: Function '%s' has a non-void return type, but its value is discarded.\n",
-                                child_node->FnCall.fn_name);
-                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
-                    }
-                }
-
-                // Perform semantic analysis on each child node (recursive)
-                semantic_analysis(child_node, global_table, local_stack);
-            }
-
-
 
             // Pop the frame after exiting the block
             pop_frame(local_stack);
