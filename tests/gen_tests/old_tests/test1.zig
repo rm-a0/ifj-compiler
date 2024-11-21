@@ -10,12 +10,15 @@ pub fn main() void {
             ifj.write(val);
             ifj.write(" nelze spocitat\n");
         } else {
+            ifj.write(val);
             var vysledok: i32 = 1;
-            ifj.write("insside else\n");
             var d = val;
             while (d) |i| {
                 vysledok = vysledok * i;
                 d = d - 1;
+                ifj.write("Iterace: ");
+                ifj.write(i);
+                ifj.write("\n");
             }
             ifj.write("Vysledek: ");
             ifj.write(vysledok);

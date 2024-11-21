@@ -624,23 +624,55 @@ void generate_code_in_node(ASTNode* node){
 
         case AST_WHILE: {
             int current_while = while_counter++; // Unikátne číslo pre while slučku
-            if(node->WhileCycle.element_bind != NULL) printf("DEFVAR LF@%s\n", node->WhileCycle.element_bind);
-            printf("LABEL while_start_%d\n", current_while); // Začiatok while cyklu
-            generate_code_in_node(node->WhileCycle.expression);
-            if(node->WhileCycle.element_bind != NULL) printf("POPS LF@%s\n", node->WhileCycle.element_bind);
-            // Generovanie kódu pre podmienku
-            generate_code_in_node(node->WhileCycle.expression);
-            printf("PUSHS bool@true\n"); // Očakávame, že podmienka vráti bool
-            printf("JUMPIFNEQS while_end_%d\n", current_while); // Ak nie je splnená, skáčeme na koniec
 
-            // Generovanie tela slučky
+            // Definícia element_bind, ak existuje
+            if (node->WhileCycle.element_bind != NULL) {
+                printf("DEFVAR LF@%s\n", node->WhileCycle.element_bind);
+            }
+
+            // Label pre začiatok while cyklu
+            printf("LABEL while_start_%d\n", current_while);
+
+            // Generovanie výrazu v podmienke
+            generate_code_in_node(node->WhileCycle.expression);
+
+            // Rozhodovanie podľa typu výrazu
+            switch (node->WhileCycle.expression->type) {
+                case AST_IDENTIFIER:
+                case AST_INT:
+                case AST_FLOAT:
+                case AST_STRING: {
+                    // Porovnanie s nil
+                    printf("PUSHS int@0\n");
+                    printf("JUMPIFEQS while_end_%d\n", current_while);
+                    break;
+                }
+                default: {
+                    // Porovnanie s bool@false
+                    printf("PUSHS bool@false\n");
+                    printf("JUMPIFEQS while_end_%d\n", current_while);
+                    break;
+                }
+            }
+
+            // Ak je element_bind definovaný, nastav jeho hodnotu
+            if (node->WhileCycle.element_bind != NULL) {
+                printf("MOVE LF@%s %s%s\n", node->WhileCycle.element_bind,
+                       frame_prefix(node->WhileCycle.expression->Identifier.identifier),
+                       node->WhileCycle.expression->Identifier.identifier);
+            }
+
+            // Generovanie tela while cyklu
             generate_code_in_node(node->WhileCycle.block);
-            printf("JUMP while_start_%d\n", current_while); // Návrat na začiatok
 
-            // Label pre koniec while slučky
+            // Návrat na začiatok while cyklu
+            printf("JUMP while_start_%d\n", current_while);
+
+            // Label pre koniec while cyklu
             printf("LABEL while_end_%d\n", current_while);
             break;
         }
+
 
         case AST_INT:
             printf("PUSHS int@%d\n", node->Integer.number);
