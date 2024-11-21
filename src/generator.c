@@ -178,19 +178,19 @@ void generate_code_in_node(ASTNode* node){
                     printf("READ %s%s string\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
                     printf("PUSHS %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
                     printf("PUSHS nil@nil\n");
-                    printf("JUMPIFEQ read_not_valid\n");
+                    printf("JUMPIFEQS read_not_valid\n");
                 } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readi32") == 0){
                     read_used = true;
                     printf("READ %s%s int\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
                     printf("PUSHS %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
                     printf("PUSHS nil@nil\n");
-                    printf("JUMPIFEQ read_not_valid\n");
+                    printf("JUMPIFEQS read_not_valid\n");
                 } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readf64") == 0){
                     read_used = true;
                     printf("READ %s%s float\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
                     printf("PUSHS %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
                     printf("PUSHS nil@nil\n");
-                    printf("JUMPIFEQ read_not_valid\n");
+                    printf("JUMPIFEQS read_not_valid\n");
                 }
                 else{
                     generate_code_in_node(node->ConstDecl.expression);
@@ -230,19 +230,19 @@ void generate_code_in_node(ASTNode* node){
                     printf("READ %s%s string\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
                     printf("PUSHS %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
                     printf("PUSHS nil@nil\n");
-                    printf("JUMPIFEQ read_not_valid\n");
+                    printf("JUMPIFEQS read_not_valid\n");
                 } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readi32") == 0){
                     read_used = true;
                     printf("READ %s%s int\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
                     printf("PUSHS %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
                     printf("PUSHS nil@nil\n");
-                    printf("JUMPIFEQ read_not_valid\n");
+                    printf("JUMPIFEQS read_not_valid\n");
                 } else if(strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readf64") == 0){
                     read_used = true;
                     printf("READ %s%s float\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
                     printf("PUSHS %s%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
                     printf("PUSHS nil@nil\n");
-                    printf("JUMPIFEQ read_not_valid\n");
+                    printf("JUMPIFEQS read_not_valid\n");
                 }
                 else{
                     generate_code_in_node(node->ConstDecl.expression);
@@ -376,11 +376,15 @@ void generate_code_in_node(ASTNode* node){
             break;
         case AST_IF_ELSE:
             int current_if = if_counter++; // Unikátne číslo pre aktuálny if-else blok
-            //printf("if instruction --debug\n");
-            // Vygenerovanie podmienky
+
+            if(node->IfElse.element_bind != NULL){
+                printf("DEFVAR LF@%s\n", node->IfElse.element_bind);
+            }
+
             generate_code_in_node(node->IfElse.expression);
             printf("PUSHS bool@false\n");
             printf("JUMPIFEQ else_block_%d\n", current_if);
+            if (node->IfElse.element_bind != NULL) printf("MOVE LF@%s %s%s\n", node->IfElse.element_bind, frame_prefix(node->IfElse.expression->Identifier.identifier),node->IfElse.expression->Identifier.identifier);
 
             // Telo IF
             generate_code_in_node(node->IfElse.if_block);
@@ -388,6 +392,7 @@ void generate_code_in_node(ASTNode* node){
 
             // ELSE blok (ak existuje)
             printf("LABEL else_block_%d\n", current_if);
+            if (node->IfElse.element_bind != NULL) printf("MOVE LF@%s %s%s\n", node->IfElse.element_bind, frame_prefix(node->IfElse.expression->Identifier.identifier),node->IfElse.expression->Identifier.identifier);
             if (node->IfElse.else_block) {
                 generate_code_in_node(node->IfElse.else_block);
             }
@@ -406,10 +411,10 @@ void generate_code_in_node(ASTNode* node){
                 if (return_var != NULL) {
                     pushs(return_var);
                 } else {
-                    printf("\033[31mERROR: Return expression is NULL\033[0m\n");
+                    printf("ERROR: Return expression is NULL\n");
                 }
             } else {
-                printf("\033[31mERROR: Invalid return expression\033[0m\n");
+                printf("ERROR: Invalid return expression\n");
             }
             break;
 
@@ -445,7 +450,9 @@ void generate_code_in_node(ASTNode* node){
 
         case AST_WHILE: {
             int current_while = while_counter++; // Unikátne číslo pre while slučku
-
+            if(node->WhileCycle.element_bind != NULL){
+                printf("DEFVAR LF@%s\n", node->WhileCycle.element_bind);
+            }
             // Vytváranie labelov
             printf("LABEL while_start_%d\n", current_while); // Začiatok while cyklu
 
@@ -453,6 +460,7 @@ void generate_code_in_node(ASTNode* node){
             generate_code_in_node(node->WhileCycle.expression);
             printf("PUSHS bool@true\n"); // Očakávame, že podmienka vráti bool
             printf("JUMPIFNEQ while_end_%d\n", current_while); // Ak nie je splnená, skáčeme na koniec
+            if (node->WhileCycle.element_bind != NULL) printf("MOVE LF@%s %s%s\n", node->WhileCycle.element_bind, frame_prefix(node->WhileCycle.expression->Identifier.identifier),node->WhileCycle.expression->Identifier.identifier);
 
             // Generovanie tela slučky
             generate_code_in_node(node->WhileCycle.block);
