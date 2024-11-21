@@ -9,6 +9,9 @@
 #include "lexer.h"
 #include "parser.h"
 #include "error.h"
+#include "semantic_analysis.h"
+#include "symtable.h"
+#include "stack.h"
 
 #define RESET   "\x1b[0m"
 #define GREEN   "\x1b[32m"
@@ -111,10 +114,17 @@ int main(int argc, char** argv) {
     }
     else {
         fprintf(stderr, "Syntax is correct\n");
-        free_ast_node(root);
+        // free_ast_node(root);
     }
 
     destroy_lexer(&lexer);
+
+    SymbolTable *global_table = init_symbol_table(); // Initialize global table
+    ScopeStack *local_stack = NULL;                  // No local scope initially
+
+    semantic_analysis(root, global_table, local_stack);
+    free_symbol_table(global_table);
+
     free_ast_node(root);
     fprintf(stderr, "Time: %.3g\n", (double)(clock()-start)/CLOCKS_PER_SEC);
 
