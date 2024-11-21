@@ -301,7 +301,7 @@ void generate_code_in_node(ASTNode* node){
             const char *fn_name = node->FnCall.fn_name;
 
             if (strcmp(fn_name, "ifj.length") == 0) {
-                // TODO: nepotrebný push ale neviem sa ho ľahko zbaviť
+                // TO-DO: nepotrebný push ale neviem sa ho ľahko zbaviť
                 generate_code_in_node(node->FnCall.args[0]->Argument.expression);
                 char temp_var[32];
                 snprintf(temp_var, sizeof(temp_var), "LF@tmp_length_%d", tmp_counter++);

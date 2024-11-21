@@ -235,7 +235,7 @@ void int2char(const char* var, const char* symb){
 void stri2int(const char* var, const char* symb1, const char* symb2){
     printf("STRI2INT LF@%s %s %s\n", var, symb1, symb2);
 }
-//TODO: stuck-y majú len labely, nie symboly
+//TO-DO: stuck-y majú len labely, nie symboly
 void int2floats(const char* var, const char* symb){
     printf("INT2FLOATS LF@%s %s\n", var, symb);
 }
@@ -280,7 +280,7 @@ void jump(const char* label){
     printf("JUMP %s\n", label);
 }
 
-//TODO: stuck-y majú len labely, nie symboly
+//TO-DO: stuck-y majú len labely, nie symboly
 void jump_eq(const char* label, const char* symb1, const char* symb2){
     printf("JUMPIFEQ %s %s %s\n", label, symb1, symb2);
 }
