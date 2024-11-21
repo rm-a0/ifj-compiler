@@ -8,9 +8,9 @@
 #define SEMANTIC_ANALYSIS_H
 
 #include <stdbool.h>
-#include "../inc/ast.h"
-#include "../inc/symtable.h"
-#include "../inc/stack.h"
+#include "ast.h"
+#include "symtable.h"
+#include "stack.h"
 
 /**
  * @brief Performs semantic analysis on the given abstract syntax tree (AST).

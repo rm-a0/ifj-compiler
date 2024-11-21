@@ -3,8 +3,8 @@ CC = gcc
 CFLAGS = -I$(INC_DIR) -Wall -Wextra -g -O3 -pedantic -fsanitize=address
 
 # Directories
-SRC_DIR = src
-INC_DIR = inc
+SRC_DIR = .
+INC_DIR = .
 BUILD_DIR = build
 
 # Target
