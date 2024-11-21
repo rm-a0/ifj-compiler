@@ -12,6 +12,7 @@
 #include "semantic_analysis.h"
 #include "symtable.h"
 #include "stack.h"
+#include "ast_utils.h"
 
 #define RESET   "\x1b[0m"
 #define GREEN   "\x1b[32m"
@@ -116,6 +117,7 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Syntax is correct\n");
         // free_ast_node(root);
     }
+    print_ast_node(root, 0);
 
     destroy_lexer(&lexer);
 

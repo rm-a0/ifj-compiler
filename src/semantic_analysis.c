@@ -715,94 +715,103 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
 
 
+        // case AST_VAR_DECL: {
+        //     const char *var_name = node->VarDecl.var_name;
+        //     DataType data_type = node->VarDecl.data_type;
+        //     ASTNode *expression = node->VarDecl.expression;
+
+        //     // Check if variable is already declared in the current scope
+        //     Symbol *existing_var = lookup_symbol_in_scopes(NULL, local_stack, var_name);
+        //     if (existing_var) {
+        //         fprintf(stderr, "Semantic Error: Variable '%s' is already declared in the current scope.\n", var_name);
+        //         exit(SEMANTIC_ERROR_REDEF);
+        //     }
+
+        //     // If data_type is unspecified, deduce it from the expression
+        //     if (!expression) {
+        //         fprintf(stderr, "Semantic Error: Constant '%s' must have an initializing expression.\n", var_name);
+        //         exit(SEMANTIC_ERROR_TYPE_DERIVATION);
+        //     }
+
+        //     // If data_type is unspecified, deduce it from the expression
+        //     if (data_type == AST_UNSPECIFIED) {
+        //         printf("data_type == AST_UNSPECIFIED\n");
+        //         // Check if the expression is a function call
+        //         if (expression && expression->type == AST_FN_CALL) {
+
+        //             // Perform semantic analysis on the function call
+        //             semantic_analysis(expression, global_table, local_stack);
+
+        //             // Optionally, deduce the data type of the function call
+        //             Symbol *fn_symbol = lookup_symbol(global_table, expression->FnCall.fn_name);
+        //             if (fn_symbol && fn_symbol->type == SYMBOL_FUNC) {
+        //                 data_type = fn_symbol->func.type; // Deduce the return type of the function
+        //             } else {
+        //                 // Check if the function is built-in
+        //                 bool is_builtin = false;
+        //                 DataType builtin_return_type = AST_UNSPECIFIED; // Default for undefined
+
+        //                 for (int i = 0; i < sizeof(built_in_functions) / sizeof(built_in_functions[0]); i++) {
+        //                     if (strcmp(expression->FnCall.fn_name, built_in_functions[i].name) == 0) {
+        //                         is_builtin = true;
+        //                         builtin_return_type = built_in_functions[i].return_type;
+        //                         break;
+        //                     }
+        //                 }
+
+        //                 if (is_builtin) {
+        //                     // Use the return type of the built-in function
+        //                     data_type = builtin_return_type;
+        //                 } else {
+        //                     // If not found in built-in functions or global table, raise an error
+        //                     fprintf(stderr, "Semantic Error: Function '%s' is undefined.\n", expression->FnCall.fn_name);
+        //                     exit(SEMANTIC_ERROR_UNDEFINED);
+        //                 }
+        //             }
+        //         } else {
+        //             data_type = evaluate_expression_type(expression, global_table, local_stack);
+        //         }
+
+        //         printf("data_type: %u\n", data_type);
+
+        //         // If still unspecified after deduction, raise an error
+        //         if (data_type == AST_UNSPECIFIED) {
+        //             fprintf(stderr, "Semantic Error: Cannot deduce type for constant '%s'.\n", var_name);
+        //             exit(SEMANTIC_ERROR_TYPE_DERIVATION);
+        //         }
+        //     }
+
+        //     // Add the var to the appropriate symbol table
+        //     if (local_stack && local_stack->top >= 0) {
+        //         Frame *current_frame = top_frame(local_stack);
+        //         if (current_frame && current_frame->symbol_table) {
+        //             printf("here 2\n");
+        //             add_variable_symbol(current_frame->symbol_table, var_name, data_type);
+        //         } else {
+        //             fprintf(stderr, "Internal Error: No valid scope to declare constant '%s'.\n", var_name);
+        //             exit(INTERNAL_ERROR);
+        //         }
+        //     } else {
+        //         // Global scope
+        //         add_variable_symbol(global_table, var_name, data_type);
+        //     }
+
+        //     break;
+        // }
+
+        case AST_CONST_DECL:
         case AST_VAR_DECL: {
-            const char *var_name = node->VarDecl.var_name;
-            DataType data_type = node->VarDecl.data_type;
-            ASTNode *expression = node->VarDecl.expression;
-
-            // If data_type is unspecified, deduce it from the expression
-            if (!expression) {
-                fprintf(stderr, "Semantic Error: Constant '%s' must have an initializing expression.\n", var_name);
-                exit(SEMANTIC_ERROR_TYPE_DERIVATION);
-            }
-
-            // If data_type is unspecified, deduce it from the expression
-            if (data_type == AST_UNSPECIFIED) {
-                printf("data_type == AST_UNSPECIFIED\n");
-                // Check if the expression is a function call
-                if (expression && expression->type == AST_FN_CALL) {
-
-                    // Perform semantic analysis on the function call
-                    semantic_analysis(expression, global_table, local_stack);
-
-                    // Optionally, deduce the data type of the function call
-                    Symbol *fn_symbol = lookup_symbol(global_table, expression->FnCall.fn_name);
-                    if (fn_symbol && fn_symbol->type == SYMBOL_FUNC) {
-                        data_type = fn_symbol->func.type; // Deduce the return type of the function
-                    } else {
-                        // Check if the function is built-in
-                        bool is_builtin = false;
-                        DataType builtin_return_type = AST_UNSPECIFIED; // Default for undefined
-
-                        for (int i = 0; i < sizeof(built_in_functions) / sizeof(built_in_functions[0]); i++) {
-                            if (strcmp(expression->FnCall.fn_name, built_in_functions[i].name) == 0) {
-                                is_builtin = true;
-                                builtin_return_type = built_in_functions[i].return_type;
-                                break;
-                            }
-                        }
-
-                        if (is_builtin) {
-                            // Use the return type of the built-in function
-                            data_type = builtin_return_type;
-                        } else {
-                            // If not found in built-in functions or global table, raise an error
-                            fprintf(stderr, "Semantic Error: Function '%s' is undefined.\n", expression->FnCall.fn_name);
-                            exit(SEMANTIC_ERROR_UNDEFINED);
-                        }
-                    }
-                } else {
-                    data_type = evaluate_expression_type(expression, global_table, local_stack);
-                }
-
-                printf("data_type: %u\n", data_type);
-
-                // If still unspecified after deduction, raise an error
-                if (data_type == AST_UNSPECIFIED) {
-                    fprintf(stderr, "Semantic Error: Cannot deduce type for constant '%s'.\n", var_name);
-                    exit(SEMANTIC_ERROR_TYPE_DERIVATION);
-                }
-            }
-
-            // Check if variable is already declared in the current scope
-            Symbol *existing_var = lookup_symbol_in_scopes(NULL, local_stack, var_name);
-            if (existing_var) {
-                fprintf(stderr, "Semantic Error: Variable '%s' is already declared in the current scope.\n", var_name);
-                exit(SEMANTIC_ERROR_REDEF);
-            }
-
-            // Add the var to the appropriate symbol table
-            if (local_stack && local_stack->top >= 0) {
-                Frame *current_frame = top_frame(local_stack);
-                if (current_frame && current_frame->symbol_table) {
-                    printf("here 2\n");
-                    add_variable_symbol(current_frame->symbol_table, var_name, data_type);
-                } else {
-                    fprintf(stderr, "Internal Error: No valid scope to declare constant '%s'.\n", var_name);
-                    exit(INTERNAL_ERROR);
-                }
-            } else {
-                // Global scope
-                add_variable_symbol(global_table, var_name, data_type);
-            }
-
-            break;
-        }
-
-        case AST_CONST_DECL: {
             const char *const_name = node->ConstDecl.const_name;
             DataType data_type = node->ConstDecl.data_type;
             ASTNode *expression = node->ConstDecl.expression;
+
+            // Check if constant is already declared in the current scope
+            Symbol *existing_const = lookup_symbol_in_scopes(NULL, local_stack, const_name);
+            if (existing_const) {
+                fprintf(stderr, "Semantic Error: Constant '%s' is already declared in the current scope.\n", const_name);
+                exit(SEMANTIC_ERROR_REDEF);
+            }
+
 
             // Constants must have an expression
             if (!expression) {
@@ -828,13 +837,16 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                         bool is_builtin = false;
                         DataType builtin_return_type = AST_UNSPECIFIED; // Default for undefined
 
-                        for (int i = 0; i < sizeof(built_in_functions) / sizeof(built_in_functions[0]); i++) {
+                        // Correctly typed loop for iteration
+                        size_t built_in_count = sizeof(built_in_functions) / sizeof(built_in_functions[0]);
+                        for (size_t i = 0; i < built_in_count; i++) {
                             if (strcmp(expression->FnCall.fn_name, built_in_functions[i].name) == 0) {
                                 is_builtin = true;
                                 builtin_return_type = built_in_functions[i].return_type;
                                 break;
                             }
                         }
+
 
                         if (is_builtin) {
                             // Use the return type of the built-in function
@@ -858,17 +870,11 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 }
             }
 
-            // Check if constant is already declared in the current scope
-            Symbol *existing_const = lookup_symbol_in_scopes(NULL, local_stack, const_name);
-            if (existing_const) {
-                fprintf(stderr, "Semantic Error: Constant '%s' is already declared in the current scope.\n", const_name);
-                exit(SEMANTIC_ERROR_REDEF);
-            }
-
             // Add the constant to the appropriate symbol table
             if (local_stack && local_stack->top >= 0) {
                 Frame *current_frame = top_frame(local_stack);
                 if (current_frame && current_frame->symbol_table) {
+                    printf("local-stack-const-added\n");
                     add_variable_symbol(current_frame->symbol_table, const_name, data_type);
                 } else {
                     fprintf(stderr, "Internal Error: No valid scope to declare constant '%s'.\n", const_name);
@@ -878,7 +884,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 // Global scope
                 add_variable_symbol(global_table, const_name, data_type);
             }
-
+            printf("arrived at break\n");
             break;
         }
 
