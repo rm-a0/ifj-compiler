@@ -11,6 +11,7 @@ pub fn main() void {
             ifj.write(" nelze spocitat\n");
         } else {
             var vysledok: i32 = 1;
+            ifj.write("insside else\n");
             var d = val;
             while (d) |i| {
                 vysledok = vysledok * i;
