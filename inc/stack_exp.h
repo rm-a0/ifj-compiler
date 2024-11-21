@@ -26,14 +26,14 @@ typedef struct Stack {
 StackPtr init_stack();
 
 /**
- * @fn void resize(StackPtr stack)
+ * @fn void resize_stack(StackPtr stack)
  * @brief Resizes the stack to double its current capacity.
  *
  * @param[in, out] stack Pointer to the stack structure to resize.
  * 
  * @note Exits with an error code if memory allocation fails or the maximum stack capacity is exceeded.
  */
-void resize(StackPtr stack);
+void resize_stack(StackPtr stack);
 
 /**
  * @fn bool is_empty(StackPtr stack)

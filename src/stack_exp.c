@@ -38,7 +38,7 @@ StackPtr init_stack() {
     return stack;
 }
 
-void resize(StackPtr stack) {
+void resize_stack(StackPtr stack) {
     if (stack != NULL) {
         
         // Check for overflow: avoid doubling capacity if it would exceed INT_MAX
@@ -78,7 +78,7 @@ void push(StackPtr stack, int value) {
     if (stack != NULL) {
         // If stack is full, resize to double its capacity
         if (is_full(stack)) {
-            resize(stack);
+            resize_stack(stack);
         }
 
         // Increment top index and add the value to the new top position
