@@ -67,13 +67,13 @@ void print_new_line() {
 void label(const char* label_name){
     printf("LABEL %s\n", label_name);
 }
-void create_frame(){
+void gen_create_frame(){
     printf("CREATEFRAME\n");
 }
-void push_frame(){
+void gen_push_frame(){
     printf("PUSHFRAME\n");
 }
-void pop_frame(){
+void gen_pop_frame(){
     printf("POPFRAME\n");
 }
 void def_var(const char* var_name, const char* frame_type) {

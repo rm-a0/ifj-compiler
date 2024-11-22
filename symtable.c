@@ -97,7 +97,7 @@ void add_function_symbol(SymbolTable *table, const char *name, DataType return_t
     }
 
     // Initialize the function symbol
-    FuncSymbol func = {.name = strdup(name), .type = return_type, .used = false, .scope_stack = init_scope_stack()};
+    FuncSymbol func = {.name = strdup(name), .type = return_type, .has_return = false, .used = false, .is_nullable = false, .scope_stack = init_scope_stack()};
     Symbol *symbol = malloc(sizeof(Symbol));
     symbol->type = SYMBOL_FUNC;
     symbol->func = func;
@@ -109,7 +109,7 @@ void add_function_symbol(SymbolTable *table, const char *name, DataType return_t
 
 
 /* Add a variable symbol to the table */
-void add_variable_symbol(SymbolTable *table, const char *name, DataType type) {
+void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant) {
     // Resize the table if the load factor threshold is reached
     if ((float)table->count / table->capacity >= LOAD_FACTOR) {
         resize(table);
@@ -122,10 +122,11 @@ void add_variable_symbol(SymbolTable *table, const char *name, DataType type) {
     }
 
     // Initialize the variable symbol
-    VarSymbol var = {.name = strdup(name), .type = type, .used = false, .redefined = false};
+    VarSymbol var = {.name = strdup(name), .type = type, .is_constant = false, .used = false, .redefined = false};
     Symbol *symbol = malloc(sizeof(Symbol));
     symbol->type = SYMBOL_VAR;
     symbol->var = var;
+    symbol->var.is_constant = is_constant;
 
     // Add the symbol to the table
     table->symbols[index] = symbol;
@@ -135,34 +136,15 @@ void add_variable_symbol(SymbolTable *table, const char *name, DataType type) {
 
 /* Lookup a symbol by name */
 Symbol *lookup_symbol(SymbolTable *table, const char *name) {
-    printf("name: %s\n", name);
     unsigned int index = hash(name, table->capacity);
     while (table->symbols[index] != NULL) {
         const char *current_name = table->symbols[index]->type == SYMBOL_FUNC
                                        ? table->symbols[index]->func.name
                                        : table->symbols[index]->var.name;
         if (strcmp(current_name, name) == 0) {
-            printf("got the same one!\n");
             return table->symbols[index];
         }
         index = (index + 1) % table->capacity;
     }
     return NULL;
-}
-
-/* Print the contents of the symbol table */
-void print_symbol_table(const SymbolTable *table) {
-    printf("Symbol Table:\n");
-    for (int i = 0; i < table->capacity; i++) {
-        if (table->symbols[i] != NULL) {
-            Symbol *symbol = table->symbols[i];
-            if (symbol->type == SYMBOL_FUNC) {
-                printf("Func [%s]: ReturnType=%d, Used=%d\n", symbol->func.name, symbol->func.type, symbol->func.used);
-            } else if (symbol->type == SYMBOL_VAR) {
-                printf("Var [%s]: DataType=%d, Used=%d, Redefined=%d\n", symbol->var.name, symbol->var.type, symbol->var.used, symbol->var.redefined);
-            }
-        } else {
-            printf("Index %d: NULL\n", i);
-        }
-    }
 }

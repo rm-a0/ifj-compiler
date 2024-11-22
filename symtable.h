@@ -13,13 +13,16 @@ typedef struct ScopeStack ScopeStack;
 typedef struct FuncSymbol {
     char *name;              /**< Name of the function */
     DataType type;           /**< Return type of function */
+    bool has_return;         /**< Indicates that a function has a return statement if not of void-type */
     bool used;               /**< Indicates if the function was called */
+    bool is_nullable;        /**< Indicates if the function's expression can be of AST_NULL value */
     ScopeStack *scope_stack; /**< Pointer to a ScopeStack for function scope */
 } FuncSymbol;
 
 typedef struct VarSymbol {
     char *name;              /**< Name of the variable */
     DataType type;           /**< Data type of the variable */
+    bool is_constant;        /**< Indicates if the variable is constant */
     bool used;               /**< Indicates if the variable was used */
     bool redefined;          /**< Indicates if the variable was redefined */
 } VarSymbol;
@@ -48,7 +51,7 @@ SymbolTable *init_symbol_table();
 void free_symbol_table(SymbolTable *table);
 void resize(SymbolTable *table);
 void add_function_symbol(SymbolTable *table, const char *name, DataType return_type);
-void add_variable_symbol(SymbolTable *table, const char *name, DataType type);
+void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant);
 Symbol *lookup_symbol(SymbolTable *table, const char *name);
 void print_symbol_table(const SymbolTable *table);
 

@@ -12,7 +12,6 @@
 #include "semantic_analysis.h"
 #include "symtable.h"
 #include "stack.h"
-#include "ast_utils.h"
 
 FILE* process_file(int argc, char**  argv) {
     FILE *fp = NULL;

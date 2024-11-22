@@ -91,10 +91,10 @@ void generate_code_in_node(ASTNode* node){
             for (int i = 0; i < node->Program.decl_count; ++i) {
                 if (strcmp(node->Program.declarations[i]->FnDecl.fn_name, "main") == 0) {
                     label("main");
-                    create_frame();
-                    push_frame();
+                    gen_create_frame();
+                    gen_push_frame();
                     generate_code_in_node(node->Program.declarations[i]);  // Generovanie kódu `main`
-                    pop_frame();    // ?? netusim ci tu treba naspat pop-ovat ramec
+                    gen_pop_frame();    // ?? netusim ci tu treba naspat pop-ovat ramec
                     printf("EXIT int@0\n");  // Ukončí program ?? - je to nutné?
                     print_new_line();
                 }
@@ -115,10 +115,10 @@ void generate_code_in_node(ASTNode* node){
                 }
                 else {
                     label(node->Program.declarations[i]->FnDecl.fn_name);
-                    create_frame();
-                    push_frame();
+                    gen_create_frame();
+                    gen_push_frame();
                     generate_code_in_node(node->Program.declarations[i]);  // Ostatné funkcie
-                    pop_frame();
+                    gen_pop_frame();
                     return_f();
                     print_new_line();
                 }
