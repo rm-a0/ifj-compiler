@@ -14,10 +14,6 @@
 #include "stack.h"
 #include "ast_utils.h"
 
-#define RESET   "\x1b[0m"
-#define GREEN   "\x1b[32m"
-#define BOLD_GREEN "\x1b[1;32m"
-
 FILE* process_file(int argc, char**  argv) {
     FILE *fp = NULL;
     if (argc > 2) {
@@ -39,9 +35,6 @@ FILE* process_file(int argc, char**  argv) {
 
 
 int main(int argc, char** argv) {
-    clock_t start;
-    start = clock();
-
     Lexer lexer;
     FILE* fp;
     fp = process_file(argc, argv); 
@@ -55,11 +48,6 @@ int main(int argc, char** argv) {
         destroy_lexer(&lexer);
         exit(error_tracker);
     }
-    else {
-        fprintf(stderr, "Syntax is correct\n");
-        // free_ast_node(root);
-    }
-    print_ast_node(root, 0);
 
     destroy_lexer(&lexer);
 
@@ -70,7 +58,6 @@ int main(int argc, char** argv) {
     free_symbol_table(global_table);
 
     free_ast_node(root);
-    fprintf(stderr, "Time: %.3g\n", (double)(clock()-start)/CLOCKS_PER_SEC);
 
     return NO_ERROR; 
 }
