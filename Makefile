@@ -5,7 +5,6 @@ CFLAGS = -I$(INC_DIR) -g -O3 #-pedantic -fsanitize=address
 # Directories
 SRC_DIR = .
 INC_DIR = .
-BUILD_DIR = build
 
 # Target
 TARGET = main
@@ -15,30 +14,27 @@ SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
 INC_FILES = $(wildcard $(INC_DIR)/*.h)
 
 # Object Files
-OBJ_FILES = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_FILES))
+OBJ_FILES = $(patsubst %.c,%.o,$(notdir $(SRC_FILES)))
 
 # Rules
-all: $(BUILD_DIR) $(TARGET)
-
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
+all: $(TARGET)
 
 $(TARGET): $(OBJ_FILES)
 	$(CC) $(CFLAGS) $(OBJ_FILES) -o $(TARGET)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(INC_FILES)
+%.o: $(SRC_DIR)/%.c $(INC_FILES)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 run: all
 	./$(TARGET)
 
 clean:
-	rm -rf $(TARGET) $(BUILD_DIR)
+	rm -f $(TARGET) *.o
 
 zip:
 	zip -r xrepcim00.zip Makefile *.c *.h rozdeleni dokumentace.pdf rozsireni
 
 cleanzip:
-	rm -r xrepcim00.zip
+	rm -f xrepcim00.zip
 
 .PHONY: all run clean zip
