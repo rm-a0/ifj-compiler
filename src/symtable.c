@@ -97,7 +97,7 @@ void add_function_symbol(SymbolTable *table, const char *name, DataType return_t
     }
 
     // Initialize the function symbol
-    FuncSymbol func = {.name = strdup(name), .type = return_type, .used = false, .scope_stack = init_scope_stack()};
+    FuncSymbol func = {.name = strdup(name), .type = return_type, .has_return = false, .used = false, .is_nullable = false, .scope_stack = init_scope_stack()};
     Symbol *symbol = malloc(sizeof(Symbol));
     symbol->type = SYMBOL_FUNC;
     symbol->func = func;
@@ -109,7 +109,7 @@ void add_function_symbol(SymbolTable *table, const char *name, DataType return_t
 
 
 /* Add a variable symbol to the table */
-void add_variable_symbol(SymbolTable *table, const char *name, DataType type) {
+void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant) {
     // Resize the table if the load factor threshold is reached
     if ((float)table->count / table->capacity >= LOAD_FACTOR) {
         resize(table);
@@ -122,10 +122,11 @@ void add_variable_symbol(SymbolTable *table, const char *name, DataType type) {
     }
 
     // Initialize the variable symbol
-    VarSymbol var = {.name = strdup(name), .type = type, .used = false, .redefined = false};
+    VarSymbol var = {.name = strdup(name), .type = type, .is_constant = false, .used = false, .redefined = false};
     Symbol *symbol = malloc(sizeof(Symbol));
     symbol->type = SYMBOL_VAR;
     symbol->var = var;
+    symbol->var.is_constant = is_constant;
 
     // Add the symbol to the table
     table->symbols[index] = symbol;

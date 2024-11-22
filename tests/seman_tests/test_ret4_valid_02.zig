@@ -9,4 +9,5 @@ pub fn main() void {
     const x : ?f64 = 1.5;
     const y : ?f64 = 2.5;
     const z = sum(x, y);
+    ifj.write(z);
 }

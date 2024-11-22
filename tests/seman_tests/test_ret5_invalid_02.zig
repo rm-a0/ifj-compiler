@@ -8,4 +8,5 @@ pub fn main() void {
 
 pub fn main() i32 {
     const a = 5;
+    ifj.write(a);
 }

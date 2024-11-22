@@ -3,6 +3,10 @@
 // but idk if they are in our code
 const ifj = @import("ifj24.zig");
 
-pub fn main (a : i32) void {
+pub fn help_me_god(a : i32) void {
     a = 2;
+}
+
+pub fn main () void {
+    help_me_god(10);
 }
