@@ -12,6 +12,7 @@
 #include "semantic_analysis.h"
 #include "symtable.h"
 #include "stack.h"
+#include "generator.h"
 
 FILE* process_file(int argc, char**  argv) {
     FILE *fp = NULL;
@@ -48,7 +49,6 @@ int main(int argc, char** argv) {
         exit(error_tracker);
     }
 
-    destroy_lexer(&lexer);
 
     SymbolTable *global_table = init_symbol_table(); // Initialize global table
     ScopeStack *local_stack = NULL;                  // No local scope initially
@@ -56,6 +56,9 @@ int main(int argc, char** argv) {
     semantic_analysis(root, global_table, local_stack);
     free_symbol_table(global_table);
 
+    generate_code(root);
+
+    destroy_lexer(&lexer);
     free_ast_node(root);
 
     return NO_ERROR; 
