@@ -36,7 +36,7 @@ clean:
 	rm -rf $(TARGET) $(BUILD_DIR)
 
 zip:
-	zip -r xrepcim00.zip Makefile *.c *.h rozdeleni dokumentace.pdf
+	zip -r xrepcim00.zip Makefile *.c *.h rozdeleni dokumentace.pdf rozsireni
 
 cleanzip:
 	rm -r xrepcim00.zip
