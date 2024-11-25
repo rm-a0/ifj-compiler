@@ -100,6 +100,39 @@ void print_global_symbol_table(SymbolTable *global_table) {
     printf("===============================================================================\n");
 }
 
+Symbol *validate_symbol(SymbolTable *global_table, ScopeStack *local_stack, const char *name, SymbolType expected_type) {
+    Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, name);
+    if (!symbol) {
+        fprintf(stderr, "Semantic Error: Undefined symbol '%s'.\n", name);
+        exit(SEMANTIC_ERROR_UNDEFINED);
+    }
+    if (symbol->type != expected_type) {
+        fprintf(stderr, "Semantic Error: Symbol '%s' is not of the expected type.\n", name);
+        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+    }
+    return symbol;
+}
+
+
+unsigned int unused_vars_frame(SymbolTable *current_table) {
+
+    for (int j = 0; j < current_table->capacity; j++) {
+        Symbol *symbol = current_table->symbols[j];
+        if (!symbol) {
+            continue;
+        }
+
+        if (symbol && symbol->type == SYMBOL_VAR && !symbol->var.used) {
+            fprintf(stderr, "Semantic Error: Variable '%s' declared in the global table was never used.\n", symbol->var.name);
+            return SEMANTIC_ERROR_UNUSED_VAR;
+        } else if (symbol && symbol->type == SYMBOL_FUNC && !symbol->func.used && !(strcmp(symbol->func.name, "main") == 0)) {
+            fprintf(stderr, "Semantic Error: Function '%s' declared in the global table was never used.\n", symbol->func.name);
+            return OTHER_SEMANTIC_ERROR;
+        }
+    }
+
+}
+
 
 void check_main_function(SymbolTable *global_table) {
     // Lookup the main() function in the global symbol table
@@ -147,8 +180,7 @@ DataType evaluate_binary_operator_type(ASTNode *node, SymbolTable *global_table,
         case AST_DIV:
             // Arithmetic operators
             if ((left_type == AST_I32 && right_type == AST_I32) || (left_type == AST_F64 && right_type == AST_F64)) {
-                // Promote to the higher precision type
-                return (left_type == AST_F64 || right_type == AST_F64) ? AST_F64 : AST_I32;
+                return left_type;
             } else {
                 fprintf(stderr, "Semantic Error: Incompatible types for arithmetic operation. Left: %d, Right: %d\n", left_type, right_type);
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
@@ -188,17 +220,14 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
         case AST_STRING:
             return AST_SLICE;
         case AST_IDENTIFIER: {
-            printf("got_here\n");
-            Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, node->Identifier.identifier);
-            if (!symbol) {
-                fprintf(stderr, "Semantic Error: Undeclared variable '%s'.\n", node->Identifier.identifier);
-                exit(SEMANTIC_ERROR_UNDEFINED);
-            }
+
+            Symbol *symbol = validate_symbol(global_table, local_stack, node->Identifier.identifier, SYMBOL_VAR);
 
             // when var used in fun. mark it as used 
             if (symbol->type == SYMBOL_VAR) {
                 symbol->var.used = true;
             }
+
             return symbol->var.type;
         }
         case AST_BIN_OP:
@@ -250,27 +279,13 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 semantic_analysis(node->Program.declarations[i], global_table, local_stack);
             }
 
-            // Check for unused variables in the current frame
+            // Check for the presence of a valid 'main' function after processing all declarations
+            check_main_function(global_table);
 
             SymbolTable *current_table = global_table;
 
-            for (int j = 0; j < current_table->capacity; j++) {
-                Symbol *symbol = current_table->symbols[j];
-                if (!symbol) {
-                    continue;
-                }
-
-                if (symbol && symbol->type == SYMBOL_VAR && !symbol->var.used) {
-                    fprintf(stderr, "Semantic Error: Variable '%s' declared in the global table was never used.\n", symbol->var.name);
-                    exit(SEMANTIC_ERROR_UNUSED_VAR);
-                } else if (symbol && symbol->type == SYMBOL_FUNC && !symbol->func.used && !(strcmp(symbol->func.name, "main") == 0)) {
-                    fprintf(stderr, "Semantic Error: Function '%s' declared in the global table was never used.\n", symbol->func.name);
-                    exit(OTHER_SEMANTIC_ERROR);
-                }
-            }
-
-            // Check for the presence of a valid 'main' function after processing all declarations
-            check_main_function(global_table);
+            // Check for unused variables in the current frame
+            unused_vars_frame(current_table);
 
             break;
         }
@@ -281,6 +296,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             // Check if the function is already declared
             Symbol *existing_symbol = lookup_symbol(global_table, fn_name);
+
             if (existing_symbol != NULL) {
                 fprintf(stderr, "Semantic Error: Function '%s' is already declared.\n", fn_name);
                 exit(SEMANTIC_ERROR_REDEF);
@@ -308,7 +324,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             // Process function parameters
             for (int i = 0; i < node->FnDecl.param_count; i++) {
-                printf("param_i: %d\n", i);
                 ASTNode *param_node = node->FnDecl.params[i];
 
                 // Ensure the parameter node is valid
@@ -320,10 +335,9 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 const char *param_name = param_node->Param.identifier;
                 DataType param_type = param_node->Param.data_type;
 
-                printf("param_type: %u\n", param_type);
-
                 // Check for duplicate parameters
                 Symbol *existing_param = lookup_symbol(function_stack->frames[function_stack->top]->symbol_table, param_name);
+
                 if (existing_param != NULL) {
                     fprintf(stderr, "Semantic Error: Duplicate parameter name '%s' in function '%s'.\n", param_name, fn_name);
                     exit(SEMANTIC_ERROR_PARAMS);
