@@ -131,6 +131,8 @@ unsigned int unused_vars_frame(SymbolTable *current_table) {
         }
     }
 
+    return 0;
+
 }
 
 
@@ -285,7 +287,10 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             SymbolTable *current_table = global_table;
 
             // Check for unused variables in the current frame
-            unused_vars_frame(current_table);
+            unsigned int check_unused = unused_vars_frame(current_table);
+            if (check_unused) {
+                exit(check_unused);
+            }
 
             break;
         }

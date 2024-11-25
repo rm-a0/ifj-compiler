@@ -6,5 +6,5 @@ pub fn not_main() i32 {
 }
 
 pub fn main() void {
-
+    const z = not_main();
 }
