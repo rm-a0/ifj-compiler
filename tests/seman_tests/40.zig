@@ -1,4 +1,4 @@
-// Should crash on max size allowed for int32
+// Shouldn't crash, valid code.
 const ifj = @import("ifj24.zig");
 
 pub fn main() void {
