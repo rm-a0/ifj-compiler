@@ -450,5 +450,9 @@ Token* get_token(Lexer* lexer) {
         }
     }
 
+    if (lexer->state == STRING) {
+        return NULL;
+    }
+
     return create_token(TOKEN_EOF, 0, NULL);
 }
