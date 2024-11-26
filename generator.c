@@ -15,7 +15,7 @@ char* lf_vars[MAX_LF_VAR_COUNT] = {NULL};   // Inicializácia všetkých prvkov 
 
 static int if_counter = 1420; // Počiatočné číslovanie pre unikátne labely
 static int while_counter = 1420; // Počiatočné číslovanie pre unikátne labely
-static int tmp_counter = 0; // Počiatočné číslovanie pre unikátne premenné
+static int tmp_counter = 128; // Počiatočné číslovanie pre unikátne premenné
 static bool read_used = false; // Bol použitý read?
 
 
@@ -161,6 +161,10 @@ void generate_code_in_node(ASTNode* node){
                            escape_string_string);
                     free(escape_string_string);
                     break;
+                }else if(node->VarDecl.expression->type == AST_BIN_OP){
+                    generate_code_in_node(node->VarDecl.expression);
+                    pops(node->VarDecl.var_name);
+                    break;
                 }
                 /*else if(node->VarDecl.expression->type == AST_FN_CALL){
                     generate_code_in_node(node->VarDecl.expression);
@@ -212,6 +216,21 @@ void generate_code_in_node(ASTNode* node){
                     printf("MOVE %s%s string@%s\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
                            escape_string_string);
                     free(escape_string_string);
+                    break;
+                } else if(node->VarDecl.expression->type == AST_BIN_OP){
+                    generate_code_in_node(node->VarDecl.expression);
+                    if(node->VarDecl.expression->BinaryOperator.operator == AST_DIV){
+                        printf("DEFVAR LF@tmp_div_3_%i\n", tmp_counter - 1 );        //129
+                        printf("DEFVAR LF@tmp_type_3_%i\n", tmp_counter - 1 );       //129
+                        printf("POPS LF@tmp_div_3_%i\n", tmp_counter - 1 );           //129
+                        printf("TYPE LF@tmp_type_3_%i LF@tmp_div_3_%i\n", tmp_counter - 1, tmp_counter - 1); //129
+                        printf("PUSHS LF@tmp_div_3_%i\n", tmp_counter - 1);          //129
+                        printf("JUMPIFEQ label_div_3_%i LF@tmp_type_3_%i string@int\n", tmp_counter - 1, tmp_counter - 1); //129
+                        printf("FLOAT2INTS\n");
+                        printf("LABEL label_div_3_%i\n", tmp_counter - 1);          //129
+                    }
+                    pops(node->VarDecl.var_name);
+
                     break;
                 }
 
@@ -596,6 +615,31 @@ void generate_code_in_node(ASTNode* node){
             break;
 
         case AST_BIN_OP:
+
+            if(node->BinaryOperator.operator == AST_DIV){
+                generate_code_in_node(node->BinaryOperator.left);
+                generate_code_in_node(node->BinaryOperator.right);
+                printf("DEFVAR LF@tmp_div_2_%i\n", tmp_counter);        //129
+                printf("DEFVAR LF@tmp_type_2_%i\n", tmp_counter);       //129
+                printf("POPS LF@tmp_div_2_%i\n", tmp_counter);           //129
+                printf("TYPE LF@tmp_type_2_%i LF@tmp_div_2_%i\n", tmp_counter, tmp_counter); //129
+                printf("DEFVAR LF@tmp_div_1_%i\n", tmp_counter);        //129
+                printf("DEFVAR LF@tmp_type_1_%i\n", tmp_counter);       //129
+                printf("POPS LF@tmp_div_1_%i\n", tmp_counter);           //129
+                printf("TYPE LF@tmp_type_1_%i LF@tmp_div_1_%i\n", tmp_counter, tmp_counter); //129
+                printf("PUSHS LF@tmp_div_1_%i\n", tmp_counter);          //129
+                printf("JUMPIFEQ label_div_1_%i LF@tmp_type_1_%i string@float\n", tmp_counter, tmp_counter); //129
+                printf("INT2FLOATS\n");                                 //129
+                printf("LABEL label_div_1_%i\n", tmp_counter);          //129
+                printf("PUSHS LF@tmp_div_2_%i\n", tmp_counter);          //129
+                printf("JUMPIFEQ label_div_2_%i LF@tmp_type_2_%i string@float\n", tmp_counter, tmp_counter); //129
+                printf("INT2FLOATS\n");
+                printf("LABEL label_div_2_%i\n", tmp_counter);          //129
+                printf("DIVS\n");
+                tmp_counter++;
+                break;
+
+            }
             generate_code_in_node(node->BinaryOperator.left);
             generate_code_in_node(node->BinaryOperator.right);
 
@@ -603,7 +647,7 @@ void generate_code_in_node(ASTNode* node){
                 case AST_PLUS: printf("ADDS\n"); break;
                 case AST_MINUS: printf("SUBS\n"); break;
                 case AST_MUL: printf("MULS\n"); break;
-                case AST_DIV: printf("DIVS\n"); break;
+                case AST_DIV: printf("DIVS\n"); break;  // k tomuto by nemalo nikdy dojst
                 case AST_GREATER: printf("GTS\n"); break;
                 case AST_GREATER_EQU:
                     printf("LTS\n");
