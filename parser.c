@@ -1172,6 +1172,10 @@ ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
     if (check_token(*token, TOKEN_Q_MARK, NULL)) {
         fn_decl_node->FnDecl.nullable = true;
         advance_token(token, lexer);
+        if (check_token(*token, TOKEN_VOID, NULL)) {
+            free_ast_node(fn_decl_node);
+            return NULL;
+        }
     }
 
     // check for NULL pointer to prevent SEGFAULT
