@@ -57,7 +57,7 @@ if ! make; then
 fi
 
 # Initialize counters
-total_tests=36
+total_tests=44
 passed_tests=0
 
 # Run tests and check validity

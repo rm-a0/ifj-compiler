@@ -73,6 +73,19 @@ const char* get_node_type_name(ASTNodeType type) {
     }
 }
 
+// Function to check if the operator is a valid relational operator
+bool isRelationalOperator(OperatorType op) {
+    static const OperatorType validOperators[] = {
+        AST_GREATER, AST_GREATER_EQU, AST_LESS, AST_LESS_EQU, AST_EQU, AST_NOT_EQU
+    };
+    for (size_t i = 0; i < sizeof(validOperators) / sizeof(validOperators[0]); ++i) {
+        if (op == validOperators[i]) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void print_global_symbol_table(SymbolTable *global_table) {
     if (!global_table) {
         printf("Global symbol table is NULL.\n");
@@ -123,17 +136,22 @@ Symbol *validate_symbol(SymbolTable *global_table, ScopeStack *local_stack, cons
 }
 
 
-unsigned int unused_vars_frame(SymbolTable *current_table) {
+unsigned int unused_vars_funcs_frame(SymbolTable *current_table) {
 
     for (int j = 0; j < current_table->capacity; j++) {
         Symbol *symbol = current_table->symbols[j];
+
+        // We skip symbol which has not been assigned a value (null)
         if (!symbol) {
             continue;
         }
 
+        // As stated in documentation, variable shall not stay unused, thereby we oversee its usage
         if (symbol && symbol->type == SYMBOL_VAR && !symbol->var.used) {
             fprintf(stderr, "Semantic Error: Variable '%s' declared in the global table was never used.\n", symbol->var.name);
             return SEMANTIC_ERROR_UNUSED_VAR;
+        
+        // Checking whether the function has been used within the flow of the program unless the function is main
         } else if (symbol && symbol->type == SYMBOL_FUNC && !symbol->func.used && !(strcmp(symbol->func.name, "main") == 0)) {
             fprintf(stderr, "Semantic Error: Function '%s' declared in the global table was never used.\n", symbol->func.name);
             return OTHER_SEMANTIC_ERROR;
@@ -169,7 +187,8 @@ void check_main_function(SymbolTable *global_table) {
     }
 }
 
-DataType evaluate_binary_operator_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack) {
+DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack) {
+
     // Ensure the node is of type AST_BIN_OP
     if (node->type != AST_BIN_OP) {
         fprintf(stderr, "Internal Error: Node is not a binary operator.\n");
@@ -225,14 +244,13 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
 
     switch (node->type) {
         case AST_INT:
-            // Check if the integer is within the bounds of the data type (AST_I32).
-            if (node->Integer.number < INT32_MIN || node->Integer.number > INT32_MAX) {
-                fprintf(stderr, "Semantic Error: Integer literal '%d' is out of bounds for type 'i32'.\n", node->Integer.number);
-                exit(SEMANTIC_ERROR_TYPE_COMPAT);
-            }
+            // // Check if the integer is within the bounds of the data type (AST_I32).
+            // if (node->Integer.number < INT32_MIN || node->Integer.number > INT32_MAX) {
+            //     fprintf(stderr, "Semantic Error: Integer literal '%d' is out of bounds for type 'i32'.\n", node->Integer.number);
+            //     exit(SEMANTIC_ERROR_TYPE_COMPAT);
+            // }
 
             return AST_I32;
-
         case AST_FLOAT:
             return AST_F64;
         case AST_STRING:
@@ -250,7 +268,7 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
         }
         case AST_BIN_OP:
             printf("AST_BIN_OP\n");
-            return evaluate_binary_operator_type(node, global_table, local_stack);
+            return evaluate_operator_type(node, global_table, local_stack);
         case AST_ARG:
             if (!node->Argument.expression) {
                 fprintf(stderr, "Semantic Error: Argument expression is missing.\n");
@@ -303,9 +321,10 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             SymbolTable *current_table = global_table;
 
             // Check for unused variables in the current frame
-            unsigned int check_unused = unused_vars_frame(current_table);
-            if (check_unused) {
-                exit(check_unused);
+            unsigned int is_unused = unused_vars_funcs_frame(current_table);
+
+            if (is_unused) {
+                exit(is_unused);
             }
 
             break;
@@ -567,21 +586,58 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         case AST_IF_ELSE: {
             printf("Analyzing AST_IF_ELSE...\n");
             // Analyze the condition expression
+
             if (node->IfElse.expression) {
                 DataType condition_type = evaluate_expression_type(node->IfElse.expression, global_table, local_stack);
-                if (condition_type != AST_I32) { // True False (1, 0)
-                    fprintf(stderr, "Semantic Error: If-Else condition must evaluate to int.\n");
-                    exit(SEMANTIC_ERROR_TYPE_COMPAT);
+
+                if (node->IfElse.element_bind) {
+                    // When the if statement is composed of literal solely, and the binding is true it has to be nullable in order to be used in if statement with binding
+
+                    OperatorType operator = node->BinaryOperator.operator;
+
+                    // We take care of non-bindable value in If expression, which cannot contain operator of any type, null is valid
+                    if (!operator) {
+                        fprintf(stderr, "Semantic Error: Expression in if statement when used binding cannot have a relational operator.\n");
+                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                    }
+
+
+                    printf("Left binary operator type: %s\n", get_node_type_name(node->BinaryOperator.right->type));
+
+                    // Ensure BinaryOperator.left is an identifier
+                    if (node->BinaryOperator.left->type != AST_IDENTIFIER) {
+                        fprintf(stderr, "Semantic Error: Left operand in if statement binding must be an identifier.\n");
+                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                    }
+
+                    // Identifier node is passed and evaluated for undeclaration and other semantic checks
+                    semantic_analysis(node->BinaryOperator.left, global_table, local_stack);
+
+                    // Look up the symbol in the scopes
+                    Symbol *left_symbol = lookup_symbol_in_scopes(global_table, local_stack, node->BinaryOperator.left->Identifier.identifier);
+
+                    // Carrying out check to evaluate that the BinaryOperator.left is a nullable var
+                    if (!left_symbol->var.is_nullable) {
+                        fprintf(stderr, "Semantic Error: Variable '%s' in if binding must be nullable.\n",
+                                node->BinaryOperator.left->Identifier.identifier);
+                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                    }
+
+                    add_variable_symbol(top_frame(local_stack)->symbol_table, node->IfElse.element_bind, condition_type, false);
+
+                } else {
+                    // We check if the expression is of valid AST_BIN_OP (relational operator present)
+                    semantic_analysis(node->IfElse.expression, global_table, local_stack);
+
+                    if (condition_type != AST_I32) { // True False (1, 0)
+                        fprintf(stderr, "Semantic Error: If-Else condition must evaluate to int.\n");
+                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                    }
                 }
             }
 
             // Push a frame for the "if" block
             push_frame(local_stack);
-
-            // Handle element_bind in the "if" block, if provided
-            if (node->IfElse.element_bind) {
-                add_variable_symbol(top_frame(local_stack)->symbol_table, node->IfElse.element_bind, AST_UNSPECIFIED, false);
-            }
 
             // Analyze the "if" block
             if (node->IfElse.if_block) {
@@ -605,6 +661,18 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             break;
         }
+
+        case AST_BIN_OP: {
+            // Determine the operator type
+            OperatorType operator = node->BinaryOperator.operator;
+
+            // Check if the operator is valid isRelationalOperator
+            if (!isRelationalOperator(operator)) {
+                fprintf(stderr, "Semantic Error: Unsupported operator type '%d'.\n", operator);
+                exit(SEMANTIC_ERROR_TYPE_COMPAT);
+            }
+        }
+
 
         case AST_FN_CALL: {
             const char *fn_name = node->FnCall.fn_name;
@@ -927,7 +995,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 exit(SEMANTIC_ERROR_UNDEFINED);
             }
 
-            printf("got here\n");
+            printf("got here, not undeclared\n");
             
             // Mark the symbol as used.
             if (symbol->type == SYMBOL_VAR) {
@@ -944,7 +1012,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
         case AST_ASSIGNMENT: {
             const char *identifier = node->Assignment.identifier;
-            ASTNode *expression = node->Assignment.expression;
+            // ASTNode *expression = node->Assignment.expression;
 
             // Lookup the identifier in the symbol table (local or global)
             Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, identifier);
