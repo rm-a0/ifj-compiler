@@ -54,32 +54,54 @@ ScopeStack *init_scope_stack() {
  * @param name Name of the symbol to look for.
  * @return Pointer to the found symbol or NULL if not found.
  */
-Symbol *lookup_symbol_in_scopes(SymbolTable *global_table, ScopeStack *local_stack, const char *name) {
-    // Check local stack first
+Symbol *lookup_symbol_in_scopes(SymbolTable *global_table, ScopeStack *local_stack, const char *name, Frame *local_frame) {
+    printf("Looking up symbol: %s\n", name);
 
-    printf("identifier Name: %s\n", name);
-    if (local_stack != NULL) {
-        printf("got to local\n");
+    // 1. Check if local_frame is explicitly provided
+    if (local_frame) {
+        printf("Checking local frame:\n");
+        print_symbol_table(local_frame->symbol_table);
+
+        Symbol *symbol = lookup_symbol(local_frame->symbol_table, name);
+        if (symbol) {
+            printf("Found symbol '%s' in the provided local frame.\n", name);
+            return symbol;
+        }
+    }
+
+    // 2. If local_stack exists, search from top to bottom
+    if (local_stack) {
+        printf("Searching local stack frames:\n");
         for (int i = local_stack->top; i >= 0; i--) {
             Frame *frame = local_stack->frames[i];
+            printf("Checking frame %d:\n", i);
+            print_symbol_table(frame->symbol_table);
+
             Symbol *symbol = lookup_symbol(frame->symbol_table, name);
-            if (symbol != NULL) {
-                return symbol; // Found in local scope
+            if (symbol) {
+                printf("Found symbol '%s' in frame %d.\n", name, i);
+                return symbol;
             }
         }
     }
 
-    // Fall back to global table
-    if (global_table != NULL) {
+    // 3. Fall back to global table if symbol not found in local frames
+    if (global_table) {
+        printf("Checking global table:\n");
+        print_symbol_table(global_table);
+
         Symbol *symbol = lookup_symbol(global_table, name);
-        if (symbol != NULL) {
-            return symbol; // Found in global scope
+        if (symbol) {
+            printf("Found symbol '%s' in global table.\n", name);
+            return symbol;
         }
     }
 
-    // Symbol not found
+    // 4. Symbol not found
+    printf("Symbol '%s' not found in any scope.\n", name);
     return NULL;
 }
+
 
 /**
  * @brief Pushes a new frame onto the ScopeStack, resizing if needed.
@@ -99,6 +121,7 @@ void push_frame(ScopeStack *stack) {
         }
     }
     stack->top++;
+    printf("stack->top: %d\n", stack->top);
     stack->frames[stack->top] = malloc(sizeof(Frame));
     if (!stack->frames[stack->top]) {
         fprintf(stderr, "Error: Failed to allocate memory for frame.\n");
@@ -194,14 +217,3 @@ void print_scope_stack(ScopeStack *scope_stack) {
     }
 }
 
-/**
- * @brief Prints the contents of the root_stack for debugging.
- * 
- * @param root_stack Pointer to the root_stack to print.
- */
-// void print_root_stack(RootStack *root_stack) {
-//     for (int i = 0; i < root_stack->declerations_count; i++) {
-//         printf("Decl: %s\n", root_stack->function_names[i]);
-//         print_scope_stack(root_stack->declerations[i]);
-//     }
-// }

@@ -5,11 +5,11 @@
 */
 
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <float.h>
+#include <stdint.h>
 #include "parser.h"
 #include "ast.h"
 #include "stack.h"
@@ -126,20 +126,6 @@ void print_global_symbol_table(SymbolTable *global_table) {
     printf("===============================================================================\n");
 }
 
-Symbol *validate_symbol(SymbolTable *global_table, ScopeStack *local_stack, const char *name, SymbolType expected_type) {
-    Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, name);
-    if (!symbol) {
-        fprintf(stderr, "Semantic Error: Undefined symbol '%s'.\n", name);
-        exit(SEMANTIC_ERROR_UNDEFINED);
-    }
-    if (symbol->type != expected_type) {
-        fprintf(stderr, "Semantic Error: Symbol '%s' is not of the expected type.\n", name);
-        exit(SEMANTIC_ERROR_TYPE_COMPAT);
-    }
-    return symbol;
-}
-
-
 unsigned int unused_vars_funcs_frame(SymbolTable *current_table) {
 
     for (int j = 0; j < current_table->capacity; j++) {
@@ -191,7 +177,7 @@ void check_main_function(SymbolTable *global_table) {
     }
 }
 
-DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack) {
+DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack, Frame *local_frame) {
 
     // Ensure the node is of type AST_BIN_OP
     if (node->type != AST_BIN_OP) {
@@ -200,8 +186,8 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
     }
 
     // Evaluate the left and right operand types
-    DataType left_type = evaluate_expression_type(node->BinaryOperator.left, global_table, local_stack);
-    DataType right_type = evaluate_expression_type(node->BinaryOperator.right, global_table, local_stack);
+    DataType left_type = evaluate_expression_type(node->BinaryOperator.left, global_table, local_stack, local_frame);
+    DataType right_type = evaluate_expression_type(node->BinaryOperator.right, global_table, local_stack, local_frame);
 
     // Determine the operator type
     OperatorType operator = node->BinaryOperator.operator;
@@ -241,7 +227,7 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
     }
 }
 
-DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack) {
+DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack, Frame *local_frame) {
 
     printf("eval\n");
     printf("node->type: %u\n", node->type);
@@ -259,9 +245,12 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
             return AST_F64;
         case AST_STRING:
             return AST_SLICE;
-        case AST_IDENTIFIER: {
-
-            Symbol *symbol = validate_symbol(global_table, local_stack, node->Identifier.identifier, SYMBOL_VAR);
+        case AST_IDENTIFIER: { 
+            Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, node->Identifier.identifier, local_frame);
+            if (!symbol) {
+                fprintf(stderr, "Semantic Error: Undefined symbol '%s'.\n", node->Identifier.identifier);
+                exit(SEMANTIC_ERROR_UNDEFINED);
+            }
 
             // when var used in fun. mark it as used 
             if (symbol->type == SYMBOL_VAR) {
@@ -272,19 +261,19 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
         }
         case AST_BIN_OP:
             printf("AST_BIN_OP\n");
-            return evaluate_operator_type(node, global_table, local_stack);
+            return evaluate_operator_type(node, global_table, local_stack, local_frame);
         case AST_ARG:
             if (!node->Argument.expression) {
                 fprintf(stderr, "Semantic Error: Argument expression is missing.\n");
                 exit(SEMANTIC_ERROR_UNDEFINED);
             }
             // Recurs. eval. expression
-            return evaluate_expression_type(node->Argument.expression, global_table, local_stack);
+            return evaluate_expression_type(node->Argument.expression, global_table, local_stack, local_frame);
         case AST_FN_CALL: {
             const char *fn_name = node->FnCall.fn_name;
 
             // Lookup the function symbol
-            Symbol *fn_symbol = lookup_symbol_in_scopes(global_table, local_stack, fn_name);
+            Symbol *fn_symbol = lookup_symbol_in_scopes(global_table, local_stack, fn_name, local_frame);
 
             if (!fn_symbol || fn_symbol->type != SYMBOL_FUNC) {
                 fprintf(stderr, "Semantic Error: Undefined function '%s'.\n", fn_name);
@@ -335,6 +324,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         }
 
         case AST_FN_DECL: {
+            printf("NEW FUNCTION -------------------------------\n");
             const char *fn_name = node->FnDecl.fn_name;
             DataType return_type = node->FnDecl.return_type;
 
@@ -397,6 +387,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 printf("IS NULLABLE!\n");
                 fn_symbol->func.is_nullable = true;
             }
+
             // Push a new frame for the function body
             push_frame(function_stack);
 
@@ -483,7 +474,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                         DataType return_type = AST_UNSPECIFIED;
 
                         // Check if it's a user-defined function
-                        Symbol *fn_symbol = lookup_symbol_in_scopes(global_table, local_stack, fn_name);
+                        Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
 
                         if (fn_symbol && fn_symbol->type == SYMBOL_FUNC) {
                             // User-defined function
@@ -521,6 +512,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             
             // Check for unused variables in the current frame
             Frame *current_frame = top_frame(local_stack);
+            printf("in block\n");
             if (current_frame && current_frame->symbol_table) {
                 SymbolTable *current_table = current_frame->symbol_table;
 
@@ -545,7 +537,8 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
         case AST_WHILE: {
             // Evaluate the condition expression of the while loop
-            DataType condition_type = evaluate_expression_type(node->WhileCycle.expression, global_table, local_stack);
+            Frame *current_frame = top_frame(local_stack);
+            DataType condition_type = evaluate_expression_type(node->WhileCycle.expression, global_table, local_stack, current_frame);
 
             // Ensure the condition is a boolean-compatible type
             if (condition_type != AST_I32 && condition_type != AST_U8) {
@@ -570,7 +563,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             }
 
             // Check for unused variables in the frame
-            Frame *current_frame = top_frame(local_stack);
             if (current_frame && current_frame->symbol_table) {
                 SymbolTable *current_table = current_frame->symbol_table;
                 for (int i = 0; i < current_table->capacity; i++) {
@@ -591,8 +583,13 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             printf("Analyzing AST_IF_ELSE...\n");
             // Analyze the condition expression
 
+            // Push a frame for the "if" block
+            push_frame(local_stack);
+
+            Frame *current_frame = top_frame(local_stack);
+
             if (node->IfElse.expression) {
-                DataType condition_type = evaluate_expression_type(node->IfElse.expression, global_table, local_stack);
+                DataType condition_type = evaluate_expression_type(node->IfElse.expression, global_table, local_stack, current_frame);
 
                 if (node->IfElse.element_bind) {
                     // When the if statement is composed of literal solely, and the binding is true it has to be nullable in order to be used in if statement with binding
@@ -610,7 +607,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
                     // Ensure BinaryOperator.left is an identifier
                     if (node->IfElse.expression->type != AST_IDENTIFIER && node->IfElse.expression->type != AST_FN_CALL) {
-                        fprintf(stderr, "Semantic Error: Left operand in if statement binding must be an identifier.\n");
+                        fprintf(stderr, "Semantic Error: Identifier cant be anything else than AST_IDENTIFIER or AST_FN_CALL.\n");
                         exit(SEMANTIC_ERROR_TYPE_COMPAT);
                     }
 
@@ -618,14 +615,24 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     semantic_analysis(node->IfElse.expression, global_table, local_stack);
 
                     // Look up the symbol in the scopes
-                    Symbol *identifier = lookup_symbol_in_scopes(global_table, local_stack, node->IfElse.expression->Identifier.identifier);
+                    Symbol *identifier = lookup_symbol_in_scopes(global_table, local_stack, node->IfElse.expression->Identifier.identifier, current_frame);
+                    
                     // Carrying out check to evaluate that the BinaryOperator.left is a nullable var
                     if (!identifier->var.is_nullable) {
                         fprintf(stderr, "Semantic Error: The var provided in if statement is not nullable\n");
                         exit(SEMANTIC_ERROR_TYPE_COMPAT);
                     }
 
-                    add_variable_symbol(top_frame(local_stack)->symbol_table, node->IfElse.element_bind, condition_type, true);
+                    print_symbol_table(current_frame->symbol_table);
+
+                    add_variable_symbol(current_frame->symbol_table, node->IfElse.element_bind, condition_type, true);
+                    printf("zistil top frame\n");
+
+                    print_symbol_table(current_frame->symbol_table);
+
+                    DataType data_type_test = evaluate_expression_type(node->IfElse.expression, global_table, local_stack, current_frame);
+
+                    printf("DATA TYPE TEST: %d\n", data_type_test);
 
                 } else {
                     // We check if the expression is of valid AST_BIN_OP (relational operator present)
@@ -639,9 +646,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     }
                 }
             }
-
-            // Push a frame for the "if" block
-            push_frame(local_stack);
 
             // Analyze the "if" block
             if (node->IfElse.if_block) {
@@ -685,6 +689,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
         case AST_FN_CALL: {
             const char *fn_name = node->FnCall.fn_name;
+            Frame *current_frame = top_frame(local_stack);
 
             printf("fn_name: %s\n", fn_name);
 
@@ -702,6 +707,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             if (is_builtin) {
                 printf("is builtin\n");
+
                 // Validate argument count for built-in functions
                 if (builtin_func->param_count != -1 && node->FnCall.arg_count != builtin_func->param_count) {
                     fprintf(stderr, "Semantic Error: Built-in function '%s' expects %d arguments, but %d were provided.\n",
@@ -709,9 +715,13 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     exit(SEMANTIC_ERROR_PARAMS);
                 }
 
+                // Validate if arg in builtin function provided exists
                 // Validate argument types for built-in functions
                 for (int i = 0; i < node->FnCall.arg_count; i++) {
-                    DataType arg_type = evaluate_expression_type(node->FnCall.args[i], global_table, local_stack);
+                    printf("tu pojebe tym padom\n");
+                    // Frame *current_frame = local_stack->frames[3];
+                    print_symbol_table(current_frame->symbol_table);
+                    DataType arg_type = evaluate_expression_type(node->FnCall.args[i], global_table, local_stack, current_frame);
 
                     if (builtin_func->param_count != -1 && arg_type != builtin_func->expected_arg_types[i]) {
                         fprintf(stderr, "Semantic Error: Argument %d of built-in function '%s' has mismatched type. "
@@ -720,144 +730,100 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                         exit(SEMANTIC_ERROR_TYPE_COMPAT);
                     }
                 }
-
-                break;
-            }
-
-            // If not a built-in function, check user-defined functions
-            Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
-            if (!fn_symbol || fn_symbol->type != SYMBOL_FUNC) {
-                fprintf(stderr, "Semantic Error: Undefined function '%s'.\n", fn_name);
-                exit(SEMANTIC_ERROR_UNDEFINED);
-            }
-
-            // Mark the function as used
-            fn_symbol->func.used = true;
-
-            // Check argument count for user-defined functions
-            ScopeStack *fn_scope_stack = fn_symbol->func.scope_stack;
-
-            if (!fn_scope_stack || fn_scope_stack->top < 0) {
-                fprintf(stderr, "Internal Error: Missing scope stack for function '%s'.\n", fn_name);
-                exit(INTERNAL_ERROR);
-            }
-
-            bool is_stored = true;
-            
-            // Ensure the return expression is NULL before checking if the return value is discarded.
-            // Iterate through the frames in the function's scope stack
-            for (int i = 0; i < fn_scope_stack->top + 1; i++) {
-                Frame *current_frame = fn_scope_stack->frames[i];
-                if (!current_frame || !current_frame->symbol_table) {
-                    printf("Frame %d is NULL or has no symbol table.\n", i);
-                    continue;
-                }
-                SymbolTable *current_table = current_frame->symbol_table;
-                printf("Inspecting frame %d with symbol table capacity: %d\n", i, current_table->capacity);
-
-                for (int j = 0; j < current_table->capacity; j++) {
-                    Symbol *symbol = current_table->symbols[j];
-                    if (!symbol) {
-                        printf("Symbol at frame %d, index %d: NULL\n", i, j);
-                        continue;
-                    }
-
-                    // Safely print details based on the symbol type
-                    if (symbol->type == SYMBOL_VAR) {
-                        printf("Symbol at frame %d, index %d: Variable '%s', type=%u, used=%s\n",
-                            i, j,
-                            symbol->var.name ? symbol->var.name : "(unnamed)",
-                            symbol->var.type,
-                            symbol->var.used ? "true" : "false");
-                    } else if (symbol->type == SYMBOL_FUNC) {
-                        printf("Symbol at frame %d, index %d: Function '%s', return type=%u\n",
-                            i, j,
-                            symbol->func.name ? symbol->func.name : "(unnamed)",
-                            symbol->func.type);
-                    } else {
-                        printf("Symbol at frame %d, index %d: Unknown symbol type=%u\n", i, j, symbol->type);
-                    }
-                }
-            }
-
-
-            // Raise an error if the return value is not stored
-            if (!is_stored) {
-                fprintf(stderr, "Semantic Error: Return value discarded but the return value is not void.\n");
-                exit(SEMANTIC_ERROR_TYPE_COMPAT);
-            }
-
-
-            Frame *fn_frame_args = fn_scope_stack->frames[0]; // Function parameters are in the first frame
-            
-            if (!fn_frame_args || !fn_frame_args->symbol_table) {
-                fprintf(stderr, "Internal Error: Function parameter frame or symbol table is null.\n");
-                exit(INTERNAL_ERROR);
-            }
-
-            SymbolTable *param_table = fn_frame_args->symbol_table;
-
-            int expected_arg_count = param_table->count;
-            printf("expected_arg_count: %d\n", expected_arg_count);
-            if (node->FnCall.arg_count != expected_arg_count) {
-                fprintf(stderr, "Semantic Error: Function '%s' expects %d arguments, but %d were provided.\n",
-                        fn_name, expected_arg_count, node->FnCall.arg_count);
-                exit(SEMANTIC_ERROR_PARAMS);
-            }
-
-            for (int i = 0; i < node->FnCall.arg_count; i++) {
-                printf("argument_num: %d\n", i);
-                ASTNode *arg = node->FnCall.args[i];
-                DataType arg_type = evaluate_expression_type(arg, global_table, local_stack);
-                printf("arg_type: %u\n", arg_type);
-
-                // Locate the corresponding parameter in the hash table
-                Symbol *param_symbol = NULL;
-                int param_index = 0; // Logical parameter index
-
-                for (int j = param_index; j < param_table->capacity; j++) {
-                    Symbol *current_symbol = param_table->symbols[j];
-
-                    // Skip NULL entries and non-parameter symbols
-                    if (!current_symbol || current_symbol->type != SYMBOL_VAR) {
-                        continue;
-                    }
-
-                    // Match the logical parameter index with the current argument index
-                    if (param_index == i) {
-                        param_symbol = current_symbol;
-                        break;
-                    }
-
-                    // Increment logical parameter index
-                    param_index++;
+            } else {
+                // If not a built-in function, check user-defined functions
+                Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
+                if (!fn_symbol || fn_symbol->type != SYMBOL_FUNC) {
+                    fprintf(stderr, "Semantic Error: Undefined function '%s'.\n", fn_name);
+                    exit(SEMANTIC_ERROR_UNDEFINED);
                 }
 
-                // Ensure the parameter symbol is found
-                if (!param_symbol) {
-                    fprintf(stderr, "Internal Error: Missing parameter %d in function '%s'.\n", i + 1, fn_name);
+                // Mark the function as used
+                fn_symbol->func.used = true;
+
+                // Check argument count for user-defined functions
+                ScopeStack *fn_scope_stack = fn_symbol->func.scope_stack;
+
+                if (!fn_scope_stack || fn_scope_stack->top < 0) {
+                    fprintf(stderr, "Internal Error: Missing scope stack for function '%s'.\n", fn_name);
                     exit(INTERNAL_ERROR);
                 }
 
-                // Check type compatibility
-                if (param_symbol->var.type != arg_type) {
-                    fprintf(stderr, "Semantic Error: Argument %d of function '%s' has mismatched type. Expected '%d', but got '%d'.\n",
-                            i + 1, fn_name, param_symbol->var.type, arg_type);
-                    exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                Frame *fn_frame_args = fn_scope_stack->frames[0]; // Function parameters are in the first frame
+                
+                if (!fn_frame_args || !fn_frame_args->symbol_table) {
+                    fprintf(stderr, "Internal Error: Function parameter frame or symbol table is null.\n");
+                    exit(INTERNAL_ERROR);
                 }
+
+                SymbolTable *param_table = fn_frame_args->symbol_table;
+
+                int expected_arg_count = param_table->count;
+                printf("expected_arg_count: %d\n", expected_arg_count);
+                if (node->FnCall.arg_count != expected_arg_count) {
+                    fprintf(stderr, "Semantic Error: Function '%s' expects %d arguments, but %d were provided.\n",
+                            fn_name, expected_arg_count, node->FnCall.arg_count);
+                    exit(SEMANTIC_ERROR_PARAMS);
+                }
+
+                for (int i = 0; i < node->FnCall.arg_count; i++) {
+                    printf("argument_num: %d\n", i);
+                    ASTNode *arg = node->FnCall.args[i];
+                    DataType arg_type = evaluate_expression_type(arg, global_table, local_stack, current_frame);
+                    printf("arg_type: %u\n", arg_type);
+
+                    // Locate the corresponding parameter in the hash table
+                    Symbol *param_symbol = NULL;
+                    int param_index = 0; // Logical parameter index
+
+                    for (int j = param_index; j < param_table->capacity; j++) {
+                        Symbol *current_symbol = param_table->symbols[j];
+
+                        // Skip NULL entries and non-parameter symbols
+                        if (!current_symbol || current_symbol->type != SYMBOL_VAR) {
+                            continue;
+                        }
+
+                        // Match the logical parameter index with the current argument index
+                        if (param_index == i) {
+                            param_symbol = current_symbol;
+                            break;
+                        }
+
+                        // Increment logical parameter index
+                        param_index++;
+                    }
+
+                    // Ensure the parameter symbol is found
+                    if (!param_symbol) {
+                        fprintf(stderr, "Internal Error: Missing parameter %d in function '%s'.\n", i + 1, fn_name);
+                        exit(INTERNAL_ERROR);
+                    }
+
+                    // Check type compatibility
+                    if (param_symbol->var.type != arg_type) {
+                        fprintf(stderr, "Semantic Error: Argument %d of function '%s' has mismatched type. Expected '%d', but got '%d'.\n",
+                                i + 1, fn_name, param_symbol->var.type, arg_type);
+                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                    }
+                }
+
+
             }
 
             break;
         }
 
         case AST_ARG: {
+            Frame *current_frame = top_frame(local_stack);
+
             if (!node->Argument.expression) {
                 fprintf(stderr, "Semantic Error: Argument expression is missing.\n");
                 exit(SEMANTIC_ERROR_UNDEFINED);
             }
 
             // Evaluate the type of the expression
-            DataType arg_type = evaluate_expression_type(node->Argument.expression, global_table, local_stack);
+            DataType arg_type = evaluate_expression_type(node->Argument.expression, global_table, local_stack, current_frame);
             printf("arg_type: %u\n", arg_type);
 
             // Ensure the expression is valid (further checks can be added here if needed)
@@ -918,7 +884,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             if (!(strcmp(function_symbol->func.name, "main") == 0) && expected_return_type != AST_VOID) {
                 // Evaluate the type of the return expression
-                DataType return_type = evaluate_expression_type(node->Return.expression, global_table, local_stack);
+                DataType return_type = evaluate_expression_type(node->Return.expression, global_table, local_stack, current_frame);
                 printf("return_type_var %u\n", return_type);
                 // Check if the return type matches the expected return type and that main is of type void
 
@@ -995,8 +961,9 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         }
 
         case AST_IDENTIFIER: {
+            Frame *current_frame = top_frame(local_stack);
             // Look up the identifier in the current scope stack or global table.
-            Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, node->Identifier.identifier);
+            Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, node->Identifier.identifier, current_frame);
 
             if (!symbol) {
                 // If the identifier is not found, it's an undeclared variable.
@@ -1020,11 +987,12 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         }
 
         case AST_ASSIGNMENT: {
+            Frame *current_frame = top_frame(local_stack);
             const char *identifier = node->Assignment.identifier;
             // ASTNode *expression = node->Assignment.expression;
 
             // Lookup the identifier in the symbol table (local or global)
-            Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, identifier);
+            Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, identifier, current_frame);
 
             if (!symbol) {
                 // If the variable/constant is not declared, raise an error
@@ -1047,7 +1015,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             }
 
             // Evaluate the expression type for the right-hand side of the assignment
-            DataType expression_type = evaluate_expression_type(node->Assignment.expression, global_table, local_stack);
+            DataType expression_type = evaluate_expression_type(node->Assignment.expression, global_table, local_stack, current_frame);
 
             printf("expression_type: %u\n", expression_type);
 
@@ -1093,10 +1061,11 @@ void process_declaration(
     bool is_nullable
 ) {
 
+    Frame *current_frame = top_frame(local_stack);
     printf("VAR DECL !!!\n");
 
     // Check if the variable/constant is already declared
-    Symbol *existing_symbol = lookup_symbol_in_scopes(NULL, local_stack, name);
+    Symbol *existing_symbol = lookup_symbol_in_scopes(NULL, local_stack, name, current_frame);
     if (existing_symbol) {
         fprintf(stderr, "Semantic Error: %s '%s' is already declared in the current scope.\n",
                 is_constant ? "Constant" : "Variable", name);
@@ -1141,7 +1110,7 @@ void process_declaration(
             }
         // Not function call in expression
         } else {
-            data_type_declared = evaluate_expression_type(expression, global_table, local_stack);
+            data_type_declared = evaluate_expression_type(expression, global_table, local_stack, current_frame);
         }
 
         if (data_type_declared == AST_UNSPECIFIED) {
@@ -1152,7 +1121,7 @@ void process_declaration(
     } else {
         // Check if declaration of var or const with defined data type corresponds to the actual data stored in it
 
-        DataType data_type_stored = evaluate_expression_type(expression, global_table, local_stack);
+        DataType data_type_stored = evaluate_expression_type(expression, global_table, local_stack, current_frame);
 
         printf("data_type_stored %u\n", data_type_stored);
 
@@ -1184,6 +1153,8 @@ void process_declaration(
         add_variable_symbol(global_table, name, data_type_declared, is_constant);
     }
 
-    Symbol *new_symbol = lookup_symbol_in_scopes(global_table, local_stack, name);
-    new_symbol->var.is_nullable = is_nullable;
+    Symbol *new_symbol = lookup_symbol_in_scopes(global_table, local_stack, name, current_frame);
+    if (new_symbol) {
+        new_symbol->var.is_nullable = is_nullable;
+    }
 }
