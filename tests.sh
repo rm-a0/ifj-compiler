@@ -86,25 +86,30 @@ if ! make; then
 fi
 
 # Initialize counters
-total_tests=51
+total_tests=75
 passed_tests=0
 
-# Run tests and check validity
+# Run tests and check exit codes
 echo "Running tests..."
-for i in {1..51}; do
+for i in {1..75}; do
+    # Check if validity is defined for test $i
+    if [[ -z "${validity[$i]+_}" ]]; then
+        echo -e "TEST $i \033[0;33mSKIPPED\033[0m (Expected exit code not defined)"
+        continue
+    fi
+
     # Run the test
     ./main < ./tests/seman_tests/$i.zig > test_output.tmp 2>&1
-    if [[ $? -eq 0 && ${validity[$i]} -eq 1 ]]; then
-        # Test passed and is valid
-        echo -e "TEST $i \033[0;32mPASS\033[0m"
-        passed_tests=$((passed_tests + 1))
-    elif [[ $? -ne 0 && ${validity[$i]} -eq 0 ]]; then
-        # Test failed and is invalid
+    exit_code=$?
+    expected_exit_code=${validity[$i]}
+
+    if [[ $exit_code -eq $expected_exit_code ]]; then
+        # Test passed
         echo -e "TEST $i \033[0;32mPASS\033[0m"
         passed_tests=$((passed_tests + 1))
     else
-        # Mismatch in validity
-        echo -e "TEST $i \033[0;31mFAIL\033[0m"
+        # Test failed
+        echo -e "TEST $i \033[0;31mFAIL\033[0m (Expected exit code $expected_exit_code, got $exit_code)"
     fi
 done
 
