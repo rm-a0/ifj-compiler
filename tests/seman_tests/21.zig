@@ -6,5 +6,6 @@ pub fn not_main() []u8 {
 }
 
 pub fn main() void {
-
+    const greeting = not_main();
+    ifj.write(greeting);
 }

@@ -8,5 +8,6 @@ pub fn sum(x : f64, y : f64) f64 {
 pub fn main() void {
     var z = sum(1.5, 4.5);
     ifj.write(z);
+    z = 2.0;
 }
     

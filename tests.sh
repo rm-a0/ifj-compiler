@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Associative array for test validity (Bash 4.0+ required)
+# 0 -> invalid 
+# 1 -> valid
 declare -A validity=(
     [1]=0
     [2]=0

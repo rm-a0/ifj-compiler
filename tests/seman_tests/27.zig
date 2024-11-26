@@ -6,5 +6,7 @@ pub fn not_main () i32 {
 }
 
 pub fn main () void {
-    not_main();
+    var x = not_main();
+    ifj.write(x);
+    x = 2;
 }

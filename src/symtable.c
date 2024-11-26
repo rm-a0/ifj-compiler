@@ -122,7 +122,7 @@ void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bo
     }
 
     // Initialize the variable symbol
-    VarSymbol var = {.name = strdup(name), .type = type, .is_constant = false, .used = false, .redefined = false};
+    VarSymbol var = {.name = strdup(name), .type = type, .is_constant = false, .used = false, .is_nullable = false, .redefined = false};
     Symbol *symbol = malloc(sizeof(Symbol));
     symbol->type = SYMBOL_VAR;
     symbol->var = var;

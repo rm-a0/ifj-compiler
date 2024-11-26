@@ -24,6 +24,7 @@ typedef struct VarSymbol {
     DataType type;           /**< Data type of the variable */
     bool is_constant;        /**< Indicates if the variable is constant */
     bool used;               /**< Indicates if the variable was used */
+    bool is_nullable;        /**< Indicates if the var's expression can be of AST_NULL value */
     bool redefined;          /**< Indicates if the variable was redefined */
 } VarSymbol;
 

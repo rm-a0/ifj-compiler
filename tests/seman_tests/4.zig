@@ -1,4 +1,4 @@
-// Test for recursive function
+// Valid
 const ifj = @import("ifj24.zig");
 
 var x = 1;
@@ -13,6 +13,8 @@ pub fn not_main2() void {
     if (z < 10) {
         not_main(z);
     }
+
+    z = 2;
 }
 
 pub fn main() void {
