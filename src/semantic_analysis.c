@@ -75,11 +75,15 @@ const char* get_node_type_name(ASTNodeType type) {
 
 // Function to check if the operator is a valid relational operator
 bool isRelationalOperator(OperatorType op) {
+    printf("isRelationalOperator function...\n");
+    printf("(isRelationalOperator) operator %u\n", op);
+
     static const OperatorType validOperators[] = {
         AST_GREATER, AST_GREATER_EQU, AST_LESS, AST_LESS_EQU, AST_EQU, AST_NOT_EQU
     };
     for (size_t i = 0; i < sizeof(validOperators) / sizeof(validOperators[0]); ++i) {
         if (op == validOperators[i]) {
+            printf("(isRelationalOperator) found it\n");
             return true;
         }
     }
@@ -605,7 +609,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     printf("Identifier type: %s\n", get_node_type_name(node->IfElse.expression->type));
 
                     // Ensure BinaryOperator.left is an identifier
-                    if (node->IfElse.expression->type != AST_IDENTIFIER) {
+                    if (node->IfElse.expression->type != AST_IDENTIFIER && node->IfElse.expression->type != AST_FN_CALL) {
                         fprintf(stderr, "Semantic Error: Left operand in if statement binding must be an identifier.\n");
                         exit(SEMANTIC_ERROR_TYPE_COMPAT);
                     }
@@ -626,6 +630,8 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 } else {
                     // We check if the expression is of valid AST_BIN_OP (relational operator present)
                     semantic_analysis(node->IfElse.expression, global_table, local_stack);
+
+                    printf("dostal som sa\n");
 
                     if (condition_type != AST_I32) { // True False (1, 0)
                         fprintf(stderr, "Semantic Error: If-Else condition must evaluate to int.\n");
@@ -664,11 +670,16 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             // Determine the operator type
             OperatorType operator = node->BinaryOperator.operator;
 
+            printf("got to the AST_BIN_OP\n");
+
             // Check if the operator is valid isRelationalOperator
             if (!isRelationalOperator(operator)) {
                 fprintf(stderr, "Semantic Error: Unsupported operator type '%d'.\n", operator);
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
             }
+
+            printf("tu som AST_BIN_OP\n");
+            break;
         }
 
 
@@ -1146,11 +1157,13 @@ void process_declaration(
         printf("data_type_stored %u\n", data_type_stored);
 
         // We check if the expression type isn't AST_BIN_OP because when it is we should perform sem. ana. on literal
-        if (expression->type != AST_BIN_OP) {
+        if (expression->type != AST_BIN_OP && expression->type != AST_NULL) {
             semantic_analysis(expression, global_table, local_stack);
         }
         
-        if (data_type_declared != data_type_stored) {
+        // Performing check if data stored is equal to data declared, unless the data stored is of AST_INSPECIFIED type (null)
+        // in that case they can differ but only when the var is not nullable or data_type_stored is not AST_INSPECIFIED (null)
+        if (data_type_declared != data_type_stored && !(is_nullable && data_type_stored == AST_UNSPECIFIED)) {
             fprintf(stderr, "Semantic Error: Cannot assign data of type: %u to the var with defined type: %u\n", data_type_stored, data_type_declared);
             exit(SEMANTIC_ERROR_TYPE_COMPAT);
         }

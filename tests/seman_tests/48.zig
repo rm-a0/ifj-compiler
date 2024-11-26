@@ -1,7 +1,7 @@
 // No Error
 const ifj = @import("ifj24.zig");
 
-fn getNullableNumber(a: i32, b: i32) ?i32 {
+pub fn getNullableNumber(a: i32, b: i32) ?i32 {
     if (a > b) {
         return a - b;
     } else {

@@ -69,7 +69,7 @@ passed_tests=0
 
 # Run tests and check validity
 echo "Running tests..."
-for i in {1..36}; do
+for i in {1..51}; do
     # Run the test
     ./main < ./tests/seman_tests/$i.zig > test_output.tmp 2>&1
     if [[ $? -eq 0 && ${validity[$i]} -eq 1 ]]; then

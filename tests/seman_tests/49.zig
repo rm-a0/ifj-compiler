@@ -3,5 +3,5 @@ const ifj = @import("ifj24.zig");
 
 pub fn main() void {
     var test : ?i32 = null;
-    var = 1;
+    test = 1;
 }
