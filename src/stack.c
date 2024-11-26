@@ -56,6 +56,8 @@ ScopeStack *init_scope_stack() {
  */
 Symbol *lookup_symbol_in_scopes(SymbolTable *global_table, ScopeStack *local_stack, const char *name) {
     // Check local stack first
+
+    printf("identifier Name: %s\n", name);
     if (local_stack != NULL) {
         printf("got to local\n");
         for (int i = local_stack->top; i >= 0; i--) {

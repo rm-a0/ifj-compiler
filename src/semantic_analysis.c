@@ -602,28 +602,26 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     }
 
 
-                    printf("Left binary operator type: %s\n", get_node_type_name(node->BinaryOperator.right->type));
+                    printf("Identifier type: %s\n", get_node_type_name(node->IfElse.expression->type));
 
                     // Ensure BinaryOperator.left is an identifier
-                    if (node->BinaryOperator.left->type != AST_IDENTIFIER) {
+                    if (node->IfElse.expression->type != AST_IDENTIFIER) {
                         fprintf(stderr, "Semantic Error: Left operand in if statement binding must be an identifier.\n");
                         exit(SEMANTIC_ERROR_TYPE_COMPAT);
                     }
 
                     // Identifier node is passed and evaluated for undeclaration and other semantic checks
-                    semantic_analysis(node->BinaryOperator.left, global_table, local_stack);
+                    semantic_analysis(node->IfElse.expression, global_table, local_stack);
 
                     // Look up the symbol in the scopes
-                    Symbol *left_symbol = lookup_symbol_in_scopes(global_table, local_stack, node->BinaryOperator.left->Identifier.identifier);
-
+                    Symbol *identifier = lookup_symbol_in_scopes(global_table, local_stack, node->IfElse.expression->Identifier.identifier);
                     // Carrying out check to evaluate that the BinaryOperator.left is a nullable var
-                    if (!left_symbol->var.is_nullable) {
-                        fprintf(stderr, "Semantic Error: Variable '%s' in if binding must be nullable.\n",
-                                node->BinaryOperator.left->Identifier.identifier);
+                    if (!identifier->var.is_nullable) {
+                        fprintf(stderr, "Semantic Error: The var provided in if statement is not nullable\n");
                         exit(SEMANTIC_ERROR_TYPE_COMPAT);
                     }
 
-                    add_variable_symbol(top_frame(local_stack)->symbol_table, node->IfElse.element_bind, condition_type, false);
+                    add_variable_symbol(top_frame(local_stack)->symbol_table, node->IfElse.element_bind, condition_type, true);
 
                 } else {
                     // We check if the expression is of valid AST_BIN_OP (relational operator present)
@@ -1083,7 +1081,9 @@ void process_declaration(
     bool is_constant,
     bool is_nullable
 ) {
+
     printf("VAR DECL !!!\n");
+
     // Check if the variable/constant is already declared
     Symbol *existing_symbol = lookup_symbol_in_scopes(NULL, local_stack, name);
     if (existing_symbol) {
@@ -1170,4 +1170,7 @@ void process_declaration(
         // Global scope
         add_variable_symbol(global_table, name, data_type_declared, is_constant);
     }
+
+    Symbol *new_symbol = lookup_symbol_in_scopes(global_table, local_stack, name);
+    new_symbol->var.is_nullable = is_nullable;
 }

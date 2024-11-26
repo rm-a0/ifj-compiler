@@ -47,6 +47,13 @@ declare -A validity=(
     [42]=0
     [43]=0
     [44]=0
+    [45]=0
+    [46]=0
+    [47]=0
+    [48]=1
+    [49]=1
+    [50]=1
+    [51]=0
 )
 
 # Run make
@@ -57,7 +64,7 @@ if ! make; then
 fi
 
 # Initialize counters
-total_tests=44
+total_tests=51
 passed_tests=0
 
 # Run tests and check validity
