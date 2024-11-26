@@ -522,8 +522,11 @@ void generate_code_in_node(ASTNode* node){
             int current_if = if_counter++; // Unikátne číslo pre aktuálny if-else blok
 
             // Definícia pre element_bind, ak existuje
-            if (node->IfElse.element_bind != NULL) {
-                printf("DEFVAR LF@%s\n", node->IfElse.element_bind);
+            if (node->WhileCycle.element_bind != NULL) {
+                if(is_it_local(node->WhileCycle.element_bind)){
+                    printf("DEFVAR LF@%s\n", node->WhileCycle.element_bind);
+                    add_to_local(node->WhileCycle.element_bind);
+                }
             }
 
             // Generovanie výrazu v podmienke
@@ -627,7 +630,11 @@ void generate_code_in_node(ASTNode* node){
 
             // Definícia element_bind, ak existuje
             if (node->WhileCycle.element_bind != NULL) {
-                printf("DEFVAR LF@%s\n", node->WhileCycle.element_bind);
+                if(is_it_local(node->WhileCycle.element_bind)){
+                    printf("DEFVAR LF@%s\n", node->WhileCycle.element_bind);
+                    add_to_local(node->WhileCycle.element_bind);
+                }
+
             }
 
             // Label pre začiatok while cyklu
