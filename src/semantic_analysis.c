@@ -899,6 +899,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         }
 
         case AST_FLOAT: {
+            
             // Check if the floating-point value is within the bounds of double-precision float.
             if (node->Float.number < -DBL_MAX || node->Float.number > DBL_MAX) {
                 fprintf(stderr, "Semantic Error: Float literal '%f' is out of bounds for type 'f64'.\n", node->Float.number);
@@ -1076,8 +1077,8 @@ void process_declaration(
 
         printf("data_type_stored %u\n", data_type_stored);
 
-        // We check if the data type isn't AST_UNSPECIFIED because when it is we should perform sem. ana. on literal
-        if (data_type_stored != AST_UNSPECIFIED) {
+        // We check if the expression type isn't AST_BIN_OP because when it is we should perform sem. ana. on literal
+        if (expression->type != AST_BIN_OP) {
             semantic_analysis(expression, global_table, local_stack);
         }
         
