@@ -804,7 +804,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     if (param_symbol->var.type != arg_type) {
                         fprintf(stderr, "Semantic Error: Argument %d of function '%s' has mismatched type. Expected '%d', but got '%d'.\n",
                                 i + 1, fn_name, param_symbol->var.type, arg_type);
-                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                        exit(SEMANTIC_ERROR_PARAMS);
                     }
                 }
 
@@ -1061,8 +1061,13 @@ void process_declaration(
     bool is_nullable
 ) {
 
-    Frame *current_frame = top_frame(local_stack);
     printf("VAR DECL !!!\n");
+
+    // Determine the current frame
+    Frame *current_frame = NULL;
+    if (local_stack && local_stack->top >= 0) {
+        current_frame = top_frame(local_stack);
+    }
 
     // Check if the variable/constant is already declared
     Symbol *existing_symbol = lookup_symbol_in_scopes(NULL, local_stack, name, current_frame);
