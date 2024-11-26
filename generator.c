@@ -162,6 +162,7 @@ void generate_code_in_node(ASTNode* node){
                     free(escape_string_string);
                     break;
                 }else if(node->VarDecl.expression->type == AST_BIN_OP){
+                    printf("PUSHS int@1\n");
                     generate_code_in_node(node->VarDecl.expression);
                     pops(node->VarDecl.var_name);
                     break;
@@ -218,17 +219,8 @@ void generate_code_in_node(ASTNode* node){
                     free(escape_string_string);
                     break;
                 } else if(node->VarDecl.expression->type == AST_BIN_OP){
+                    printf("PUSHS int@1\n");
                     generate_code_in_node(node->VarDecl.expression);
-                    if(node->VarDecl.expression->BinaryOperator.operator == AST_DIV){
-                        printf("DEFVAR LF@tmp_div_3_%i\n", tmp_counter - 1 );        //129
-                        printf("DEFVAR LF@tmp_type_3_%i\n", tmp_counter - 1 );       //129
-                        printf("POPS LF@tmp_div_3_%i\n", tmp_counter - 1 );           //129
-                        printf("TYPE LF@tmp_type_3_%i LF@tmp_div_3_%i\n", tmp_counter - 1, tmp_counter - 1); //129
-                        printf("PUSHS LF@tmp_div_3_%i\n", tmp_counter - 1);          //129
-                        printf("JUMPIFEQ label_div_3_%i LF@tmp_type_3_%i string@int\n", tmp_counter - 1, tmp_counter - 1); //129
-                        printf("FLOAT2INTS\n");
-                        printf("LABEL label_div_3_%i\n", tmp_counter - 1);          //129
-                    }
                     pops(node->VarDecl.var_name);
 
                     break;
@@ -491,8 +483,6 @@ void generate_code_in_node(ASTNode* node){
 
             if (strcmp(fn_name, "ifj.length") == 0) {
                 generate_code_in_node(node->FnCall.args[0]->Argument.expression);
-                //printf("STRLEN %s
-                //pr
             }
 
             if ((strcmp(fn_name, "ifj.write") == 0) || (strcmp(fn_name, "ifj.writef64") == 0)) {
@@ -515,6 +505,14 @@ void generate_code_in_node(ASTNode* node){
                     case AST_IDENTIFIER:
                         printf("WRITE %s%s\n", frame_prefix(expression->Identifier.identifier),
                                expression->Identifier.identifier);
+                        break;
+                    case AST_BIN_OP:
+                    case AST_FN_CALL:
+                        generate_code_in_node(expression);
+                        printf("DEFVAR LF@tm_write%i\n", tmp_counter);
+                        printf("POPS LF@tm_write%i\n", tmp_counter);
+                        printf("WRITE LF@tm_write%i\n", tmp_counter);
+                        tmp_counter++;
                         break;
                     default:
                         fprintf(stderr, "ERROR: Unsupported argument type for ifj.write\n");
@@ -637,6 +635,19 @@ void generate_code_in_node(ASTNode* node){
                 printf("LABEL label_div_2_%i\n", tmp_counter);          //129
                 printf("DIVS\n");
                 tmp_counter++;
+                printf("DEFVAR LF@tmp_div_4_%i\n", tmp_counter - 1 );        //129
+                //printf("DEFVAR LF@tmp_type_4_%i\n", tmp_counter - 1 );       //129
+                printf("POPS LF@tmp_div_4_%i\n", tmp_counter - 1 );           //129
+                printf("DEFVAR LF@tmp_div_3_%i\n", tmp_counter - 1 );        //129
+                printf("DEFVAR LF@tmp_type_3_%i\n", tmp_counter - 1 );       //129
+                printf("POPS LF@tmp_div_3_%i\n", tmp_counter - 1 );           //129
+                printf("TYPE LF@tmp_type_3_%i LF@tmp_div_3_%i\n", tmp_counter - 1, tmp_counter - 1); //129
+                printf("PUSHS LF@tmp_div_3_%i\n", tmp_counter - 1);          //129
+                printf("PUSHS LF@tmp_div_4_%i\n", tmp_counter - 1);          //129
+                printf("JUMPIFEQ label_div_4_%i LF@tmp_type_3_%i string@float\n", tmp_counter - 1, tmp_counter - 1); //129
+                printf("FLOAT2INTS\n");
+                printf("LABEL label_div_4_%i\n", tmp_counter - 1);          //129
+
                 break;
 
             }
