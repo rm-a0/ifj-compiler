@@ -38,21 +38,35 @@ SymbolTable *init_symbol_table() {
 }
 
 /* Free a symbol table */
+/* Free a symbol table */
 void free_symbol_table(SymbolTable *table) {
-    for (int i = 0; i < table->capacity; i++) {
-        if (table->symbols[i] != NULL) {
-            if (table->symbols[i]->type == SYMBOL_FUNC) {
-                free(table->symbols[i]->func.name);
-                free_scope_stack(table->symbols[i]->func.scope_stack);
-            } else if (table->symbols[i]->type == SYMBOL_VAR) {
-                free(table->symbols[i]->var.name);
-            }
-            free(table->symbols[i]);
-        }
+    if (table == NULL) {
+        return; // Nothing to free
     }
-    free(table->symbols);
+    
+    if (table->symbols != NULL) {
+        for (int i = 0; i < table->capacity; i++) {
+            if (table->symbols[i] != NULL) {
+                if (table->symbols[i]->type == SYMBOL_FUNC) {
+                    // Free function-specific allocations
+                    free(table->symbols[i]->func.name);
+                    free_scope_stack(table->symbols[i]->func.scope_stack); // Ensure this function works correctly
+                } else if (table->symbols[i]->type == SYMBOL_VAR) {
+                    // Free variable-specific allocations
+                    free(table->symbols[i]->var.name);
+                }
+                // Free the symbol itself
+                free(table->symbols[i]);
+            }
+        }
+        // Free the array of symbol pointers
+        free(table->symbols);
+    }
+    
+    // Free the SymbolTable struct itself
     free(table);
 }
+
 
 /* Resize the symbol table and rehash symbols */
 void resize(SymbolTable *table) {
