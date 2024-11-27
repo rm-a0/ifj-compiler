@@ -868,37 +868,59 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             DataType expected_return_type = function_symbol->func.type;
 
-            // TODO: What if data type nullable
-            if (!node->Return.expression) {
-                check_main_function(global_table);
-                if (expected_return_type != AST_VOID) {
-                    fprintf(stderr, "Semantic Error: Missing return value in non-void function '%s'.\n",
-                            function_symbol->func.name ? function_symbol->func.name : "(unnamed)");
-                    exit(SEMANTIC_ERROR_RETURN);
-                }
-            }
+            // // TODO: What if data type nullable
+            // if (!node->Return.expression) {
+            //     check_main_function(global_table);
+            //     if (expected_return_type != AST_VOID) {
+            //         fprintf(stderr, "Semantic Error: Missing return value in non-void function '%s'.\n",
+            //                 function_symbol->func.name ? function_symbol->func.name : "(unnamed)");
+            //         exit(SEMANTIC_ERROR_RETURN);
+            //     }
+            // }
 
             printf("expected_return_type: %u\n", expected_return_type);
 
-            printf("ast_return!\n");
 
-            if (!(strcmp(function_symbol->func.name, "main") == 0) && expected_return_type != AST_VOID) {
-                // Evaluate the type of the return expression
-                DataType return_type = evaluate_expression_type(node->Return.expression, global_table, local_stack, current_frame);
-                printf("return_type_var %u\n", return_type);
-                // Check if the return type matches the expected return type and that main is of type void
+            if (expected_return_type != AST_VOID) {
+                printf("ast_return!\n");
+                // We check if expression is null because if its not it does mean that there is error in return statement
 
-                if (return_type && return_type == AST_UNSPECIFIED && !(function_symbol->func.is_nullable)) {
-                    fprintf(stderr, "Semantic Error: Mismatched return type in function '%s'. Expected '%d', got '%d'.\n",
-                            function_symbol->func.name, expected_return_type, return_type);
-                    exit(SEMANTIC_ERROR_RETURN);
-                } else if (return_type && return_type != expected_return_type && return_type != AST_UNSPECIFIED && expected_return_type != AST_UNSPECIFIED) {
-                    printf("herewego\n");
-                    fprintf(stderr, "Semantic Error: Mismatched return type in function '%s'. Expected '%d', got '%d'.\n",
-                            function_symbol->func.name, expected_return_type, return_type);
+                if (node->Return.expression) {
+                    // Evaluate the type of the return expression
+
+                    DataType return_type = evaluate_expression_type(node->Return.expression, global_table, local_stack, current_frame);
+                    printf("return_type_var %u\n", return_type);
+
+                    // Check if the return type matches the expected return type and that main is of type void
+
+                    if (return_type && return_type == AST_UNSPECIFIED && !(function_symbol->func.is_nullable)) {
+                        fprintf(stderr, "Semantic Error: Mismatched return type in function '%s'. Expected '%d', got '%d'.\n",
+                                function_symbol->func.name, expected_return_type, return_type);
+                        exit(SEMANTIC_ERROR_RETURN);
+                    } else if (return_type && return_type != expected_return_type && return_type != AST_UNSPECIFIED && expected_return_type != AST_UNSPECIFIED) {
+                        printf("herewego\n");
+                        fprintf(stderr, "Semantic Error: Mismatched return type in function '%s'. Expected '%d', got '%d'.\n",
+                                function_symbol->func.name, expected_return_type, return_type);
+                        exit(SEMANTIC_ERROR_RETURN);
+                    }
+                } else if (!(function_symbol->func.is_nullable)) {
+                    // When the statement is null, return type isn't void nor nullable
+                    printf("return is null !\n");
+                    fprintf(stderr, "Semantic Error: Mismatched return type in function '%s'. Expected '%d'.\n",
+                    function_symbol->func.name, expected_return_type);
                     exit(SEMANTIC_ERROR_RETURN);
                 }
+                
+            } else if (node->Return.expression) {
+                // If return expression is not null and it is supposed to return ast void
+                // it should be flagged as mismatch between return type and declaration type
+
+                fprintf(stderr, "Semantic Error: Mismatched return type in function '%s'. Expected '%d'.\n",
+                function_symbol->func.name, expected_return_type);
+                exit(SEMANTIC_ERROR_RETURN);
+
             }
+
             break;
         }
 

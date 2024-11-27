@@ -16,7 +16,7 @@ declare -A validity=(
     [13]=5
     [14]=5
     [15]=0
-    [16]=5
+    [16]=4
     [17]=6
     [18]=6
     [19]=6
@@ -89,12 +89,12 @@ if ! make; then
 fi
 
 # Initialize counters
-total_tests=75
+total_tests=78
 passed_tests=0
 
 # Run tests and check exit codes
 echo "Running tests..."
-for i in {1..75}; do
+for i in {1..78}; do
     # Check if validity is defined for test $i
     if [[ -z "${validity[$i]+_}" ]]; then
         echo -e "TEST $i \033[0;33mSKIPPED\033[0m (Expected exit code not defined)"
