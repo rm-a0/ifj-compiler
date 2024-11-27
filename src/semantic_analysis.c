@@ -243,6 +243,8 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
     DataType left_type = evaluate_expression_type(node->BinaryOperator.left, global_table, local_stack, local_frame);
     DataType right_type = evaluate_expression_type(node->BinaryOperator.right, global_table, local_stack, local_frame);
 
+    printf("left_type: %u, right_type: %u\n", left_type, right_type);
+
     // Determine the operator type
     OperatorType operator = node->BinaryOperator.operator;
 
@@ -303,10 +305,10 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
                     if (fractionless_right)  {
                         return AST_I32;
                     }
-                } else if (left_type == AST_UNSPECIFIED || right_type == AST_UNSPECIFIED) {
-
-                    //when right/left operator is null
-                    return AST_I32;
+                } else if ((left_type == AST_UNSPECIFIED && right_type != AST_UNSPECIFIED) || (left_type != AST_UNSPECIFIED && right_type == AST_UNSPECIFIED)) {
+                    
+                    fprintf(stderr, "Semantic Error: Incompatible types for relational operation. Left: %d, Right: %d\n", left_type, right_type);
+                    exit(SEMANTIC_ERROR_TYPE_COMPAT);
                 }
                 
             } else {
