@@ -256,25 +256,35 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
         case AST_DIV:
             // Arithmetic operators
 
-            if ((left_type == AST_I32 && right_type == AST_I32) || (left_type == AST_F64 && right_type == AST_F64)) {
+            if ((left_type == AST_I32 && right_type == AST_I32) || 
+                (left_type == AST_F64 && right_type == AST_F64)) {
                 return left_type;
-            } else if (left_type == AST_I32 && right_type == AST_F64) {
-                printf("wellwell\n");
+            } 
+
+            if (left_type == AST_I32 && right_type == AST_F64) {
                 // If left arithmetic operator is literal, implicit conversion is allowed
                 if (node->BinaryOperator.left->type == AST_INT) {
                     printf("implicit conversion of left op.\n");
-                    return AST_F64;
+                    return AST_F64;  // Explicit return here
                 }
-            } else if (left_type == AST_F64 && right_type == AST_I32) {
+                fprintf(stderr, "Semantic Error: Incompatible types for arithmetic operation. Left: %d, Right: %d\n", left_type, right_type);
+                exit(SEMANTIC_ERROR_TYPE_COMPAT);  // Handle incompatible cases
+            }
+
+            if (left_type == AST_F64 && right_type == AST_I32) {
                 // If right arithmetic operator is literal, implicit conversion is allowed
                 if (node->BinaryOperator.right->type == AST_INT) {
                     printf("implicit conversion of right op.\n");
-                    return AST_F64;
+                    return AST_F64;  // Explicit return here
                 }
-            } else {
                 fprintf(stderr, "Semantic Error: Incompatible types for arithmetic operation. Left: %d, Right: %d\n", left_type, right_type);
-                exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                exit(SEMANTIC_ERROR_TYPE_COMPAT);  // Handle incompatible cases
             }
+
+            // If no cases matched, it's a semantic error
+            fprintf(stderr, "Semantic Error: Incompatible types for arithmetic operation. Left: %d, Right: %d\n", left_type, right_type);
+            exit(SEMANTIC_ERROR_TYPE_COMPAT);
+
 
         case AST_GREATER:
         case AST_GREATER_EQU:
@@ -864,8 +874,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     break;
                 }
             }
-
-            printf("Return Node Type: %d\n", node->Return.expression ? node->Return.expression->type : -1);
 
             if (!function_symbol) {
                 fprintf(stderr, "Internal Error: Function context symbol not found for return statement.\n");
