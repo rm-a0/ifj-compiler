@@ -266,13 +266,14 @@ Token* get_token(Lexer* lexer) {
                 }
                 break;
             case UNDERSCORE:
-                if (c == '_') {
-                    append(lexer, &idx, c);
-                    break; // Countinue in UNDERSCORE state
-                }
-                else if (isalnum(c)) {
+                if (isalnum(c) || c == '_') {
                     lexer->state = ID_OR_KEY;
                     append(lexer, &idx, c);
+                }
+                else if (isspace(c) || isvalid(c, lexer->ascii_l_table)) {
+                    lexer->state = START;
+                    ungetc(c, lexer->src);
+                    return create_token(TOKEN_UNDERSCORE, 0, NULL);
                 }
                 else {
                     set_error(LEXICAL_ERROR);
@@ -448,10 +449,6 @@ Token* get_token(Lexer* lexer) {
                 }
                 break;
         }
-    }
-
-    if (lexer->state == STRING) {
-        return NULL;
     }
 
     return create_token(TOKEN_EOF, 0, NULL);
