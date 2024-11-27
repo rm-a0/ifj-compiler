@@ -535,9 +535,6 @@ ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
             case TOKEN_F64:
                 const_decl_node->ConstDecl.data_type = AST_F64;
                 break;
-            case TOKEN_U8:
-                const_decl_node->ConstDecl.data_type = AST_U8;
-                break;
             case TOKEN_SLICE:
                 advance_token(token, lexer);
                 if (!check_token(*token, TOKEN_U8, NULL)) {
@@ -609,9 +606,6 @@ ASTNode* parse_var_decl(Lexer* lexer, Token** token) {
             case TOKEN_F64:
                 var_decl_node->ConstDecl.data_type = AST_F64;
                 break;
-            case TOKEN_U8:
-                var_decl_node->ConstDecl.data_type = AST_U8;
-                break;
             case TOKEN_SLICE:
                 advance_token(token, lexer);
                 if (!check_token(*token, TOKEN_U8, NULL)) {
@@ -681,9 +675,6 @@ ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
             break;
         case TOKEN_F64:
             parameter->Param.data_type = AST_F64;
-            break;
-        case TOKEN_U8:
-            parameter->Param.data_type = AST_U8;
             break;
         case TOKEN_SLICE:
             advance_token(token, lexer);
@@ -1214,9 +1205,6 @@ ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
             break;
         case TOKEN_F64:
             fn_decl_node->FnDecl.return_type = AST_F64;
-            break;
-        case TOKEN_U8:
-            fn_decl_node->FnDecl.return_type = AST_U8;
             break;
         case TOKEN_SLICE:
             advance_token(token, lexer);
