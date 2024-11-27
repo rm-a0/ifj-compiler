@@ -540,7 +540,7 @@ void generate_code_in_node(ASTNode* node){
 
             // Definícia pre element_bind, ak existuje
             if (node->WhileCycle.element_bind != NULL) {
-                if(is_it_local(node->WhileCycle.element_bind)){
+                if(!(is_it_local(node->WhileCycle.element_bind))){
                     printf("DEFVAR LF@%s\n", node->WhileCycle.element_bind);
                     add_to_local(node->WhileCycle.element_bind);
                 }
@@ -685,7 +685,7 @@ void generate_code_in_node(ASTNode* node){
 
             // Definícia element_bind, ak existuje
             if (node->WhileCycle.element_bind != NULL) {
-                if(is_it_local(node->WhileCycle.element_bind)){
+                if(!(is_it_local(node->WhileCycle.element_bind))){
                     printf("DEFVAR LF@%s\n", node->WhileCycle.element_bind);
                     add_to_local(node->WhileCycle.element_bind);
                 }
