@@ -1,8 +1,8 @@
-// Should crash on min size allowed for int32
+// Should crash on max size allowed for int32
 const ifj = @import("ifj24.zig");
 
 pub fn main() void {
-    const x : i32 = -2147483649;
-    x = x - 1;
-    ifj.write(x);
+    var y : i32 = 2147483648;
+    y = y + 1;
+    ifj.write(y);
 }

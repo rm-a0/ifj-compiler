@@ -537,24 +537,67 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
         case AST_WHILE: {
             // Evaluate the condition expression of the while loop
-            Frame *current_frame = top_frame(local_stack);
-            DataType condition_type = evaluate_expression_type(node->WhileCycle.expression, global_table, local_stack, current_frame);
 
-            // Ensure the condition is a boolean-compatible type
-            if (condition_type != AST_I32 && condition_type != AST_U8) {
-                fprintf(stderr, "Semantic Error: While condition must evaluate to a boolean-compatible type, got '%d'.\n", condition_type);
-                exit(SEMANTIC_ERROR_TYPE_COMPAT);
-            }
-
-            // Push a new frame onto the local stack for the while loop
             push_frame(local_stack);
+            Frame *current_frame = top_frame(local_stack);
 
-            // If element_bind is present, bind it to the new frame's symbol table
-            if (node->WhileCycle.element_bind) {
-                SymbolTable *current_table = top_frame(local_stack)->symbol_table;
+            if (node->IfElse.expression) {
+                DataType condition_type = evaluate_expression_type(node->IfElse.expression, global_table, local_stack, current_frame);
 
-                // Add the bind element to the current frame
-                add_variable_symbol(current_table, node->WhileCycle.element_bind, AST_UNSPECIFIED, false);
+                if (node->IfElse.element_bind) {
+                    // When the while statement is composed of literal solely, and the binding is true it has to be nullable in order to be used in if statement with binding
+
+                    OperatorType operator = node->BinaryOperator.operator;
+
+                    // We take care of non-bindable value in while expression, which cannot contain operator of any type, null is valid
+                    if (!operator) {
+                        fprintf(stderr, "Semantic Error: Expression in if statement when used binding cannot have a relational operator.\n");
+                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                    }
+
+
+                    printf("Identifier type: %s\n", get_node_type_name(node->IfElse.expression->type));
+
+                    // Ensuring node->IfElse.expression->type is an identifier or fn call
+                    if (node->IfElse.expression->type != AST_IDENTIFIER && node->IfElse.expression->type != AST_FN_CALL) {
+                        fprintf(stderr, "Semantic Error: Identifier cant be anything else than AST_IDENTIFIER or AST_FN_CALL.\n");
+                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                    }
+
+                    // Identifier node is passed and evaluated for undeclaration and other semantic checks
+                    semantic_analysis(node->IfElse.expression, global_table, local_stack);
+
+                    // Look up the symbol in the scopes
+                    Symbol *identifier = lookup_symbol_in_scopes(global_table, local_stack, node->IfElse.expression->Identifier.identifier, current_frame);
+                    
+                    // Carrying out check to evaluate that the identifier provided is null
+                    if (!identifier->var.is_nullable) {
+                        fprintf(stderr, "Semantic Error: The var provided in if statement is not nullable\n");
+                        exit(OTHER_SEMANTIC_ERROR);
+                    }
+
+                    print_symbol_table(current_frame->symbol_table);
+
+                    add_variable_symbol(current_frame->symbol_table, node->IfElse.element_bind, condition_type, true);
+                    printf("zistil top frame\n");
+
+                    print_symbol_table(current_frame->symbol_table);
+
+                    DataType data_type_test = evaluate_expression_type(node->IfElse.expression, global_table, local_stack, current_frame);
+
+                    printf("DATA TYPE TEST: %d\n", data_type_test);
+
+                } else {
+                    // We check if the expression is of valid AST_BIN_OP (relational operator present)
+                    semantic_analysis(node->IfElse.expression, global_table, local_stack);
+
+                    printf("dostal som sa\n");
+
+                    if (condition_type != AST_I32) { // True False (1, 0)
+                        fprintf(stderr, "Semantic Error: If-Else condition must evaluate to int.\n");
+                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                    }
+                }
             }
 
             // Recursively analyze the block inside the while loop
@@ -620,7 +663,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     // Carrying out check to evaluate that the BinaryOperator.left is a nullable var
                     if (!identifier->var.is_nullable) {
                         fprintf(stderr, "Semantic Error: The var provided in if statement is not nullable\n");
-                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                        exit(OTHER_SEMANTIC_ERROR);
                     }
 
                     print_symbol_table(current_frame->symbol_table);
@@ -657,6 +700,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             // Process the "else" block if it exists
             if (node->IfElse.else_block) {
+                
                 // Push a frame for the "else" block
                 push_frame(local_stack);
 

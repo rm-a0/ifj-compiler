@@ -1,4 +1,4 @@
-// 'value' already declared before |value|
+// Correct
 const ifj = @import("ifj24.zig");
 
 pub fn main() void {
@@ -11,4 +11,6 @@ pub fn main() void {
     } else {
         ifj.write("Number is null");
     }
+    ifj.write(value);
+    value = value + 1;
 }
