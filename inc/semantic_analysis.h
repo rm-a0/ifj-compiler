@@ -13,6 +13,7 @@
 #include <string.h>
 #include <float.h>
 #include <stdint.h>
+#include <math.h>
 #include "ast.h"
 #include "symtable.h"
 #include "stack.h"
@@ -48,7 +49,11 @@ void check_main_function(SymbolTable *global_table);
  * @param local_stack Pointer to the local scope stack.
  * @return The resulting data type of the binary operation.
  */
-DataType evaluate_binary_operator_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack, Frame *local_frame);
+DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack, Frame *local_frame);
+
+
+bool evaluate_fractionless_float(SymbolTable *global_table, ScopeStack *local_stack, const char *name, Frame *local_frame);
+
 
 /**
  * @brief Evaluates the type of an expression node.
