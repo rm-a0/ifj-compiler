@@ -52,29 +52,42 @@ ScopeStack *init_scope_stack() {
  * @param name Name of the symbol to look for.
  * @return Pointer to the found symbol or NULL if not found.
  */
-Symbol *lookup_symbol_in_scopes(SymbolTable *global_table, ScopeStack *local_stack, const char *name) {
-    // Check local stack first
-    if (local_stack != NULL) {
+Symbol *lookup_symbol_in_scopes(SymbolTable *global_table, ScopeStack *local_stack, const char *name, Frame *local_frame) {
+
+    // 1. Check if local_frame is explicitly provided
+    if (local_frame) {
+
+        Symbol *symbol = lookup_symbol(local_frame->symbol_table, name);
+        if (symbol) {
+            return symbol;
+        }
+    }
+
+    // 2. If local_stack exists, search from top to bottom
+    if (local_stack) {
         for (int i = local_stack->top; i >= 0; i--) {
             Frame *frame = local_stack->frames[i];
+
             Symbol *symbol = lookup_symbol(frame->symbol_table, name);
-            if (symbol != NULL) {
-                return symbol; // Found in local scope
+            if (symbol) {
+                return symbol;
             }
         }
     }
 
-    // Fall back to global table
-    if (global_table != NULL) {
+    // 3. Fall back to global table if symbol not found in local frames
+    if (global_table) {
+
         Symbol *symbol = lookup_symbol(global_table, name);
-        if (symbol != NULL) {
-            return symbol; // Found in global scope
+        if (symbol) {
+            return symbol;
         }
     }
 
-    // Symbol not found
+    // 4. Symbol not found
     return NULL;
 }
+
 
 /**
  * @brief Pushes a new frame onto the ScopeStack, resizing if needed.
@@ -171,13 +184,3 @@ Frame *init_frame() {
     return frame;
 }
 
-
-/**
- * @brief Prints the contents of the root_stack for debugging.
- * 
- * @param root_stack Pointer to the root_stack to print.
- */
-// void print_root_stack(RootStack *root_stack) {
-//     for (int i = 0; i < root_stack->declerations_count; i++) {
-//     }
-// }

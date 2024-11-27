@@ -23,8 +23,9 @@ typedef struct Symbol Symbol;
  * A frame corresponds to a specific scope in the program (e.g., function, loop, or conditional block).
  */
 typedef struct Frame {
-    SymbolTable *symbol_table; /**< Each frame has its own symbol table. */
+    SymbolTable *symbol_table;
 } Frame;
+
 
 /**
  * @struct ScopeStack
@@ -58,7 +59,7 @@ ScopeStack *init_scope_stack();
  * @param name Name of the symbol to look for.
  * @return Pointer to the found symbol or NULL if not found.
  */
-Symbol *lookup_symbol_in_scopes(SymbolTable *global_table, ScopeStack *local_stack, const char *name);
+Symbol *lookup_symbol_in_scopes(SymbolTable *global_table, ScopeStack *local_stack, const char *name, Frame *local_frame);
 
 /**
  * @brief Pushes a new frame onto the ScopeStack, resizing if needed.
@@ -120,13 +121,5 @@ void resize_scope_stack(ScopeStack *scope_stack);
  */
 Frame *init_frame();
 
-/**
- * @brief Prints the contents of a ScopeStack for debugging.
- *
- * Displays information about each frame in the stack, including its symbol table.
- *
- * @param scope_stack Pointer to the `ScopeStack` to print.
- */
-void print_scope_stack(ScopeStack *scope_stack);
 
 #endif // STACK_H

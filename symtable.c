@@ -109,7 +109,7 @@ void add_function_symbol(SymbolTable *table, const char *name, DataType return_t
 
 
 /* Add a variable symbol to the table */
-void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant) {
+void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant, double value) {
     // Resize the table if the load factor threshold is reached
     if ((float)table->count / table->capacity >= LOAD_FACTOR) {
         resize(table);
@@ -122,11 +122,12 @@ void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bo
     }
 
     // Initialize the variable symbol
-    VarSymbol var = {.name = strdup(name), .type = type, .is_constant = false, .used = false, .redefined = false};
+    VarSymbol var = {.name = strdup(name), .type = type, .is_constant = false, .used = false, .is_nullable = false, .redefined = false, .value = 0};
     Symbol *symbol = malloc(sizeof(Symbol));
     symbol->type = SYMBOL_VAR;
     symbol->var = var;
     symbol->var.is_constant = is_constant;
+    symbol->var.value = value;
 
     // Add the symbol to the table
     table->symbols[index] = symbol;
@@ -136,6 +137,7 @@ void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bo
 
 /* Lookup a symbol by name */
 Symbol *lookup_symbol(SymbolTable *table, const char *name) {
+    // printf("name: %s\n", name);
     unsigned int index = hash(name, table->capacity);
     while (table->symbols[index] != NULL) {
         const char *current_name = table->symbols[index]->type == SYMBOL_FUNC
