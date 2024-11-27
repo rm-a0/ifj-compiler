@@ -272,13 +272,13 @@ void generate_code_in_node(ASTNode* node){
                             def_var(result, "lf");
                             add_to_local(result);
                         }
-                        if(block_node->VarDecl.expression->FnCall.args[0]->type == AST_ARG){
+                        //if(block_node->VarDecl.expression->FnCall.args[0]->type == AST_ARG){
                             //printf("string");
                             //debug function
-                        }
+                        //}
                         concat(result, arg1, arg2);
-                        generate_code_in_node(block_node);
-                        break;
+                        continue;
+
                     }
                 }
                 if (block_node->type == AST_CONST_DECL || block_node->type == AST_VAR_DECL) {
@@ -302,7 +302,7 @@ void generate_code_in_node(ASTNode* node){
                         }
                         printf("STRLEN %s%s %s%s\n", frame_prefix(result), result, frame_prefix(arg1), arg1);
                         generate_code_in_node(block_node);
-                        break;
+                        continue;
                     }
                 }
                 generate_code_in_node(block_node);
