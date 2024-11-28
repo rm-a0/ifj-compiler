@@ -3,8 +3,8 @@ CC = gcc
 CFLAGS = -I$(INC_DIR) -g -O3 -pedantic -fsanitize=address
 
 # Directories
-SRC_DIR = .
-INC_DIR = .
+SRC_DIR = src/
+INC_DIR = doc/
 
 # Target
 TARGET = main
