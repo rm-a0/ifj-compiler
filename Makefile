@@ -32,7 +32,10 @@ clean:
 	rm -f $(TARGET) *.o
 
 zip:
-	zip -r xrepcim00.zip Makefile *.c *.h rozdeleni dokumentace.pdf rozsireni
+	sed 's/^SRC_DIR.*/SRC_DIR := ./' Makefile | sed 's/^INC_DIR.*/INC_DIR := ./' > Makefile.tmp && \
+	mv Makefile.tmp Makefile && \
+	zip -j xrepcim00.zip Makefile src/*.c inc/*.h rozdeleni dokumentace.pdf rozsireni && \
+	git checkout -- Makefile
 
 cleanzip:
 	rm -f xrepcim00.zip
