@@ -556,6 +556,9 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     } else if (symbol && symbol->type == SYMBOL_VAR && !symbol->var.is_constant  && !symbol->var.redefined) {
                         
                         exit(SEMANTIC_ERROR_UNUSED_VAR);
+                    } else if (symbol && symbol->type == SYMBOL_VAR && !symbol->var.is_constant  && !symbol->var.redefined) {
+                        fprintf(stderr, "Semantic Error: Variable '%s' declared in the block never reinitialized.\n", symbol->var.name);
+                        exit(SEMANTIC_ERROR_UNUSED_VAR);
                     }
                 }
             }
