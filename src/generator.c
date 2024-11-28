@@ -284,7 +284,7 @@ void generate_code_in_node(ASTNode* node){
                 if (block_node->type == AST_CONST_DECL || block_node->type == AST_VAR_DECL) {
                     if (block_node->VarDecl.expression &&
                         block_node->VarDecl.expression->type == AST_FN_CALL &&
-                        strcmp(block_node->VarDecl.expression->FnCall.fn_name, "ifj.strlen") == 0) {
+                        strcmp(block_node->VarDecl.expression->FnCall.fn_name, "ifj.length") == 0) {
 
                         const char* result = block_node->type == AST_CONST_DECL
                                              ? block_node->ConstDecl.const_name
