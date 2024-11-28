@@ -34,10 +34,16 @@ clean:
 zip:
 	sed 's/^SRC_DIR.*/SRC_DIR := ./' Makefile | sed 's/^INC_DIR.*/INC_DIR := ./' > Makefile.tmp && \
 	mv Makefile.tmp Makefile && \
-	zip -j xrepcim00.zip Makefile src/*.c inc/*.h rozdeleni dokumentace.pdf rozsireni && \
+	zip -j xrepcim00.zip Makefile src/*.c inc/*.h doc/rozdeleni doc/dokumentace.pdf doc/rozsireni && \
 	git checkout -- Makefile
 
 cleanzip:
 	rm -f xrepcim00.zip
 
-.PHONY: all run clean zip
+test:
+	./is_it_ok.sh xrepcim00.zip testdir
+
+cleantest:
+	rm -rf testdir
+
+.PHONY: all run clean zip cleanzip
