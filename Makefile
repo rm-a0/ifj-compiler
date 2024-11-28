@@ -4,7 +4,7 @@ CFLAGS = -I$(INC_DIR) -g -O3 -pedantic -fsanitize=address
 
 # Directories
 SRC_DIR = src/
-INC_DIR = doc/
+INC_DIR = inc/
 
 # Target
 TARGET = main
