@@ -472,9 +472,9 @@ DataType deduce_data_type(ASTNode *expression, SymbolTable *global_table, ScopeS
 
     // Data type is specified
     } else {
-        // We check this to make
+
         if (expression && expression->type == AST_FN_CALL) {
-            evaluate_fn_call_type(expression, global_table, local_stack);
+            return evaluate_fn_call_type(expression, global_table, local_stack);
 
         } else {
             if (expression->type != AST_BIN_OP && expression->type != AST_NULL) {
@@ -1156,14 +1156,12 @@ void process_declaration(
         exit(SEMANTIC_ERROR_REDEF);
     }
 
-    // Check initialization
+    // When the stored value is null and the variable isnt declared as nullable (able to store null) it throws SEMANTIC_ERROR_TYPE_DERIVATION error
     if (expression->type == AST_NULL && !is_nullable) {
         fprintf(stderr, "Semantic Error: %s '%s' must have an initializing expression.\n", 
                 is_constant ? "Constant" : "Variable", name);
         exit(SEMANTIC_ERROR_TYPE_DERIVATION);
     }
-
-    
 
     // Deduce data type
     DataType data_type_stored = deduce_data_type(expression, global_table, local_stack, current_frame, data_type_declared);
