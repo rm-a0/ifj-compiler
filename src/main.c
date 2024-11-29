@@ -121,11 +121,13 @@ int main(int argc, char** argv) {
 
     destroy_lexer(&lexer);
 
-    // SymbolTable *global_table = init_symbol_table(); // Initialize global table
+    SymbolTable *global_table = init_symbol_table(); // Initialize global table
     // ScopeStack *local_stack = NULL;                  // No local scope initially
 
-    // semantic_analysis(root, global_table, local_stack);
-    // free_symbol_table(global_table);
+    semantic_analysis(root, global_table, local_stack);
+
+    generate_program(program_node, global_table);
+    free_symbol_table(global_table);
 
     free_ast_node(root);
     fprintf(stderr, "Time: %.3g\n", (double)(clock()-start)/CLOCKS_PER_SEC);
