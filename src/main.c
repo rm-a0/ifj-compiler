@@ -13,6 +13,7 @@
 #include "symtable.h"
 #include "stack.h"
 #include "ast_utils.h"
+#include "code_gen.h"
 
 #define RESET   "\x1b[0m"
 #define GREEN   "\x1b[32m"
@@ -122,11 +123,11 @@ int main(int argc, char** argv) {
     destroy_lexer(&lexer);
 
     SymbolTable *global_table = init_symbol_table(); // Initialize global table
-    // ScopeStack *local_stack = NULL;                  // No local scope initially
+    ScopeStack *local_stack = NULL;                  // No local scope initially
 
     semantic_analysis(root, global_table, local_stack);
 
-    generate_program(program_node, global_table);
+    generate_program(root, global_table);
     free_symbol_table(global_table);
 
     free_ast_node(root);

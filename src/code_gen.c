@@ -168,50 +168,6 @@ void generate_assignment(ASTNode* assignment_node) {
     printf("POPS %s@%s\n", frame, var_name);
 }
 
-void generate_expression(ASTNode* expr_node) {
-    switch (expr_node->type) {
-        case AST_INT:
-            printf("PUSHS int@%d\n", expr_node->Integer.number);
-            break;
-
-        case AST_FLOAT:
-            printf("PUSHS float@%a\n", expr_node->Float.number);
-            break;
-
-        case AST_STRING:
-            printf("PUSHS string@%s\n", escape_string(expr_node->String.string));
-            break;
-
-        case AST_IDENTIFIER: {
-            const char* var_name = expr_node->Identifier.identifier;
-
-            // Lookup the variable to get its frame
-            Symbol* sym = lookup_symbol(global_symtable, var_name);
-            if (sym == NULL) {
-                fprintf(stderr, "Error: Variable '%s' not declared.\n", var_name);
-                exit(1);
-            }
-
-            const char* frame = (sym->var.is_constant) ? "GF" : "LF"; // Simplified logic
-
-            printf("PUSHS %s@%s\n", frame, var_name);
-            break;
-        }
-
-        case AST_BIN_OP:
-            generate_expression(expr_node->BinaryOperator.left);
-            generate_expression(expr_node->BinaryOperator.right);
-            generate_binary_operation(expr_node->BinaryOperator.operator);
-            break;
-
-        // Handle other expression types
-
-        default:
-            fprintf(stderr, "Error: Unknown expression type.\n");
-            exit(1);
-    }
-}
-
 void generate_binary_operation(OperatorType operator) {
     switch (operator) {
         case AST_PLUS:
@@ -314,9 +270,9 @@ void generate_function_call(ASTNode* fn_call_node) {
         ASTNode* arg = fn_call_node->FnCall.args[i];
         generate_expression(arg->Argument.expression);
 
-        // Assume parameter names are arg1, arg2, etc.
-        char param_name[10];
-        sprintf(param_name, "arg%d", i + 1);
+        // Increase buffer size to accommodate large numbers
+        char param_name[20];
+        snprintf(param_name, sizeof(param_name), "arg%d", i + 1);
 
         // Declare parameter in TF
         printf("DEFVAR TF@%s\n", param_name);
@@ -328,6 +284,7 @@ void generate_function_call(ASTNode* fn_call_node) {
     // Call the function
     printf("CALL %s\n", fn_call_node->FnCall.fn_name);
 }
+
 
 void generate_if_else(ASTNode* if_else_node) {
     // Generate unique labels
@@ -413,7 +370,84 @@ void generate_return(ASTNode* return_node) {
     printf("POPFRAME\n");
     printf("RETURN\n");
 }
+void generate_relational_operation(OperatorType operator) {
+    switch (operator) {
+        case AST_LESS:
+            printf("LTS\n");
+            break;
+        case AST_GREATER:
+            printf("GTS\n");
+            break;
+        case AST_LESS_EQU:
+            // LE (<=): NOT GTS
+            printf("GTS\n");
+            printf("NOTS\n");
+            break;
+        case AST_GREATER_EQU:
+            // GE (>=): NOT LTS
+            printf("LTS\n");
+            printf("NOTS\n");
+            break;
+        case AST_EQU:
+            printf("EQS\n");
+            break;
+        case AST_NOT_EQU:
+            // NEQ (!=): NOT EQS
+            printf("EQS\n");
+            printf("NOTS\n");
+            break;
+        default:
+            fprintf(stderr, "Error: Unknown relational operator.\n");
+            exit(1);
+    }
+}
 
+void generate_expression(ASTNode* expr_node) {
+    switch (expr_node->type) {
+        case AST_INT:
+            printf("PUSHS int@%d\n", expr_node->Integer.number);
+            break;
 
+        case AST_FLOAT:
+            printf("PUSHS float@%a\n", expr_node->Float.number);
+            break;
 
+        case AST_STRING: {
+            char* escaped_str = escape_string(expr_node->String.string);
+            printf("PUSHS string@%s\n", escaped_str);
+            free(escaped_str);
+            break;
+        }
 
+        case AST_IDENTIFIER: {
+            const char* var_name = expr_node->Identifier.identifier;
+
+            // Lookup the variable to get its frame
+            Symbol* sym = lookup_symbol(global_symtable, var_name);
+            if (sym == NULL) {
+                fprintf(stderr, "Error: Variable '%s' not declared.\n", var_name);
+                exit(1);
+            }
+
+            const char* frame = (sym->var.is_constant) ? "GF" : "LF"; // Simplified logic
+
+            printf("PUSHS %s@%s\n", frame, var_name);
+            break;
+        }
+
+        case AST_BIN_OP:
+            generate_expression(expr_node->BinaryOperator.left);
+            generate_expression(expr_node->BinaryOperator.right);
+            generate_binary_operation(expr_node->BinaryOperator.operator);
+            break;
+
+        case AST_FN_CALL:
+            generate_function_call(expr_node);
+            // The return value is on the stack
+            break;
+
+        default:
+            fprintf(stderr, "Error: Unknown expression type.\n");
+            exit(1);
+    }
+}

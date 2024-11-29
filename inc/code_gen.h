@@ -11,6 +11,7 @@ void generate_return(ASTNode* return_node);
 char* escape_string(const char* str);
 
 // Function prototypes
+void generate_program(ASTNode* program_node, SymbolTable* symbol_table);
 void generate_block(ASTNode* block_node);
 void generate_statement(ASTNode* stmt_node);
 void generate_expression(ASTNode* expr_node);

@@ -152,7 +152,6 @@ Symbol *lookup_symbol(SymbolTable *table, const char *name) {
                                        ? table->symbols[index]->func.name
                                        : table->symbols[index]->var.name;
         if (strcmp(current_name, name) == 0) {
-            printf("got the same one!\n");
             return table->symbols[index];
         }
         index = (index + 1) % table->capacity;
