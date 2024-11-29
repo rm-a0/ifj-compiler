@@ -39,20 +39,28 @@ SymbolTable *init_symbol_table() {
 
 /* Free a symbol table */
 void free_symbol_table(SymbolTable *table) {
-    for (int i = 0; i < table->capacity; i++) {
-        if (table->symbols[i] != NULL) {
-            if (table->symbols[i]->type == SYMBOL_FUNC) {
-                free(table->symbols[i]->func.name);
-                free_scope_stack(table->symbols[i]->func.scope_stack);
-            } else if (table->symbols[i]->type == SYMBOL_VAR) {
-                free(table->symbols[i]->var.name);
-            }
-            free(table->symbols[i]);
-        }
+    if (table == NULL) {
+        return;
     }
-    free(table->symbols);
+    
+    if (table->symbols != NULL) {
+        for (int i = 0; i < table->capacity; i++) {
+            if (table->symbols[i] != NULL) {
+                if (table->symbols[i]->type == SYMBOL_FUNC) {
+                    free(table->symbols[i]->func.name);
+                    free_scope_stack(table->symbols[i]->func.scope_stack); 
+                } else if (table->symbols[i]->type == SYMBOL_VAR) {
+                    free(table->symbols[i]->var.name);
+                }
+                free(table->symbols[i]);
+            }
+        }
+        free(table->symbols);
+    }
+    
     free(table);
 }
+
 
 /* Resize the symbol table and rehash symbols */
 void resize(SymbolTable *table) {

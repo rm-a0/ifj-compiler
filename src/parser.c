@@ -81,11 +81,11 @@ int is_operator_token(Token* token) {
         token->token_type == TOKEN_MINUS ||
         token->token_type == TOKEN_MULT ||
         token->token_type == TOKEN_DIV ||
-        // Comparison operators
+
         token->token_type == TOKEN_LESS ||
-        token->token_type == TOKEN_LESS_EQU ||      // Add this line
+        token->token_type == TOKEN_LESS_EQU ||      
         token->token_type == TOKEN_GREATER ||
-        token->token_type == TOKEN_GREATER_EQU ||   // Add this line
+        token->token_type == TOKEN_GREATER_EQU ||
         token->token_type == TOKEN_EQU ||
         token->token_type == TOKEN_NOT_EQU
     );

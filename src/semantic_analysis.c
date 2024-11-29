@@ -332,6 +332,19 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
     }
 }
 
+DataType deduce_builtin_function_type(const char *fn_name) {
+    size_t built_in_count = sizeof(built_in_functions) / sizeof(built_in_functions[0]);
+    for (size_t i = 0; i < built_in_count; i++) {
+        if (strcmp(fn_name, built_in_functions[i].name) == 0) {
+            printf("is_builtin found\n");
+            return built_in_functions[i].return_type;
+        }
+    }
+
+    fprintf(stderr, "Semantic Error: Function '%s' is undefined.\n", fn_name);
+    exit(SEMANTIC_ERROR_UNDEFINED);
+}
+
 DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack, Frame *local_frame) {
 
     printf("eval\n");
@@ -378,23 +391,102 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
             // Lookup the function symbol
             Symbol *fn_symbol = lookup_symbol_in_scopes(global_table, local_stack, fn_name, local_frame);
 
-            if (!fn_symbol || fn_symbol->type != SYMBOL_FUNC) {
-                fprintf(stderr, "Semantic Error: Undefined function '%s'.\n", fn_name);
-                exit(SEMANTIC_ERROR_UNDEFINED);
+            if (!fn_symbol) {
+
+                DataType built_in_fn_data_type = deduce_builtin_function_type(fn_name);
+                return built_in_fn_data_type;
+
+            } else {
+                fn_symbol->func.used = true;
+
+                // Return the function's return type
+                printf("fn_return_type: %u\n", fn_symbol->func.type);
+                return fn_symbol->func.type;
             }
 
-            fn_symbol->func.used = true;
-
-            // Return the function's return type
-            return fn_symbol->func.type;
         }
         case AST_NULL: {
+            printf("AST_NULL_here\n");
             return AST_UNSPECIFIED;
         }
         default:
             fprintf(stderr, "Semantic Error: Unsupported expression type.\n");
             exit(SEMANTIC_ERROR_RETURN);
     }
+}
+
+
+void check_initialization(ASTNode *expression, bool is_nullable, const char *name, bool is_constant) {
+    if (expression->type == AST_NULL && !is_nullable) {
+        fprintf(stderr, "Semantic Error: %s '%s' must have an initializing expression.\n", 
+                is_constant ? "Constant" : "Variable", name);
+        exit(SEMANTIC_ERROR_TYPE_DERIVATION);
+    }
+}
+
+void check_type_compatibility(DataType data_type_declared, DataType data_type_stored, bool is_nullable, double value) {
+    if (data_type_declared != data_type_stored) {
+
+        // Check whether it is able to execute implicit conversion
+        bool is_fractionless = (data_type_declared == AST_I32 && data_type_stored == AST_F64) && (fabs(value - (int)value) < 1e-9);
+
+        // Data types dont match, isnt fractionless for implicit conversion, isnt nullable and of data type: AST_UNSPECIFIED (null)
+        if (!(is_nullable && data_type_stored == AST_UNSPECIFIED) && !is_fractionless) {
+            fprintf(stderr, "Semantic Error: Cannot assign data of type: %u to the var with defined type: %u\n", 
+                    data_type_stored, data_type_declared);
+            exit(SEMANTIC_ERROR_TYPE_COMPAT);
+        }
+    }
+}
+
+DataType evaluate_fn_call_type(ASTNode *expression, SymbolTable *global_table, ScopeStack *local_stack) {
+
+    semantic_analysis(expression, global_table, local_stack);
+    Symbol *fn_symbol = lookup_symbol(global_table, expression->FnCall.fn_name);
+    const char *fn_name = expression->FnCall.fn_name;;
+
+    if (fn_symbol) {
+        printf("fn_return_type: %u\n", fn_symbol->func.type);
+        return fn_symbol->func.type;
+    } else {
+        printf("deduce_builtin_function_type\n");
+        return deduce_builtin_function_type(fn_name);   
+    }
+
+}
+
+
+
+DataType deduce_data_type(ASTNode *expression, SymbolTable *global_table, ScopeStack *local_stack, Frame *current_frame, DataType data_type_declared) {
+    
+    // We created parent function for this because we need to evaluate expression which are FN_CALLS further, any other way we navigate to standard expression evaluation
+    if (data_type_declared == AST_UNSPECIFIED) {
+        if (expression && expression->type == AST_FN_CALL) {
+            return evaluate_fn_call_type(expression, global_table, local_stack);
+
+        } else {
+
+            // When undeclared data type we evaluate what has been stored in there and that will define its type
+            return evaluate_expression_type(expression, global_table, local_stack, current_frame);
+        }
+
+    // Data type is specified
+    } else {
+
+        if (expression && expression->type == AST_FN_CALL) {
+            return evaluate_fn_call_type(expression, global_table, local_stack);
+
+        } else {
+            if (expression->type != AST_BIN_OP && expression->type != AST_NULL) {
+                semantic_analysis(expression, global_table, local_stack);
+            }
+            
+
+            return evaluate_expression_type(expression, global_table, local_stack, current_frame);
+        }
+    }
+
+    return data_type_declared;
 }
 
 
@@ -1023,24 +1115,9 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             // Evaluate the expression type for the right-hand side of the assignment
             DataType expression_type = evaluate_expression_type(node->Assignment.expression, global_table, local_stack, current_frame);
 
-            printf("expression_type: %u\n", expression_type);
+            printf("expression type: %u, symbol->var.type: %u\n", expression_type, symbol->var.type);
 
-            bool is_fractionless = false;
-            // Check whether to allow immplicit conversion from f64 to i32 if f64 doesnt have a fractional part
-            if (symbol->var.type == AST_F64 && expression_type == AST_I32) {
-                // Perform implicit conversion check
-                printf("evaluate_fractionless_float\n");
-                is_fractionless = evaluate_fractionless_float(global_table, local_stack, identifier, current_frame); 
-            }
-
-            // Not compatible
-            if (symbol->var.type != expression_type) {
-                // Not compatible but also isnt fractionless
-                if (!(is_fractionless)) {
-                    fprintf(stderr, "Semantic Error: Type mismatch in assignment to '%s'. Expected '%d', got '%d'.\n", identifier, symbol->var.type, expression_type);
-                    exit(SEMANTIC_ERROR_TYPE_COMPAT);
-                }
-            }
+            check_type_compatibility(symbol->var.type, expression_type, symbol->var.is_nullable, symbol->var.value);
 
             break;
         }
@@ -1061,10 +1138,8 @@ void process_declaration(
     bool is_constant,
     bool is_nullable,
     double value
-)  {
-
+) {
     printf("value_var: %f\n", value);
-
     printf("VAR DECL !!!\n");
 
     // Determine the current frame
@@ -1073,125 +1148,42 @@ void process_declaration(
         current_frame = top_frame(local_stack);
     }
 
-    // Check if the variable/constant is already declared
-    Symbol *existing_symbol = lookup_symbol_in_scopes(NULL, local_stack, name, current_frame);
+    // Check if already declared
+    Symbol *existing_symbol = lookup_symbol_in_scopes(global_table, local_stack, name, current_frame);
     if (existing_symbol) {
-        fprintf(stderr, "Semantic Error: %s '%s' is already declared in the current scope.\n",
+        fprintf(stderr, "Semantic Error: %s '%s' is already declared in the current scope.\n", 
                 is_constant ? "Constant" : "Variable", name);
         exit(SEMANTIC_ERROR_REDEF);
     }
 
-    // Check for required initialization
+    // When the stored value is null and the variable isnt declared as nullable (able to store null) it throws SEMANTIC_ERROR_TYPE_DERIVATION error
     if (expression->type == AST_NULL && !is_nullable) {
-        fprintf(stderr, "Semantic Error: %s '%s' must have an initializing expression.\n",
+        fprintf(stderr, "Semantic Error: %s '%s' must have an initializing expression.\n", 
                 is_constant ? "Constant" : "Variable", name);
         exit(SEMANTIC_ERROR_TYPE_DERIVATION);
     }
-    printf("data_type_declared of var/const: %u\n", data_type_declared);
-    printf("expression->type of var/const: %u\n", expression->type);
 
-    // Deduce the data type if unspecified
+    // Deduce data type
+    DataType data_type_stored = deduce_data_type(expression, global_table, local_stack, current_frame, data_type_declared);
+    printf("data_type_stored_var: %u\n", data_type_stored);
+
+    // Data type wasnt specified in decleration
     if (data_type_declared == AST_UNSPECIFIED) {
-        if (expression && expression->type == AST_FN_CALL) {
-            // Perform semantic analysis on the function call
-            printf("seman var\n");
-            semantic_analysis(expression, global_table, local_stack);
 
-            // Deduce the return type of the function
-            Symbol *fn_symbol = lookup_symbol(global_table, expression->FnCall.fn_name);
-            if (fn_symbol && fn_symbol->type == SYMBOL_FUNC) {
-                data_type_declared = fn_symbol->func.type;
-            } else {
-                // Check if it's a built-in function
-                bool is_builtin = false;
-                size_t built_in_count = sizeof(built_in_functions) / sizeof(built_in_functions[0]);
-                for (size_t i = 0; i < built_in_count; i++) {
-                    if (strcmp(expression->FnCall.fn_name, built_in_functions[i].name) == 0) {
-                        is_builtin = true;
-                        printf("builtin=true");
-                        data_type_declared = built_in_functions[i].return_type;
-                        break;
-                    }
-                }
-
-                if (!is_builtin) {
-                    fprintf(stderr, "Semantic Error: Function '%s' is undefined.\n", expression->FnCall.fn_name);
-                    exit(SEMANTIC_ERROR_UNDEFINED);
-                }
-            }
-        // Not function call in expression
-        } else {
-            data_type_declared = evaluate_expression_type(expression, global_table, local_stack, current_frame);
+        // When data type wasnt specified and variable isnt assigned null value, we can assign variable a data type of expression
+        if (data_type_stored != AST_UNSPECIFIED) {
+            data_type_declared = data_type_stored;
         }
 
-        if (data_type_declared == AST_UNSPECIFIED) {
-            fprintf(stderr, "Semantic Error: Cannot deduce type for %s '%s'.\n",
-                    is_constant ? "constant" : "variable", name);
-            exit(SEMANTIC_ERROR_TYPE_DERIVATION);
-        }
-    } else {
-        printf("errefdkfb\n");
-        // Check if declaration of var or const with defined data type corresponds to the actual data stored in it
-        if (expression && expression->type == AST_FN_CALL) {
-            // Perform semantic analysis on the function call
-            printf("seman var\n");
-            semantic_analysis(expression, global_table, local_stack);
-
-            // Deduce the return type of the function
-            Symbol *fn_symbol = lookup_symbol(global_table, expression->FnCall.fn_name);
-            if (fn_symbol && fn_symbol->type == SYMBOL_FUNC) {
-                data_type_declared = fn_symbol->func.type;
-            } else {
-                // Check if it's a built-in function
-                bool is_builtin = false;
-                size_t built_in_count = sizeof(built_in_functions) / sizeof(built_in_functions[0]);
-                for (size_t i = 0; i < built_in_count; i++) {
-                    if (strcmp(expression->FnCall.fn_name, built_in_functions[i].name) == 0) {
-                        is_builtin = true;
-                        printf("builtin=true\n");
-                        data_type_declared = built_in_functions[i].return_type;
-                        break;
-                    }
-                }
-
-                if (!is_builtin) {
-                    fprintf(stderr, "Semantic Error: Function '%s' is undefined.\n", expression->FnCall.fn_name);
-                    exit(SEMANTIC_ERROR_UNDEFINED);
-                }
-            }
-        // Not function call in expression
-        } else {
-            DataType data_type_stored = evaluate_expression_type(expression, global_table, local_stack, current_frame);
-
-            printf("data_type_stored %u\n", data_type_stored);
-
-            // We check if the expression type isn't AST_BIN_OP because when it is we should perform sem. ana. on literal
-            if (expression->type != AST_BIN_OP && expression->type != AST_NULL) {
-                semantic_analysis(expression, global_table, local_stack);
-            }
-            
-            // Performing check if data stored is equal to data declared, unless the data stored is of AST_INSPECIFIED type (null)
-            // in that case they can differ but only when the var is not nullable or data_type_stored is not AST_INSPECIFIED (null)
-            if (data_type_declared != data_type_stored) {
-                bool is_fractionless2 = data_type_declared == AST_I32 && data_type_stored == AST_F64;
-
-                bool is_fractionless = (is_fractionless2) && (fabs(value - (int)value) < 1e-9);
-                    
-                printf("is_fractionless_var %d\n", is_fractionless);
-
-                // Don't match, isnt fractionless, not nullable nor null
-                if (!(is_nullable && data_type_stored == AST_UNSPECIFIED) && !is_fractionless) {
-                    fprintf(stderr, "Semantic Error: Cannot assign data of type: %u to the var with defined type: %u\n", data_type_stored, data_type_declared);
-                    exit(SEMANTIC_ERROR_TYPE_COMPAT);
-                }
-            }
-        }
     }
+
+    // Perform type compatibility check
+    check_type_compatibility(data_type_declared, data_type_stored, is_nullable, value);
 
     // Add the variable/constant to the appropriate symbol table
     if (local_stack && local_stack->top >= 0) {
-        Frame *current_frame = top_frame(local_stack);
         if (current_frame && current_frame->symbol_table) {
+            printf("data_type_declared_here: %u\n", data_type_declared);
             add_variable_symbol(current_frame->symbol_table, name, data_type_declared, is_constant, value);
         } else {
             fprintf(stderr, "Internal Error: No valid scope to declare %s '%s'.\n",
@@ -1199,12 +1191,15 @@ void process_declaration(
             exit(INTERNAL_ERROR);
         }
     } else {
+        // TODO: erase global scope
         // Global scope
         add_variable_symbol(global_table, name, data_type_declared, is_constant, value);
     }
 
+    // Set the nullable flag
     Symbol *new_symbol = lookup_symbol_in_scopes(global_table, local_stack, name, current_frame);
     if (new_symbol) {
         new_symbol->var.is_nullable = is_nullable;
     }
 }
+
