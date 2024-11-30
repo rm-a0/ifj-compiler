@@ -331,17 +331,18 @@ void generate_code_in_node(ASTNode* node){
 
                 // Pridanie pomocných premenných
                 char temp_s[32], temp_i[32], temp_j[32], temp_result[32], temp_char[32];
-                snprintf(temp_s, sizeof(temp_s), "LF@tmp_s_%d", tmp_counter++);
-                snprintf(temp_i, sizeof(temp_i), "LF@tmp_i_%d", tmp_counter++);
-                snprintf(temp_j, sizeof(temp_j), "LF@tmp_j_%d", tmp_counter++);
-                snprintf(temp_result, sizeof(temp_result), "LF@tmp_result_%d", tmp_counter++);
-                snprintf(temp_char, sizeof(temp_char), "LF@tmp_char_%d", tmp_counter++);
+                snprintf(temp_s, sizeof(temp_s), "LF@tmp_s_%d", tmp_counter);
+                snprintf(temp_i, sizeof(temp_i), "LF@tmp_i_%d", tmp_counter);
+                snprintf(temp_j, sizeof(temp_j), "LF@tmp_j_%d", tmp_counter);
+                snprintf(temp_char, sizeof(temp_char), "LF@tmp_char_%d", tmp_counter);
+                snprintf(temp_result, sizeof(temp_result), "LF@tmp_result_%d", tmp_counter);
 
                 printf("DEFVAR %s\n", temp_s);
                 printf("DEFVAR %s\n", temp_i);
                 printf("DEFVAR %s\n", temp_j);
-                printf("DEFVAR %s\n", temp_result);
                 printf("DEFVAR %s\n", temp_char);
+                printf("DEFVAR %s\n", temp_result);
+
 
                 // Uloženie argumentov do pomocných premenných
                 printf("POPS %s\n", temp_j);
@@ -352,7 +353,8 @@ void generate_code_in_node(ASTNode* node){
                 printf("MOVE %s string@\n", temp_result);
 
                 // Kontroly pre validáciu
-                printf("PUSHS %s\n", temp_i);
+                // neviem či to máme kontrolovať ??
+               /* printf("PUSHS %s\n", temp_i);
                 printf("PUSHS int@0\n");
                 printf("LTS\n");
                 printf("JUMPIFNEQ invalid_substring\n");
@@ -365,9 +367,9 @@ void generate_code_in_node(ASTNode* node){
                 printf("PUSHS %s\n", temp_i);
                 printf("PUSHS %s\n", temp_j);
                 printf("GTS\n");
-                printf("JUMPIFNEQ invalid_substring\n");
+                printf("JUMPIFNEQ invalid_substring\n");*/
 
-                printf("STRLEN %s %s\n", temp_char, temp_s); // Dĺžka reťazca
+                /*printf("STRLEN %s %s\n", temp_char, temp_s); // Dĺžka reťazca
                 printf("PUSHS %s\n", temp_i);
                 printf("PUSHS %s\n", temp_char);
                 printf("GTS\n");
@@ -376,29 +378,32 @@ void generate_code_in_node(ASTNode* node){
                 printf("PUSHS %s\n", temp_j);
                 printf("PUSHS %s\n", temp_char);
                 printf("GTS\n");
-                printf("JUMPIFNEQ invalid_substring\n");
+                printf("JUMPIFNEQ invalid_substring\n");*/
 
                 // Ak je validné, vytvor substring
-                printf("LABEL substring_loop_start\n");
+                printf("LABEL substring_loop_start_%i\n", while_counter);
                 printf("PUSHS %s\n", temp_i);
                 printf("PUSHS %s\n", temp_j);
                 printf("LTS\n");
-                printf("JUMPIFNEQ substring_loop_end\n");
+                printf("PUSHS bool@false\n");
+                printf("JUMPIFEQS substring_loop_end_%i\n", while_counter);
 
                 printf("GETCHAR %s %s %s\n", temp_char, temp_s, temp_i); // Získanie znaku na indexe `i`
                 printf("CONCAT %s %s %s\n", temp_result, temp_result, temp_char); // Pridanie znaku do výsledku
                 printf("ADD %s %s int@1\n", temp_i, temp_i); // Zvýšenie `i`
-                printf("JUMP substring_loop_start\n");
+                printf("JUMP substring_loop_start_%i\n", while_counter);
 
-                printf("LABEL substring_loop_end\n");
+                printf("LABEL substring_loop_end_%i\n", while_counter);
                 printf("PUSHS %s\n", temp_result); // Push výsledný substring na zásobník
-                printf("JUMP end_substring\n");
+                /*printf("JUMP end_substring\n");
 
                 // Neplatný podreťazec
                 printf("LABEL invalid_substring\n");
                 printf("PUSHS nil@nil\n");
 
-                printf("LABEL end_substring\n");
+                printf("LABEL end_substring\n");*/
+
+                while_counter++;
                 break;
             }
             if (strcmp(fn_name, "ifj.strcmp") == 0) {
@@ -705,7 +710,7 @@ void generate_code_in_node(ASTNode* node){
                 case AST_FLOAT:
                 case AST_STRING: {
                     // Porovnanie s nil
-                    printf("PUSHS int@0\n");
+                    printf("PUSHS nil@nil\n");
                     printf("JUMPIFEQS while_end_%d\n", current_while);
                     break;
                 }
