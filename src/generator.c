@@ -413,20 +413,43 @@ void generate_code_in_node(ASTNode* node){
 
                 // Create a temporary variable for comparison result
                 char temp_var[32];
-                snprintf(temp_var, sizeof(temp_var), "LF@tmp_cmp_%d", tmp_counter++);
+                snprintf(temp_var, sizeof(temp_var), "LF@tmp_cmp_%d", tmp_counter);
                 printf("DEFVAR %s\n", temp_var);
+                char temp_label_equal[32], temp_label_greater[32], temp_label_end[32];
+                snprintf(temp_label_equal, sizeof(temp_label_equal), "strcmp_equal_%d", tmp_counter);
+                snprintf(temp_label_greater, sizeof(temp_label_greater), "strcmp_greater_%d", tmp_counter);
+                snprintf(temp_label_end, sizeof(temp_label_end), "strcmp_end_%d", tmp_counter);
+                tmp_counter++;
+
 
                 // Compare the strings
-                printf("JUMPIFEQS strcmp_equal_%d\n", tmp_counter);
+                printf("JUMPIFEQS %s\n", temp_label_equal);
+
+                // If s1 < s2
                 printf("LT %s %s%s %s%s\n", temp_var,
                        frame_prefix(node->FnCall.args[0]->Argument.expression->Identifier.identifier),
                        node->FnCall.args[0]->Argument.expression->Identifier.identifier,
                        frame_prefix(node->FnCall.args[1]->Argument.expression->Identifier.identifier),
                        node->FnCall.args[1]->Argument.expression->Identifier.identifier);
-                printf("JUMP strcmp_end_%d\n", tmp_counter);
-                printf("LABEL strcmp_equal_%d\n", tmp_counter);
+                printf("PUSHS %s\n", temp_var);
+                printf("PUSHS bool@true\n");
+                printf("JUMPIFNEQS %s\n", temp_label_greater);
+
+                // Set temp_var to -1 (s1 < s2)
+                printf("MOVE %s int@-1\n", temp_var);
+                printf("JUMP %s\n", temp_label_end);
+
+                // If s1 == s2
+                printf("LABEL %s\n", temp_label_equal);
                 printf("MOVE %s int@0\n", temp_var);
-                printf("LABEL strcmp_end_%d\n", tmp_counter);
+                printf("JUMP %s\n", temp_label_end);
+
+                // If s1 > s2
+                printf("LABEL %s\n", temp_label_greater);
+                printf("MOVE %s int@1\n", temp_var);
+
+                // End label
+                printf("LABEL %s\n", temp_label_end);
 
                 // Push the result
                 printf("PUSHS %s\n", temp_var);
