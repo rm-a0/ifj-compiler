@@ -1194,10 +1194,6 @@ void process_declaration(
                     is_constant ? "constant" : "variable", name);
             exit(INTERNAL_ERROR);
         }
-    } else {
-        // TODO: erase global scope
-        // Global scope
-        add_variable_symbol(global_table, name, data_type_declared, is_constant, value);
     }
 
     // Set the nullable flag
