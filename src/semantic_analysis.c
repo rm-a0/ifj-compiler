@@ -231,17 +231,38 @@ bool evaluate_fractionless_float (SymbolTable *global_table, ScopeStack *local_s
     return false;
 }
 
+bool evaluate_nullable_identifier(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack, Frame *local_frame) {
+
+    printf("got here\n");
+    printf("node->type: %u\n", node->type);
+    Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, node->Identifier.identifier, local_frame);
+    printf("got here2\n");
+
+    bool is_nullable = false;
+    if (symbol->type == SYMBOL_VAR) {
+        is_nullable = symbol->var.is_nullable;
+    } else {
+        is_nullable = symbol->func.is_nullable;
+    }
+
+    return is_nullable;
+}
+
 DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack, Frame *local_frame) {
 
-    // Ensure the node is of type AST_BIN_OP
-    if (node->type != AST_BIN_OP) {
-        fprintf(stderr, "Internal Error: Node is not a binary operator.\n");
-        exit(INTERNAL_ERROR);
-    }
+    bool left_is_nullable = false;
+    bool right_is_nullable = false;
 
     // Evaluate the left and right operand types
     DataType left_type = evaluate_expression_type(node->BinaryOperator.left, global_table, local_stack, local_frame);
+    if (node->BinaryOperator.left->type == AST_IDENTIFIER) {
+        left_is_nullable = evaluate_nullable_identifier(node->BinaryOperator.left, global_table, local_stack, local_frame);
+    }
+
     DataType right_type = evaluate_expression_type(node->BinaryOperator.right, global_table, local_stack, local_frame);
+    if (node->BinaryOperator.right->type == AST_IDENTIFIER) {
+        right_is_nullable = evaluate_nullable_identifier(node->BinaryOperator.right, global_table, local_stack, local_frame);
+    }
 
     printf("left_type: %u, right_type: %u\n", left_type, right_type);
 
@@ -254,8 +275,8 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
         case AST_MINUS:
         case AST_MUL:
         case AST_DIV:
-            // Arithmetic operators
 
+            // Arithmetic operators
             if ((left_type == AST_I32 && right_type == AST_I32) || 
                 (left_type == AST_F64 && right_type == AST_F64)) {
                 return left_type;
@@ -292,6 +313,12 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
         case AST_LESS_EQU:
         case AST_EQU:
         case AST_NOT_EQU:
+
+            if ((left_is_nullable || right_is_nullable) && (operator != AST_EQU && operator != AST_NOT_EQU)) {
+                fprintf(stderr, "Semantic Error: Nullable identifier is used in binary operator comparison where operator is not AST_EQU or AST_NOT_EQU\n");
+                exit(SEMANTIC_ERROR_TYPE_COMPAT);
+            }
+
             // Relational operators
             if ((left_type == AST_I32 && right_type == AST_I32) || (left_type == AST_F64 && right_type == AST_F64)) {
                 // Relational operator returns a boolean result
@@ -315,12 +342,20 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
                     if (fractionless_right)  {
                         return AST_I32;
                     }
-                } else if ((left_type == AST_UNSPECIFIED && right_type != AST_UNSPECIFIED) || (left_type != AST_UNSPECIFIED && right_type == AST_UNSPECIFIED)) {
-                    
-                    fprintf(stderr, "Semantic Error: Incompatible types for relational operation. Left: %d, Right: %d\n", left_type, right_type);
-                    exit(SEMANTIC_ERROR_TYPE_COMPAT);
+
+                // left is not nullable 
+                } else {
+                    if (left_is_nullable && right_type == AST_UNSPECIFIED) {
+                        return AST_I32;
+                    } else if (right_is_nullable && left_type == AST_UNSPECIFIED) {
+                        return AST_I32;
+                    } else if (right_is_nullable && left_is_nullable) {
+                        return AST_I32;
+                    }
                 }
                 
+            // When left side is nullable and it stores 
+
             } else {
                 fprintf(stderr, "Semantic Error: Incompatible types for relational operation. Left: %d, Right: %d\n", left_type, right_type);
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
@@ -361,6 +396,7 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
             return AST_SLICE;
         } case AST_IDENTIFIER: { 
             Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, node->Identifier.identifier, local_frame);
+            printf("is_symbol!\n");
             if (!symbol) {
                 fprintf(stderr, "Semantic Error: Undefined symbol '%s'.\n", node->Identifier.identifier);
                 exit(SEMANTIC_ERROR_UNDEFINED);
@@ -370,7 +406,8 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
             if (symbol->type == SYMBOL_VAR) {
                 symbol->var.used = true;
             }
-
+            
+            printf("returned symbol->var.type\n");
             return symbol->var.type;
         }
         case AST_BIN_OP: {
