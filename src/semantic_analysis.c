@@ -429,13 +429,12 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
             Symbol *fn_symbol = lookup_symbol_in_scopes(global_table, local_stack, fn_name, local_frame);
 
             if (!fn_symbol) {
-
+                printf("not found symbol\n");
                 DataType built_in_fn_data_type = deduce_builtin_function_type(fn_name);
                 return built_in_fn_data_type;
 
             } else {
-                fn_symbol->func.used = true;
-
+                semantic_analysis(node, global_table, local_stack);
                 // Return the function's return type
                 printf("fn_return_type: %u\n", fn_symbol->func.type);
                 return fn_symbol->func.type;
@@ -494,42 +493,6 @@ DataType evaluate_fn_call_type(ASTNode *expression, SymbolTable *global_table, S
     }
 
 }
-
-
-
-DataType deduce_data_type(ASTNode *expression, SymbolTable *global_table, ScopeStack *local_stack, Frame *current_frame, DataType data_type_declared) {
-    
-    // We created parent function for this because we need to evaluate expression which are FN_CALLS further, any other way we navigate to standard expression evaluation
-    if (data_type_declared == AST_UNSPECIFIED) {
-        if (expression && expression->type == AST_FN_CALL) {
-            return evaluate_fn_call_type(expression, global_table, local_stack);
-
-        } else {
-
-            // When undeclared data type we evaluate what has been stored in there and that will define its type
-            return evaluate_expression_type(expression, global_table, local_stack, current_frame);
-        }
-
-    // Data type is specified
-    } else {
-
-        if (expression && expression->type == AST_FN_CALL) {
-            return evaluate_fn_call_type(expression, global_table, local_stack);
-
-        } else {
-            if (expression->type != AST_BIN_OP && expression->type != AST_NULL) {
-                semantic_analysis(expression, global_table, local_stack);
-            }
-            
-
-            return evaluate_expression_type(expression, global_table, local_stack, current_frame);
-        }
-    }
-
-    return data_type_declared;
-}
-
-
 
 void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack) {
     printf("node: %u\n", node->type);
@@ -1205,7 +1168,7 @@ void process_declaration(
     }
 
     // Deduce data type
-    DataType data_type_stored = deduce_data_type(expression, global_table, local_stack, current_frame, data_type_declared);
+    DataType data_type_stored = evaluate_expression_type(expression, global_table, local_stack, current_frame);
     printf("data_type_stored_var: %u\n", data_type_stored);
 
     // Data type wasnt specified in decleration
