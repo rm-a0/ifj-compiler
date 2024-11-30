@@ -22,7 +22,7 @@ void label(const char* label_name);
 void gen_create_frame();
 void gen_push_frame();
 void gen_pop_frame();
-void def_var(const char* var, const char* frame_type);
+void def_var(const char* var);
 void move(const char* var, const char* symb);
 void call(const char* func);
 void return_f();

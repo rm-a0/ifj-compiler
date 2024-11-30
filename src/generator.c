@@ -98,14 +98,14 @@ void generate_code_in_node(ASTNode* node){
                     print_new_line();
                 }
                 else if(node->Program.declarations[i]->type == AST_VAR_DECL)  {
-                    def_var(node->Program.declarations[i]->VarDecl.var_name, "gf");
+                    def_var(node->Program.declarations[i]->VarDecl.var_name);
                     add_to_global(node->Program.declarations[i]->VarDecl.var_name);
                     if (node->Program.declarations[i]->VarDecl.expression) {
                         generate_code_in_node(node->Program.declarations[i]->VarDecl.expression);
                         pops(node->Program.declarations[i]->VarDecl.var_name);
                     }
                 } else if(node->Program.declarations[i]->type == AST_CONST_DECL) {
-                    def_var(node->Program.declarations[i]->ConstDecl.const_name, "gf");
+                    def_var(node->Program.declarations[i]->ConstDecl.const_name);
                     add_to_global(node->Program.declarations[i]->ConstDecl.const_name);
                     if (node->Program.declarations[i]->ConstDecl.expression) {
                         generate_code_in_node(node->Program.declarations[i]->ConstDecl.expression);
@@ -126,7 +126,7 @@ void generate_code_in_node(ASTNode* node){
 
         case AST_FN_DECL:
             for (int i = 0; i < node->FnDecl.param_count; ++i) {
-                def_var(node->FnDecl.params[i]->Param.identifier, "lf");
+                def_var(node->FnDecl.params[i]->Param.identifier);
                 add_to_local(node->FnDecl.params[i]->Param.identifier);
                 pops(node->FnDecl.params[i]->Param.identifier);
             }
@@ -134,14 +134,14 @@ void generate_code_in_node(ASTNode* node){
             break;
 
         case AST_PARAM:
-            def_var(node->Param.identifier, "lf");
+            def_var(node->Param.identifier);
             add_to_local(node->Param.identifier);
             // ?? neviem ci toto tu nie je zbytocne
             break;
 
         case AST_VAR_DECL:
             if (!(is_it_global(node->VarDecl.var_name) || is_it_local(node->VarDecl.var_name))){
-                def_var(node->VarDecl.var_name, "lf");
+                def_var(node->VarDecl.var_name);
                 add_to_local(node->VarDecl.var_name);
             }
 
@@ -195,7 +195,7 @@ void generate_code_in_node(ASTNode* node){
 
         case AST_CONST_DECL:
             if (!(is_it_global(node->VarDecl.var_name) || is_it_local(node->VarDecl.var_name))){
-                def_var(node->VarDecl.var_name, "lf");
+                def_var(node->VarDecl.var_name);
                 add_to_local(node->VarDecl.var_name);
             }
             if (node->ConstDecl.expression) {
@@ -262,7 +262,7 @@ void generate_code_in_node(ASTNode* node){
                         const char* arg2 = block_node->VarDecl.expression->FnCall.args[1]->Argument.expression->Identifier.identifier;
 
                         if (!(is_it_global(result) || is_it_local(result))) {
-                            def_var(result, "lf");
+                            def_var(result);
                             add_to_local(result);
                         }
                         //if(block_node->VarDecl.expression->FnCall.args[0]->type == AST_ARG){
@@ -286,7 +286,7 @@ void generate_code_in_node(ASTNode* node){
                         const char* arg1 = block_node->VarDecl.expression->FnCall.args[0]->Argument.expression->Identifier.identifier;
 
                         if (!(is_it_global(result) || is_it_local(result))) {
-                            def_var(result, "lf");
+                            def_var(result);
                             add_to_local(result);
                         }
                         if(block_node->VarDecl.expression->FnCall.args[0]->type == AST_ARG){
@@ -327,7 +327,7 @@ void generate_code_in_node(ASTNode* node){
                 generate_code_in_node(node->FnCall.args[0]->Argument.expression);
                 char temp_var[32];
                 snprintf(temp_var, sizeof(temp_var), "LF@tmp_length_%d", tmp_counter++);
-                printf("DEFVAR %s\n", temp_var);
+                def_var(temp_var);
                 printf("STRLEN %s %s%s\n", temp_var,
                        frame_prefix(node->FnCall.args[0]->Argument.expression->Identifier.identifier),
                        node->FnCall.args[0]->Argument.expression->Identifier.identifier);
@@ -348,11 +348,11 @@ void generate_code_in_node(ASTNode* node){
                 snprintf(temp_char, sizeof(temp_char), "LF@tmp_char_%d", tmp_counter);
                 snprintf(temp_result, sizeof(temp_result), "LF@tmp_result_%d", tmp_counter);
 
-                printf("DEFVAR %s\n", temp_s);
-                printf("DEFVAR %s\n", temp_i);
-                printf("DEFVAR %s\n", temp_j);
-                printf("DEFVAR %s\n", temp_char);
-                printf("DEFVAR %s\n", temp_result);
+                def_var(temp_s);
+                def_var(temp_i);
+                def_var(temp_j);
+                def_var(temp_char);
+                def_var(temp_result);
 
 
                 // Uloženie argumentov do pomocných premenných
@@ -425,7 +425,7 @@ void generate_code_in_node(ASTNode* node){
                 // Create a temporary variable for comparison result
                 char temp_var[32];
                 snprintf(temp_var, sizeof(temp_var), "LF@tmp_cmp_%d", tmp_counter);
-                printf("DEFVAR %s\n", temp_var);
+                def_var(temp_var);
                 char temp_label_equal[32], temp_label_greater[32], temp_label_end[32];
                 snprintf(temp_label_equal, sizeof(temp_label_equal), "strcmp_equal_%d", tmp_counter);
                 snprintf(temp_label_greater, sizeof(temp_label_greater), "strcmp_greater_%d", tmp_counter);
@@ -474,7 +474,7 @@ void generate_code_in_node(ASTNode* node){
                 // Create a temporary variable for the result
                 char temp_var[32];
                 snprintf(temp_var, sizeof(temp_var), "LF@tmp_ord_%d", tmp_counter++);
-                printf("DEFVAR %s\n", temp_var);
+                def_var(temp_var);
 
                 // Get the character and convert to ASCII
                 printf("STRI2INT %s %s%s %s%s\n", temp_var,
@@ -494,7 +494,7 @@ void generate_code_in_node(ASTNode* node){
                 // Create a temporary variable for the result
                 char temp_var[32];
                 snprintf(temp_var, sizeof(temp_var), "LF@tmp_chr_%d", tmp_counter++);
-                printf("DEFVAR %s\n", temp_var);
+                def_var(temp_var);
 
                 // Convert ASCII to character
                 printf("INT2CHAR %s %s%s\n", temp_var,
@@ -546,13 +546,16 @@ void generate_code_in_node(ASTNode* node){
                                expression->Identifier.identifier);
                         break;
                     case AST_BIN_OP:
-                    case AST_FN_CALL:
+                    case AST_FN_CALL: {
                         generate_code_in_node(expression);
-                        printf("DEFVAR LF@tm_write%i\n", tmp_counter);
+                        char temp_var[32];
+                        snprintf(temp_var, sizeof(temp_var), "tm_write%d", tmp_counter);
+                        //printf("DEFVAR LF@tm_write%i\n", tmp_counter);
                         printf("POPS LF@tm_write%i\n", tmp_counter);
                         printf("WRITE LF@tm_write%i\n", tmp_counter);
                         tmp_counter++;
                         break;
+                    }
                     default:
                         fprintf(stderr, "ERROR: Unsupported argument type for ifj.write\n");
                         exit(99);
@@ -632,7 +635,7 @@ void generate_code_in_node(ASTNode* node){
             // Definícia pre element_bind, ak existuje
             if (node->WhileCycle.element_bind != NULL) {
                 if(!(is_it_local(node->WhileCycle.element_bind))){
-                    printf("DEFVAR LF@%s\n", node->WhileCycle.element_bind);
+                    def_var(node->WhileCycle.element_bind);    //printf("DEFVAR LF@%s\n", node->WhileCycle.element_bind);
                     add_to_local(node->WhileCycle.element_bind);
                 }
             }
@@ -710,12 +713,22 @@ void generate_code_in_node(ASTNode* node){
             if(node->BinaryOperator.operator == AST_DIV){
                 generate_code_in_node(node->BinaryOperator.left);
                 generate_code_in_node(node->BinaryOperator.right);
-                printf("DEFVAR LF@tmp_div_2_%i\n", tmp_counter);        //129
-                printf("DEFVAR LF@tmp_type_2_%i\n", tmp_counter);       //129
+                char temp_d_2[32], temp_t_2[32], temp_d_1[32], temp_t_1[32], temp_d_4[32], temp_d_3[32], temp_t_3[32];
+                snprintf(temp_d_2, sizeof(temp_d_2), "tmp_div_2_%d", tmp_counter);
+                snprintf(temp_t_2, sizeof(temp_t_2), "tmp_type_2_%d", tmp_counter);
+                snprintf(temp_d_1, sizeof(temp_d_1), "tmp_div_1_%d", tmp_counter);
+                snprintf(temp_t_1, sizeof(temp_t_1), "tmp_type_1_%d", tmp_counter);
+                snprintf(temp_d_4, sizeof(temp_d_4), "tmp_div_4_%d", tmp_counter);
+                snprintf(temp_d_3, sizeof(temp_d_3), "tmp_div_3_%d", tmp_counter);
+                snprintf(temp_t_3, sizeof(temp_t_3), "tmp_type_3_%d", tmp_counter);
+
+
+                def_var(temp_d_2);      //printf("DEFVAR LF@tmp_div_2_%i\n", tmp_counter);        //129
+                def_var(temp_t_2);      //printf("DEFVAR LF@tmp_type_2_%i\n", tmp_counter);       //129
                 printf("POPS LF@tmp_div_2_%i\n", tmp_counter);           //129
                 printf("TYPE LF@tmp_type_2_%i LF@tmp_div_2_%i\n", tmp_counter, tmp_counter); //129
-                printf("DEFVAR LF@tmp_div_1_%i\n", tmp_counter);        //129
-                printf("DEFVAR LF@tmp_type_1_%i\n", tmp_counter);       //129
+                def_var(temp_d_1);      //printf("DEFVAR LF@tmp_div_1_%i\n", tmp_counter);        //129
+                def_var(temp_t_1);      //printf("DEFVAR LF@tmp_type_1_%i\n", tmp_counter);       //129
                 printf("POPS LF@tmp_div_1_%i\n", tmp_counter);           //129
                 printf("TYPE LF@tmp_type_1_%i LF@tmp_div_1_%i\n", tmp_counter, tmp_counter); //129
                 printf("PUSHS LF@tmp_div_1_%i\n", tmp_counter);          //129
@@ -728,11 +741,11 @@ void generate_code_in_node(ASTNode* node){
                 printf("LABEL label_div_2_%i\n", tmp_counter);          //129
                 printf("DIVS\n");
                 tmp_counter++;
-                printf("DEFVAR LF@tmp_div_4_%i\n", tmp_counter - 1 );        //129
+                def_var(temp_d_4);      //printf("DEFVAR LF@tmp_div_4_%i\n", tmp_counter - 1 );        //129
                 //printf("DEFVAR LF@tmp_type_4_%i\n", tmp_counter - 1 );       //129
                 printf("POPS LF@tmp_div_4_%i\n", tmp_counter - 1 );           //129
-                printf("DEFVAR LF@tmp_div_3_%i\n", tmp_counter - 1 );        //129
-                printf("DEFVAR LF@tmp_type_3_%i\n", tmp_counter - 1 );       //129
+                def_var(temp_d_3);      //printf("DEFVAR LF@tmp_div_3_%i\n", tmp_counter - 1 );        //129
+                def_var(temp_t_3);      //printf("DEFVAR LF@tmp_type_3_%i\n", tmp_counter - 1 );       //129
                 printf("POPS LF@tmp_div_3_%i\n", tmp_counter - 1 );           //129
                 printf("TYPE LF@tmp_type_3_%i LF@tmp_div_3_%i\n", tmp_counter - 1, tmp_counter - 1); //129
                 printf("PUSHS LF@tmp_div_3_%i\n", tmp_counter - 1);          //129
@@ -779,7 +792,7 @@ void generate_code_in_node(ASTNode* node){
             // Definícia element_bind, ak existuje
             if (node->WhileCycle.element_bind != NULL) {
                 if(!(is_it_local(node->WhileCycle.element_bind))){
-                    printf("DEFVAR LF@%s\n", node->WhileCycle.element_bind);
+                    def_var(node->WhileCycle.element_bind);
                     add_to_local(node->WhileCycle.element_bind);
                 }
 

@@ -76,21 +76,8 @@ void gen_push_frame(){
 void gen_pop_frame(){
     printf("POPFRAME\n");
 }
-void def_var(const char* var_name, const char* frame_type) {
-    if (strcmp(frame_type, "lf") == 0) {
-        printf("DEFVAR LF@%s\n", var_name);
-        //add_to_local((char*)var_name);
-    } else if (strcmp(frame_type, "gf") == 0) {
-        if (!is_it_global((char*)var_name)) {
-            add_to_global((char*)var_name);
-            printf("DEFVAR GF@%s\n", var_name);
-        } else {
-            //fprintf(stderr, "WARNING: Global variable '%s' already defined, skipping.\n", var_name);
-        }
-    } else {
-        fprintf(stderr, "\033[31mERROR: Invalid frame type '%s' in def_var with '%s'\n\033[0m", frame_type, var_name);
-        exit(53);
-    }
+void def_var(const char* var_name) {
+    printf("DEFVAR LF@%s\n", var_name);
 }
 void move(const char* var, const char* symb) {
     printf("MOVE %s%s %s\n", frame_prefix(var), var, symb);
