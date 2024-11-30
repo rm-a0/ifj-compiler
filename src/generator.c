@@ -13,9 +13,67 @@
 char* gf_vars[MAX_GF_VAR_COUNT] = {NULL};   // Inicializácia všetkých prvkov na NULL
 char* lf_vars[MAX_LF_VAR_COUNT] = {NULL};   // Inicializácia všetkých prvkov na NULL
 
-static int if_counter = 1420; // Počiatočné číslovanie pre unikátne labely
-static int while_counter = 1420; // Počiatočné číslovanie pre unikátne labely
-static int tmp_counter = 128; // Počiatočné číslovanie pre unikátne premenné
+static int if_counter = 1420;       // Počiatočné číslovanie pre unikátne labely
+static int while_counter = 1420;    // Počiatočné číslovanie pre unikátne labely
+int tmp_counter = 128;       // Počiatočné číslovanie pre unikátne premenné
+
+int get_tmp_counter() {
+    return tmp_counter;
+}
+
+void increment_tmp_counter() {
+    tmp_counter++;
+}
+
+
+
+WhileStack while_stack = { .top = NULL };    // Globálny zásobník pre while cykly
+
+// Pridanie čísla while-u do globálneho zásobníka
+void add_while_stack(int while_number) {
+    WhileStackNode *new_node = (WhileStackNode *)malloc(sizeof(WhileStackNode));
+    if (!new_node) {
+        fprintf(stderr, "Chyba: Nepodarilo sa alokovať pamäť pre uzol zásobníka.\n");
+        exit(99); // Interná chyba
+    }
+    new_node->while_number = while_number;
+    new_node->next = while_stack.top;
+    while_stack.top = new_node;
+}
+
+// Odstránenie čísla while-u z globálneho zásobníka
+void remove_while_stack() {
+    if (while_stack.top == NULL) {
+        fprintf(stderr, "Chyba: Zásobník while cyklov je prázdny.\n");
+        exit(99); // Interná chyba
+    }
+    WhileStackNode *temp = while_stack.top;
+    while_stack.top = while_stack.top->next;
+    free(temp);
+}
+
+// Získanie aktuálneho čísla while-u z globálneho zásobníka
+int actual_while() {
+    if (while_stack.top == NULL) {
+        fprintf(stderr, "Chyba: Zásobník while cyklov je prázdny.\n");
+        exit(99); // Interná chyba
+    }
+    return while_stack.top->while_number;
+}
+
+// Uvoľnenie celého zásobníka
+void free_while_stack() {
+    WhileStackNode *current = while_stack.top;
+    while (current) {
+        WhileStackNode *temp = current;
+        current = current->next;
+        free(temp);
+    }
+    while_stack.top = NULL;
+}
+
+
+
 
 
 bool is_it_global(const char* var_name){
@@ -550,7 +608,7 @@ void generate_code_in_node(ASTNode* node){
                         generate_code_in_node(expression);
                         char temp_var[32];
                         snprintf(temp_var, sizeof(temp_var), "tm_write%d", tmp_counter);
-                        //printf("DEFVAR LF@tm_write%i\n", tmp_counter);
+                        def_var(temp_var);//printf("DEFVAR LF@tm_write%i\n", tmp_counter);
                         printf("POPS LF@tm_write%i\n", tmp_counter);
                         printf("WRITE LF@tm_write%i\n", tmp_counter);
                         tmp_counter++;
@@ -789,6 +847,7 @@ void generate_code_in_node(ASTNode* node){
         case AST_WHILE: {
             int current_while = while_counter++; // Unikátne číslo pre while slučku
 
+
             // Definícia element_bind, ak existuje
             if (node->WhileCycle.element_bind != NULL) {
                 if(!(is_it_local(node->WhileCycle.element_bind))){
@@ -799,6 +858,11 @@ void generate_code_in_node(ASTNode* node){
             }
 
             // Label pre začiatok while cyklu
+            char temp_while_cnt[32];
+            snprintf(temp_while_cnt, sizeof(temp_while_cnt), "while_cnt_tmp_%d", current_while);
+            def_var(temp_while_cnt);
+            printf("MOVE LF@%s int@0\n", temp_while_cnt);
+            add_while_stack(current_while);
             printf("LABEL while_start_%d\n", current_while);
 
             // Generovanie výrazu v podmienke
@@ -834,10 +898,13 @@ void generate_code_in_node(ASTNode* node){
             generate_code_in_node(node->WhileCycle.block);
 
             // Návrat na začiatok while cyklu
+            printf("ADD LF@%s LF@%s int@1\n", temp_while_cnt, temp_while_cnt);
             printf("JUMP while_start_%d\n", current_while);
 
             // Label pre koniec while cyklu
             printf("LABEL while_end_%d\n", current_while);
+
+            remove_while_stack();
             break;
         }
 
@@ -876,5 +943,6 @@ int generate_code(ASTNode* root){
     generate_code_in_node(root);
 
     free_var_arrays();
+    free_while_stack();
     return 0;
 }
