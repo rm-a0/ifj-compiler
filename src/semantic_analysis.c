@@ -427,9 +427,12 @@ void check_initialization(ASTNode *expression, bool is_nullable, const char *nam
 void check_type_compatibility(DataType data_type_declared, DataType data_type_stored, bool is_nullable, double value) {
     if (data_type_declared != data_type_stored) {
 
-        // Check whether it is able to execute implicit conversion
-        bool is_fractionless = (data_type_declared == AST_I32 && data_type_stored == AST_F64) && (fabs(value - (int)value) < 1e-9);
+        printf("data_type_declared: %u, data_type_stored: %u\n",data_type_declared, data_type_stored);
 
+        // Check whether it is able to execute implicit conversion
+        bool is_fractionless = ((data_type_declared == AST_I32 && data_type_stored == AST_F64) || (data_type_declared == AST_F64 && data_type_stored == AST_I32));
+        is_fractionless = is_fractionless && fabs(value - (int)value) < 1e-9;
+        
         // Data types dont match, isnt fractionless for implicit conversion, isnt nullable and of data type: AST_UNSPECIFIED (null)
         if (!(is_nullable && data_type_stored == AST_UNSPECIFIED) && !is_fractionless) {
             fprintf(stderr, "Semantic Error: Cannot assign data of type: %u to the var with defined type: %u\n", 
@@ -1112,10 +1115,11 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 }
             }
 
-            // Evaluate the expression type for the right-hand side of the assignment
+            // Evaluate the expression type for the right side of the assignment
             DataType expression_type = evaluate_expression_type(node->Assignment.expression, global_table, local_stack, current_frame);
 
             printf("expression type: %u, symbol->var.type: %u\n", expression_type, symbol->var.type);
+            printf("symbol->var.value: %f\n", symbol->var.value);
 
             check_type_compatibility(symbol->var.type, expression_type, symbol->var.is_nullable, symbol->var.value);
 
