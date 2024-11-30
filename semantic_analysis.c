@@ -434,8 +434,6 @@ DataType evaluate_fn_call_type(ASTNode *expression, SymbolTable *global_table, S
 
 void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack) {
     
-    print_global_symbol_table(global_table);
-
     if (!node) return;
     switch (node->type) {
         case AST_PROGRAM: {
@@ -767,7 +765,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 for (int i = 0; i < node->FnCall.arg_count; i++) {
                     
                     // Frame *current_frame = local_stack->frames[3];
-                    print_symbol_table(current_frame->symbol_table);
                     DataType arg_type = evaluate_expression_type(node->FnCall.args[i], global_table, local_stack, current_frame);
 
                     if (builtin_func->param_count != -1 && arg_type != builtin_func->expected_arg_types[i]) {
