@@ -330,6 +330,7 @@ void generate_code_in_node(ASTNode* node){
             }
             break;
         case AST_FN_CALL :{
+            //printf("debug: start of function call\n");
             const char *fn_name = node->FnCall.fn_name;
 
             /*if (strcmp(node->FnCall.fn_name, "ifj.string") == 0) {
@@ -589,9 +590,9 @@ void generate_code_in_node(ASTNode* node){
                         exit(99);
                 }
             } else {
-                for (int i = node->FnCall.arg_count; i > 0; --i) {      // Generovanie kódu argumentov
-                    pushs(node->FnCall.args[i - 1]->Argument.expression->Identifier.identifier);
-                    generate_code_in_node(node->FnCall.args[i]);
+                for (int i = node->FnCall.arg_count; i > 0; --i) {
+                    generate_code_in_node(node->FnCall.args[i - 1]);// Generovanie kódu argumentov
+                    //pushs(node->FnCall.args[i - 1]->Argument.expression->Identifier.identifier);
                 }
                 call(fn_name);  // Volanie funkcie
             }
