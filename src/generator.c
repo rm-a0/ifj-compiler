@@ -29,6 +29,33 @@ void increment_tmp_counter() {
 
 WhileStack while_stack = { .top = NULL };    // Globálny zásobník pre while cykly
 
+
+// Vráti počet while-cyklov v zásobníku
+int while_stack_size() {
+    int size = 0;
+    WhileStackNode *current = while_stack.top;
+    while (current != NULL) {
+        size++;
+        current = current->next;
+    }
+    return size;
+}
+
+// Získa hodnotu čísla while na konkrétnej pozícii (od 0 po vrchol)
+int get_while_at_index(int index) {
+    int i = 0;
+    WhileStackNode *current = while_stack.top;
+    while (current != NULL) {
+        if (i == index) {
+            return current->while_number;
+        }
+        i++;
+        current = current->next;
+    }
+    fprintf(stderr, "Chyba: Index mimo rozsahu zásobníka while.\n");
+    exit(99);
+}
+
 // Pridanie čísla while-u do globálneho zásobníka
 void add_while_stack(int while_number) {
     WhileStackNode *new_node = (WhileStackNode *)malloc(sizeof(WhileStackNode));

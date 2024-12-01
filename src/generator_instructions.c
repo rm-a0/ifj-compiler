@@ -77,23 +77,29 @@ void gen_pop_frame(){
     printf("POPFRAME\n");
 }
 void def_var(const char* var_name) {
-    // Ak sa nachádzame vo while cykle, pridáme špeciálnu podmienku pre deklaráciu
+    // Ak sa nachádzame vo while-cykle, pridáme podmienky pre deklaráciu
     if (while_stack.top != NULL) {
-        int current_while = actual_while();  // Získaj aktuálne číslo aktuálneho while cyklu
-        int unique_tmp = tmp_counter++;     // Získaj jedinečné číslo z tmp_counter
+        //int this_while = actual_while();
+        int unique_tmp = tmp_counter++; // Unikátne číslo pre DEFVAR
+        int stack_size = while_stack_size();
 
-        // Skontroluj podmienku pred deklaráciou premennej vo while cykle
-        printf("JUMPIFNEQ while_end_declaration_%d_%d LF@while_cnt_tmp_%d int@0\n", current_while, unique_tmp, current_while);
+        // Prechádzanie celého zásobníka while
+        for (int i = 0; i < stack_size; i++) {
+            int current_while = get_while_at_index(i);
+            printf("JUMPIFNEQ while_end_declaration_%d_%d LF@while_cnt_tmp_%d int@0\n",
+                   actual_while(), unique_tmp, current_while);
+        }
 
         printf("DEFVAR LF@%s\n", var_name);
 
-        // Označ koniec deklarácie
-        printf("LABEL while_end_declaration_%d_%d\n", current_while, unique_tmp);
+        // Label na koniec deklarácie
+        printf("LABEL while_end_declaration_%d_%d\n", actual_while(), unique_tmp);
     } else {
         // Normálna definícia premennej mimo while cyklu
         printf("DEFVAR LF@%s\n", var_name);
     }
 }
+
 
 void move(const char* var, const char* symb) {
     printf("MOVE %s%s %s\n", frame_prefix(var), var, symb);

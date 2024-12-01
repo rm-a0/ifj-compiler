@@ -30,6 +30,9 @@ void generate_loop(ASTNode* node);
 void add_while_stack(int while_number);
 void remove_while_stack();
 int actual_while();
+int while_stack_size();
+int get_while_at_index(int index);
+
 
 int get_tmp_counter();
 void increment_tmp_counter();
