@@ -1,0 +1,19 @@
+const ifj = @import("ifj24.zig");
+
+pub fn compare(a : i32, b : i32) void {
+    if (a < b) {
+        ifj.write("b is larger than a");
+    }
+    if (a > b) {
+        ifj.write("a is larger than b");
+    }
+    else {
+        ifj.write("a and b are equal");
+    }
+}
+
+pub fn main() void {
+    const a = 10;
+    const b = ifj.readi32();
+    compare(a, b);
+}

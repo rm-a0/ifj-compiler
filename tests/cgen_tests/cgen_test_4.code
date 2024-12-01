@@ -1,0 +1,19 @@
+const ifj = @import("ifj24.zig");
+
+pub fn while_sum(a : i32, b : i32, c : i32) ?i32 {
+    var z = 0;
+    z = a;
+    while (z < c) {
+        z = z + b;
+    }
+
+    return z;
+}
+
+pub fn main() void {
+    const target = ifj.readi32();
+    const a = 0;
+    const b = 5;
+    const x = while_sum(a, b, target);
+    ifj.write(x);
+}
