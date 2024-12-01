@@ -51,8 +51,6 @@ extern WhileStack while_stack;
 extern int tmp_counter;
 
 //GF & LF functions
-bool is_it_global(const char* var_name);
-void add_to_global(const char* var_name);
 void free_var_arrays();
 bool is_it_local(const char* var_name);
 void add_to_local(const char* var_name);
