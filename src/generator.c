@@ -95,38 +95,86 @@ void free_while_stack() {
     }
     while_stack.top = NULL;
 }
+// Štruktúra pre dynamické pole
+typedef struct LocalFrameArray {
+    char **variables;    // Pole premenných
+    size_t size;         // Počet aktuálnych prvkov
+    size_t capacity;     // Kapacita poľa
+} LocalFrameArray;
 
+// Globálny dynamický local frame
+static LocalFrameArray local_frame = {NULL, 0, 0};
 
-void free_var_arrays() {
-    for (int i = 0; i < MAX_LF_VAR_COUNT; ++i) {
-        if (lf_vars[i] != NULL) {
-            free(lf_vars[i]);
-            lf_vars[i] = NULL;
-        }
+// Inicializácia dynamického poľa
+void init_local_frame() {
+    local_frame.size = 0;
+    local_frame.capacity = 8; // Počiatočná kapacita
+    local_frame.variables = malloc(local_frame.capacity * sizeof(char *));
+    if (local_frame.variables == NULL) {
+        fprintf(stderr, "ERROR: Memory allocation failed for local frame array\n");
+        exit(99); // Interná chyba programu
     }
 }
-bool is_it_local(const char* var_name){
-    for (int i = 0; i < MAX_LF_VAR_COUNT; ++i) {
-        if (lf_vars[i] != NULL && strcmp(lf_vars[i], var_name) == 0) {
-            return true;
+
+// Uvoľnenie dynamického poľa
+void free_local_frame() {
+    for (size_t i = 0; i < local_frame.size; ++i) {
+        free(local_frame.variables[i]);
+    }
+    free(local_frame.variables);
+    local_frame.variables = NULL;
+    local_frame.size = 0;
+    local_frame.capacity = 0;
+}
+
+// Vymazanie všetkých premenných bez dealokácie poľa
+void clear_local_frame() {
+    for (size_t i = 0; i < local_frame.size; ++i) {
+        free(local_frame.variables[i]);
+    }
+    local_frame.size = 0;
+}
+
+// Pridanie premennej do dynamického poľa
+void add_to_local(const char* var_name) {
+    // Kontrola, či už premenná existuje
+    for (size_t i = 0; i < local_frame.size; ++i) {
+        if (strcmp(local_frame.variables[i], var_name) == 0) {
+            return; // Premenná už existuje, nič nepridávame
         }
     }
-    return false; // Žiadna zhoda
-}
-void add_to_local(const char* var_name){
-    for(int i = 0; i < MAX_LF_VAR_COUNT; i++){
-        if (lf_vars[i] == NULL) {
-            lf_vars[i] = malloc(MAX_VAR_NAME_LENGTH);
-            if (lf_vars[i] == NULL) {
-                fprintf(stderr, "ERROR: Memory allocation failed\n");
-                exit(99); //interná chyba programu - chyba alokácie pamäte
-            }
-            strncpy(lf_vars[i], var_name, MAX_VAR_NAME_LENGTH - 1);
-            lf_vars[i][MAX_VAR_NAME_LENGTH - 1] = '\0';
-            return;
+
+    // Skontroluj, či je potrebná expanzia
+    if (local_frame.size >= local_frame.capacity) {
+        local_frame.capacity *= 2; // Zvýšenie kapacity
+        local_frame.variables = realloc(local_frame.variables, local_frame.capacity * sizeof(char *));
+        if (local_frame.variables == NULL) {
+            fprintf(stderr, "ERROR: Memory reallocation failed for local frame array\n");
+            exit(99); // Interná chyba programu
         }
     }
+
+    // Pridanie novej premennej s dynamickou alokáciou
+    size_t name_length = strlen(var_name) + 1; // Zahŕňa null terminátor
+    local_frame.variables[local_frame.size] = malloc(name_length);
+    if (local_frame.variables[local_frame.size] == NULL) {
+        fprintf(stderr, "ERROR: Memory allocation failed for local frame variable\n");
+        exit(99); // Interná chyba programu
+    }
+    strncpy(local_frame.variables[local_frame.size], var_name, name_length);
+    local_frame.size++;
 }
+
+// Kontrola existencie premennej v dynamickom poli
+bool is_it_local(const char* var_name) {
+    for (size_t i = 0; i < local_frame.size; ++i) {
+        if (strcmp(local_frame.variables[i], var_name) == 0) {
+            return true; // Premenná existuje
+        }
+    }
+    return false; // Premenná neexistuje
+}
+
 
 
 
@@ -153,6 +201,7 @@ void generate_code_in_node(ASTNode* node){
                     gen_pop_frame();
                     return_f();
                     print_new_line();
+                    clear_local_frame();
                 }
             }
             break;
@@ -857,13 +906,13 @@ void generate_code_in_node(ASTNode* node){
 
 int generate_code(ASTNode* root){
     if (root == NULL) return 51; // ast root == NULL
-
+    init_local_frame();
     printf(".IFJcode24\n");
     printf("JUMP main\n");    print_new_line();
 
     generate_code_in_node(root);
 
-    free_var_arrays();
+    free_local_frame();
     free_while_stack();
     return 0;
 }
