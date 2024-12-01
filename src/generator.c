@@ -885,7 +885,7 @@ void generate_code_in_node(ASTNode* node){
             break;
 
         case AST_FLOAT:
-            printf("PUSHS float@%f\n", node->Float.number);
+            printf("PUSHS float@%a\n", node->Float.number);
             break;
 
         case AST_STRING: {
