@@ -1,0 +1,23 @@
+const ifj = @import("ifj24.zig");
+
+pub fn fn_1() void {
+    ifj.write("performing fn 1\n");
+}
+
+pub fn fn_2() void {
+    fn_1();
+}
+
+pub fn main() void {
+    var a = ifj.readi32();
+    if (a == 1) {
+        fn_1();
+    }
+    a = 2;
+    if (a == 2) {
+        fn_2();
+    }
+    else {
+        return;
+    }
+}
