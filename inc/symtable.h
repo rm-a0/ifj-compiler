@@ -52,8 +52,8 @@ typedef struct SymbolTable {
 SymbolTable *init_symbol_table();
 void free_symbol_table(SymbolTable *table);
 void resize(SymbolTable *table);
-void add_function_symbol(SymbolTable *table, const char *name, DataType return_type);
-void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant, double value);
+void add_function_symbol(SymbolTable *table, const char *name, DataType return_type, bool is_nullable);
+void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant, bool is_nullable, double value);
 Symbol *lookup_symbol(SymbolTable *table, const char *name);
 void print_symbol_table(const SymbolTable *table);
 
