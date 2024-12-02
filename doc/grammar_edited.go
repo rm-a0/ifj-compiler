@@ -14,7 +14,7 @@
 
 // Root grammat definitions
 <program> 			::= <prolog> | <top_level_decl>*
-<top_level_decl> 	::= <fn_decl> | <const_decl> | <var_decl>
+<top_level_decl> 	::= <fn_decl>
 
 // Most used main components
 <identifier> 		::= [a-zA-Z] [_a-zA-Z0-9]* // TOKEN_IDENTIFIER
