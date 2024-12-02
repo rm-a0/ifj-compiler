@@ -145,7 +145,6 @@ void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bo
 
 /* Lookup a symbol by name */
 Symbol *lookup_symbol(SymbolTable *table, const char *name) {
-    // printf("name: %s\n", name);
     unsigned int index = hash(name, table->capacity);
     while (table->symbols[index] != NULL) {
         const char *current_name = table->symbols[index]->type == SYMBOL_FUNC
@@ -161,17 +160,13 @@ Symbol *lookup_symbol(SymbolTable *table, const char *name) {
 
 /* Print the contents of the symbol table */
 void print_symbol_table(const SymbolTable *table) {
-    printf("Symbol Table:\n");
     for (int i = 0; i < table->capacity; i++) {
         if (table->symbols[i] != NULL) {
             Symbol *symbol = table->symbols[i];
             if (symbol->type == SYMBOL_FUNC) {
-                printf("Func [%s]: ReturnType=%d, Used=%d\n", symbol->func.name, symbol->func.type, symbol->func.used);
             } else if (symbol->type == SYMBOL_VAR) {
-                printf("Var [%s]: DataType=%d, Used=%d, Redefined=%d\n", symbol->var.name, symbol->var.type, symbol->var.used, symbol->var.redefined);
             }
         } else {
-            printf("Index %d: NULL\n", i);
         }
     }
 }
