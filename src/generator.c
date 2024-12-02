@@ -355,12 +355,12 @@ void generate_code_in_node(ASTNode* node){
                 // TO-DO: nepotrebný push ale neviem sa ho ľahko zbaviť
                 generate_code_in_node(node->FnCall.args[0]->Argument.expression);
                 char temp_var[32];
-                snprintf(temp_var, sizeof(temp_var), "LF@tmp_length_%d", tmp_counter++);
+                snprintf(temp_var, sizeof(temp_var), "tmp_length_%d", tmp_counter++);
                 def_var(temp_var);
-                printf("STRLEN %s %s%s\n", temp_var,
+                printf("STRLEN LF@%s %s%s\n", temp_var,
                        frame_prefix(node->FnCall.args[0]->Argument.expression->Identifier.identifier),
                        node->FnCall.args[0]->Argument.expression->Identifier.identifier);
-                printf("PUSHS %s\n", temp_var);
+                printf("PUSHS LF@%s\n", temp_var);
                 break;
             }
             if (strcmp(fn_name, "ifj.substring") == 0) {
@@ -371,11 +371,11 @@ void generate_code_in_node(ASTNode* node){
 
                 // Pridanie pomocných premenných
                 char temp_s[32], temp_i[32], temp_j[32], temp_result[32], temp_char[32];
-                snprintf(temp_s, sizeof(temp_s), "LF@tmp_s_%d", tmp_counter);
-                snprintf(temp_i, sizeof(temp_i), "LF@tmp_i_%d", tmp_counter);
-                snprintf(temp_j, sizeof(temp_j), "LF@tmp_j_%d", tmp_counter);
-                snprintf(temp_char, sizeof(temp_char), "LF@tmp_char_%d", tmp_counter);
-                snprintf(temp_result, sizeof(temp_result), "LF@tmp_result_%d", tmp_counter);
+                snprintf(temp_s, sizeof(temp_s), "tmp_s_%d", tmp_counter);
+                snprintf(temp_i, sizeof(temp_i), "tmp_i_%d", tmp_counter);
+                snprintf(temp_j, sizeof(temp_j), "tmp_j_%d", tmp_counter);
+                snprintf(temp_char, sizeof(temp_char), "tmp_char_%d", tmp_counter);
+                snprintf(temp_result, sizeof(temp_result), "tmp_result_%d", tmp_counter);
 
                 def_var(temp_s);
                 def_var(temp_i);
@@ -385,12 +385,12 @@ void generate_code_in_node(ASTNode* node){
 
 
                 // Uloženie argumentov do pomocných premenných
-                printf("POPS %s\n", temp_j);
-                printf("POPS %s\n", temp_i);
-                printf("POPS %s\n", temp_s);
+                printf("POPS LF@%s\n", temp_j);
+                printf("POPS LF@%s\n", temp_i);
+                printf("POPS LF@%s\n", temp_s);
 
                 // Inicializácia výsledného reťazca
-                printf("MOVE %s string@\n", temp_result);
+                printf("MOVE LF@%s string@\n", temp_result);
 
                 // Kontroly pre validáciu
                 // neviem či to máme kontrolovať ??
@@ -422,19 +422,19 @@ void generate_code_in_node(ASTNode* node){
 
                 // Ak je validné, vytvor substring
                 printf("LABEL substring_loop_start_%i\n", while_counter);
-                printf("PUSHS %s\n", temp_i);
-                printf("PUSHS %s\n", temp_j);
+                printf("PUSHS LF@%s\n", temp_i);
+                printf("PUSHS LF@%s\n", temp_j);
                 printf("LTS\n");
                 printf("PUSHS bool@false\n");
                 printf("JUMPIFEQS substring_loop_end_%i\n", while_counter);
 
-                printf("GETCHAR %s %s %s\n", temp_char, temp_s, temp_i); // Získanie znaku na indexe `i`
-                printf("CONCAT %s %s %s\n", temp_result, temp_result, temp_char); // Pridanie znaku do výsledku
-                printf("ADD %s %s int@1\n", temp_i, temp_i); // Zvýšenie `i`
+                printf("GETCHAR LF@%s LF@%s LF@%s\n", temp_char, temp_s, temp_i); // Získanie znaku na indexe `i`
+                printf("CONCAT LF@%s LF@%s LF@%s\n", temp_result, temp_result, temp_char); // Pridanie znaku do výsledku
+                printf("ADD LF@%s LF@%s int@1\n", temp_i, temp_i); // Zvýšenie `i`
                 printf("JUMP substring_loop_start_%i\n", while_counter);
 
                 printf("LABEL substring_loop_end_%i\n", while_counter);
-                printf("PUSHS %s\n", temp_result); // Push výsledný substring na zásobník
+                printf("PUSHS LF@%s\n", temp_result); // Push výsledný substring na zásobník
                 /*printf("JUMP end_substring\n");
 
                 // Neplatný podreťazec
@@ -453,7 +453,7 @@ void generate_code_in_node(ASTNode* node){
 
                 // Create a temporary variable for comparison result
                 char temp_var[32];
-                snprintf(temp_var, sizeof(temp_var), "LF@tmp_cmp_%d", tmp_counter);
+                snprintf(temp_var, sizeof(temp_var), "tmp_cmp_%d", tmp_counter);
                 def_var(temp_var);
                 char temp_label_equal[32], temp_label_greater[32], temp_label_end[32];
                 snprintf(temp_label_equal, sizeof(temp_label_equal), "strcmp_equal_%d", tmp_counter);
@@ -466,33 +466,33 @@ void generate_code_in_node(ASTNode* node){
                 printf("JUMPIFEQS %s\n", temp_label_equal);
 
                 // If s1 < s2
-                printf("LT %s %s%s %s%s\n", temp_var,
+                printf("LT LF@%s %s%s %s%s\n", temp_var,
                        frame_prefix(node->FnCall.args[0]->Argument.expression->Identifier.identifier),
                        node->FnCall.args[0]->Argument.expression->Identifier.identifier,
                        frame_prefix(node->FnCall.args[1]->Argument.expression->Identifier.identifier),
                        node->FnCall.args[1]->Argument.expression->Identifier.identifier);
-                printf("PUSHS %s\n", temp_var);
+                printf("PUSHS LF@%s\n", temp_var);
                 printf("PUSHS bool@true\n");
                 printf("JUMPIFNEQS %s\n", temp_label_greater);
 
                 // Set temp_var to -1 (s1 < s2)
-                printf("MOVE %s int@-1\n", temp_var);
+                printf("MOVE LF@%s int@-1\n", temp_var);
                 printf("JUMP %s\n", temp_label_end);
 
                 // If s1 == s2
                 printf("LABEL %s\n", temp_label_equal);
-                printf("MOVE %s int@0\n", temp_var);
+                printf("MOVE LF@%s int@0\n", temp_var);
                 printf("JUMP %s\n", temp_label_end);
 
                 // If s1 > s2
                 printf("LABEL %s\n", temp_label_greater);
-                printf("MOVE %s int@1\n", temp_var);
+                printf("MOVE LF@%s int@1\n", temp_var);
 
                 // End label
                 printf("LABEL %s\n", temp_label_end);
 
                 // Push the result
-                printf("PUSHS %s\n", temp_var);
+                printf("PUSHS LF@%s\n", temp_var);
                 break;
             }
             if (strcmp(fn_name, "ifj.ord") == 0) {
@@ -502,18 +502,18 @@ void generate_code_in_node(ASTNode* node){
 
                 // Create a temporary variable for the result
                 char temp_var[32];
-                snprintf(temp_var, sizeof(temp_var), "LF@tmp_ord_%d", tmp_counter++);
+                snprintf(temp_var, sizeof(temp_var), "tmp_ord_%d", tmp_counter++);
                 def_var(temp_var);
 
                 // Get the character and convert to ASCII
-                printf("STRI2INT %s %s%s %s%s\n", temp_var,
+                printf("STRI2INT LF@%s %s%s %s%s\n", temp_var,
                        frame_prefix(node->FnCall.args[0]->Argument.expression->Identifier.identifier),
                        node->FnCall.args[0]->Argument.expression->Identifier.identifier,
                        frame_prefix(node->FnCall.args[1]->Argument.expression->Identifier.identifier),
                        node->FnCall.args[1]->Argument.expression->Identifier.identifier);
 
                 // Push the result
-                printf("PUSHS %s\n", temp_var);
+                printf("PUSHS LF@%s\n", temp_var);
                 break;
             }
             if (strcmp(fn_name, "ifj.chr") == 0) {
@@ -522,16 +522,16 @@ void generate_code_in_node(ASTNode* node){
 
                 // Create a temporary variable for the result
                 char temp_var[32];
-                snprintf(temp_var, sizeof(temp_var), "LF@tmp_chr_%d", tmp_counter++);
+                snprintf(temp_var, sizeof(temp_var), "tmp_chr_%d", tmp_counter++);
                 def_var(temp_var);
 
                 // Convert ASCII to character
-                printf("INT2CHAR %s %s%s\n", temp_var,
+                printf("INT2CHAR LF@%s %s%s\n", temp_var,
                        frame_prefix(node->FnCall.args[0]->Argument.expression->Identifier.identifier),
                        node->FnCall.args[0]->Argument.expression->Identifier.identifier);
 
                 // Push the result
-                printf("PUSHS %s\n", temp_var);
+                printf("PUSHS LF@%s\n", temp_var);
                 break;
             }
 
