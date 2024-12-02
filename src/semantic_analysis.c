@@ -367,16 +367,14 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
 
             // Lookup the function symbol
             Symbol *fn_symbol = lookup_symbol_in_scopes(global_table, local_stack, fn_name, local_frame);
+            semantic_analysis(node, global_table, local_stack);
 
             if (!fn_symbol) {
-                
                 DataType built_in_fn_data_type = deduce_builtin_function_type(fn_name);
                 return built_in_fn_data_type;
 
             } else {
-                semantic_analysis(node, global_table, local_stack);
                 // Return the function's return type
-                
                 return fn_symbol->func.type;
             }
 
