@@ -394,6 +394,7 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
         }
         case AST_STRING: {
             return AST_SLICE;
+
         } case AST_IDENTIFIER: { 
             Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, node->Identifier.identifier, local_frame);
             printf("is_symbol!\n");
@@ -401,7 +402,7 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
                 fprintf(stderr, "Semantic Error: Undefined symbol '%s'.\n", node->Identifier.identifier);
                 exit(SEMANTIC_ERROR_UNDEFINED);
             }
-
+            printf("washere\n");
             // when var used in fun. mark it as used 
             if (symbol->type == SYMBOL_VAR) {
                 symbol->var.used = true;
@@ -427,6 +428,7 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
 
             // Lookup the function symbol
             Symbol *fn_symbol = lookup_symbol_in_scopes(global_table, local_stack, fn_name, local_frame);
+            semantic_analysis(node, global_table, local_stack);
 
             if (!fn_symbol) {
                 printf("not found symbol\n");
@@ -434,7 +436,6 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
                 return built_in_fn_data_type;
 
             } else {
-                semantic_analysis(node, global_table, local_stack);
                 // Return the function's return type
                 printf("fn_return_type: %u\n", fn_symbol->func.type);
                 return fn_symbol->func.type;
@@ -496,7 +497,7 @@ DataType evaluate_fn_call_type(ASTNode *expression, SymbolTable *global_table, S
 
 void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack) {
     printf("node: %u\n", node->type);
-    print_global_symbol_table(global_table);
+    // print_global_symbol_table(global_table);
 
     if (!node) return;
     switch (node->type) {
@@ -829,9 +830,8 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 // Validate if arg in builtin function provided exists
                 // Validate argument types for built-in functions
                 for (int i = 0; i < node->FnCall.arg_count; i++) {
-                    printf("tu pojebe tym padom\n");
-                    // Frame *current_frame = local_stack->frames[3];
                     print_symbol_table(current_frame->symbol_table);
+
                     DataType arg_type = evaluate_expression_type(node->FnCall.args[i], global_table, local_stack, current_frame);
 
                     if (builtin_func->param_count != -1 && arg_type != builtin_func->expected_arg_types[i]) {
