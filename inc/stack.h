@@ -54,12 +54,12 @@ ScopeStack *init_scope_stack();
  * This function searches for a symbol starting from the top frame of the local stack 
  * and then falls back to the global table if not found in the local scopes.
  * 
- * @param global_table Pointer to the global symbol table.
  * @param local_stack Pointer to the local scope stack.
  * @param name Name of the symbol to look for.
+ * @param local_frame Pointer to a specific local frame to search first, or NULL to skip.
  * @return Pointer to the found symbol or NULL if not found.
  */
-Symbol *lookup_symbol_in_scopes(SymbolTable *global_table, ScopeStack *local_stack, const char *name, Frame *local_frame);
+Symbol *lookup_symbol_in_scope(ScopeStack *local_stack, const char *name, Frame *local_frame);
 
 /**
  * @brief Pushes a new frame onto the ScopeStack, resizing if needed.
