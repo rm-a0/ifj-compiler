@@ -83,9 +83,9 @@ int is_operator_token(Token* token) {
         token->token_type == TOKEN_DIV ||
 
         token->token_type == TOKEN_LESS ||
-        token->token_type == TOKEN_LESS_EQU ||      
+        token->token_type == TOKEN_LESS_EQU ||    
         token->token_type == TOKEN_GREATER ||
-        token->token_type == TOKEN_GREATER_EQU ||
+        token->token_type == TOKEN_GREATER_EQU ||  
         token->token_type == TOKEN_EQU ||
         token->token_type == TOKEN_NOT_EQU
     );
@@ -537,9 +537,6 @@ ASTNode* parse_const_decl(Lexer* lexer, Token** token) {
             case TOKEN_F64:
                 const_decl_node->ConstDecl.data_type = AST_F64;
                 break;
-            case TOKEN_U8:
-                const_decl_node->ConstDecl.data_type = AST_U8;
-                break;
             case TOKEN_SLICE:
                 advance_token(token, lexer);
                 if (!check_token(*token, TOKEN_U8, NULL)) {
@@ -611,9 +608,6 @@ ASTNode* parse_var_decl(Lexer* lexer, Token** token) {
             case TOKEN_F64:
                 var_decl_node->ConstDecl.data_type = AST_F64;
                 break;
-            case TOKEN_U8:
-                var_decl_node->ConstDecl.data_type = AST_U8;
-                break;
             case TOKEN_SLICE:
                 advance_token(token, lexer);
                 if (!check_token(*token, TOKEN_U8, NULL)) {
@@ -683,9 +677,6 @@ ASTNode* parse_fn_params(Lexer* lexer, Token** token) {
             break;
         case TOKEN_F64:
             parameter->Param.data_type = AST_F64;
-            break;
-        case TOKEN_U8:
-            parameter->Param.data_type = AST_U8;
             break;
         case TOKEN_SLICE:
             advance_token(token, lexer);
@@ -1024,6 +1015,27 @@ ASTNode* parse_block(Lexer* lexer, Token** token) {
                 advance_token(token, lexer);
             }
                break;
+            case TOKEN_UNDERSCORE: {
+                advance_token(token, lexer);
+                if (check_token(*token, TOKEN_ASSIGN, NULL)) { 
+                    ASTNode* assignment_node = parse_assignment(lexer, token, "_");
+                    if (assignment_node == NULL) {
+                        free_ast_node(block_node);
+                        return NULL;
+                    }
+                    if (append_node_to_block(block_node, assignment_node) != 0) {
+                        free_ast_node(assignment_node);
+                        free_ast_node(block_node);
+                        return NULL;
+                    }
+                }
+                else {
+                    free_ast_node(block_node);
+                    return NULL;
+                }
+                advance_token(token, lexer);
+            }
+                break;
             case TOKEN_IDENTIFIER: {
                 // Save name of the identifier
                 // What about built in fn?
@@ -1174,6 +1186,10 @@ ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
     if (check_token(*token, TOKEN_Q_MARK, NULL)) {
         fn_decl_node->FnDecl.nullable = true;
         advance_token(token, lexer);
+        if (check_token(*token, TOKEN_VOID, NULL)) {
+            free_ast_node(fn_decl_node);
+            return NULL;
+        }
     }
 
     // check for NULL pointer to prevent SEGFAULT
@@ -1191,9 +1207,6 @@ ASTNode* parse_fn_decl(Lexer* lexer, Token** token) {
             break;
         case TOKEN_F64:
             fn_decl_node->FnDecl.return_type = AST_F64;
-            break;
-        case TOKEN_U8:
-            fn_decl_node->FnDecl.return_type = AST_U8;
             break;
         case TOKEN_SLICE:
             advance_token(token, lexer);
@@ -1238,37 +1251,8 @@ ASTNode* parse_tokens(Lexer* lexer) {
     ASTNode* program_node = create_program_node();  // Create root (program node)
     // Loop until the token is EOF
     while (!check_token(token, TOKEN_EOF, NULL)) {
-        // CONST
-        if (check_token(token, TOKEN_CONST, NULL)) {
-            // Check if constant declaration is valid
-            ASTNode* const_decl = parse_const_decl(lexer, &token);
-            if (const_decl != NULL) {
-                // Append variable declaration into program node array
-                if (append_decl_to_prog(program_node, const_decl) != 0) {
-                    goto error;
-                }
-            }
-            else {
-                goto error;
-            }
- 
-        }
-        // VAR_DECL
-        else if (check_token(token, TOKEN_VAR, NULL)) {
-            // Check if variable declaration is valid
-            ASTNode* var_decl = parse_var_decl(lexer, &token);
-            if (var_decl != NULL) {
-                // Append variable declaration into program node array
-                if (append_decl_to_prog(program_node, var_decl) != 0) {
-                    goto error;
-                }
-            }
-            else {
-                goto error;
-            }
-        }
         // PUB
-        else if (check_token(token, TOKEN_PUB, NULL)) {
+        if (check_token(token, TOKEN_PUB, NULL)) {
             ASTNode* fn_decl = parse_fn_decl(lexer, &token);
             if (fn_decl != NULL) {
                 if (append_decl_to_prog(program_node, fn_decl) != 0) {

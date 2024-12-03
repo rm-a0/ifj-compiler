@@ -20,6 +20,7 @@ typedef enum {
     START,              ///< Initial state of the lexer, ready to begin tokenization.
     ID_OR_KEY,          ///< State for identifying either an identifier or a keyword.
     FWD_SLASH,          ///< State after encountering a forward slash '/'.
+    BCK_SLASH,          ///< State after encountering a backslash '\'.
     COMMENT,            ///< State for processing comments.
     Q_MARK,             ///< State for processing a question mark '?'.
     UNDERSCORE,         ///< State for processing underscores '_'.
@@ -27,6 +28,8 @@ typedef enum {
     L_SQ_BRACKET,       ///< State for processing the left square bracket '['.
     R_SQ_BRACKET,       ///< State for processing the right square bracket ']'.
     STRING,             ///< State for processing string literals.
+    MULTI_STRING,       ///< State for processing multi line string literals.
+    EO_ML_STRING,       ///< State for processing end of multi line string literals.
     ESC_SEQ,            ///< State for processing escape sequences.
     HEX_NUM,            ///< State for processing hexadecimal numbers.
     ZERO,               ///< State for processing the integer zero.

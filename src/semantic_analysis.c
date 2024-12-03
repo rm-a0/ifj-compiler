@@ -512,6 +512,7 @@ void check_type_compatibility(DataType data_type_declared, DataType data_type_st
             } else if (data_type_declared == AST_I32 && data_type_stored == AST_F64) {
                 // Assigning f64 literal to i32 variable
                 // Check if value is an exact integer within i32 range
+
                 if (fabs(value - round(value)) < 1e-9 && value >= INT_MIN && value <= INT_MAX) {
                     // Value is effectively an integer within i32 range
                     // Implicit conversion allowed
@@ -645,6 +646,8 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             // Push a frame for the function parameters
             push_frame(function_stack);
 
+            Frame *base_frame = top_frame(function_stack);
+
             // Process function parameters
             for (int i = 0; i < node->FnDecl.param_count; i++) {
                 ASTNode *param_node = node->FnDecl.params[i];
@@ -659,7 +662,15 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
                 printf("param_node->type: %u\n", param_node->type);
 
-                add_variable_symbol(function_stack->frames[function_stack->top]->symbol_table, param_name, param_type, true, param_node->Param.nullable, false, 0);
+                Symbol *existing_symbol = lookup_symbol_in_scope(global_table, function_stack, param_name, base_frame);
+
+                if (existing_symbol) {
+                    fprintf(stderr, "Semantic Error: Duplicate parameter name '%s' in function '%s'.\n", param_name, fn_name);
+                    exit(SEMANTIC_ERROR_REDEF);
+
+                } else {
+                    add_variable_symbol(function_stack->frames[function_stack->top]->symbol_table, param_name, param_type, true, param_node->Param.nullable, false, 0);
+                }
             }
 
             printf("done with params\n");
@@ -1097,21 +1108,22 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     printf("return_type_var %u\n", return_type);
 
                     // Check if the return type matches the expected return type and that main is of type void
-
                     if (return_type && return_type == AST_UNSPECIFIED && !(function_symbol->func.is_nullable)) {
-                        fprintf(stderr, "Semantic Error: Mismatched return type in function '%s'. Expected '%d', got '%d'.\n",
+                        fprintf(stderr, "Semantic Error: Mismatched return type in function1 '%s'. Expected '%d', got '%d'.\n",
                                 function_symbol->func.name, expected_return_type, return_type);
                         exit(SEMANTIC_ERROR_RETURN);
+
                     } else if (return_type && return_type != expected_return_type && return_type != AST_UNSPECIFIED && expected_return_type != AST_UNSPECIFIED) {
                         printf("herewego\n");
-                        fprintf(stderr, "Semantic Error: Mismatched return type in function '%s'. Expected '%d', got '%d'.\n",
+                        fprintf(stderr, "Semantic Error: Mismatched return type in function2 '%s'. Expected '%d', got '%d'.\n",
                                 function_symbol->func.name, expected_return_type, return_type);
-                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                        exit(SEMANTIC_ERROR_PARAMS);
                     }
+
                 } else if (!(function_symbol->func.is_nullable)) {
                     // When the statement is null, return type isn't void nor nullable
                     printf("return is null !\n");
-                    fprintf(stderr, "Semantic Error: Mismatched return type in function '%s'. Expected '%d'.\n",
+                    fprintf(stderr, "Semantic Error: Mismatched return type in function3 '%s'. Expected '%d'.\n",
                     function_symbol->func.name, expected_return_type);
                     exit(SEMANTIC_ERROR_RETURN);
                 }
@@ -1120,7 +1132,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 // If return expression is not null and it is supposed to return ast void
                 // it should be flagged as mismatch between return type and declaration type
 
-                fprintf(stderr, "Semantic Error: Mismatched return type in function '%s'. Expected '%d'.\n",
+                fprintf(stderr, "Semantic Error: Mismatched return type in function4 '%s'. Expected '%d'.\n",
                 function_symbol->func.name, expected_return_type);
                 exit(SEMANTIC_ERROR_RETURN);
 
@@ -1202,10 +1214,16 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         case AST_ASSIGNMENT: {
             Frame *current_frame = top_frame(local_stack);
             const char *identifier = node->Assignment.identifier;
+            DataType expression_type = 0;
+
+            if (strcmp(identifier, "_") == 0) {
+                expression_type = evaluate_expression_type(node->Assignment.expression, global_table, local_stack, current_frame);
+                break;
+            }
 
             // Lookup the identifier in the symbol table (local or global)
             Symbol *symbol = lookup_symbol_in_scope(global_table, local_stack, identifier, current_frame);
-
+            
             if (!symbol) {
                 // If the variable/constant is not declared, raise an error
                 fprintf(stderr, "Semantic Error: Undeclared variable or constant '%s'.\n", identifier);
@@ -1227,7 +1245,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             }
 
             // Evaluate the expression type for the right side of the assignment
-            DataType expression_type = evaluate_expression_type(node->Assignment.expression, global_table, local_stack, current_frame);
+            expression_type = evaluate_expression_type(node->Assignment.expression, global_table, local_stack, current_frame);
 
             printf("expression type: %u, symbol->var.type: %u\n", expression_type, symbol->var.type);
             printf("symbol->var.value: %f\n", symbol->var.value);
@@ -1299,6 +1317,10 @@ void process_declaration(
     printf("VAR DECL !!!\n");
     printf("name_var_decl: %s\n", name);
 
+    if (strcmp(name, "_") == 0) {
+        return;
+    }
+
     // Determine the current frame
     Frame *current_frame = NULL;
     if (local_stack && local_stack->top >= 0) {
@@ -1357,7 +1379,9 @@ void process_declaration(
             printf("data_type_declared_here: %u\n", data_type_declared);
             printf("var_decl_name: %s\n", name);
             printf("var_decl_is_nullable: %d\n", is_nullable);
-            add_variable_symbol(current_frame->symbol_table, name, data_type_declared, is_constant, is_nullable, has_literal, value);
+            if (!(strcmp(name, "_") == 0)) {
+                add_variable_symbol(current_frame->symbol_table, name, data_type_declared, is_constant, is_nullable, has_literal, value);
+            }
         } else {
             fprintf(stderr, "Internal Error: No valid scope to declare %s '%s'.\n",
                     is_constant ? "constant" : "variable", name);

@@ -56,6 +56,7 @@ typedef enum {
     TOKEN_GREATER_EQU,    ///< Constant for '>=' operator.
     TOKEN_NOT_EQU,        ///< Constant for '!=' operator.
     TOKEN_EQU,            ///< Constant for '==' operator.
+    TOKEN_UNDERSCORE,     ///< Constatne for '_' token.
     TOKEN_IMPORT          ///< Constant for '@import' directive.
 } TokenType;
 
