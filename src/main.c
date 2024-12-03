@@ -13,7 +13,7 @@
 #include "symtable.h"
 #include "stack.h"
 #include "generator.h"
-#include "ast_utils.h"
+//#include "ast_utils.h"
 
 FILE* process_file(int argc, char**  argv) {
     FILE *fp = NULL;

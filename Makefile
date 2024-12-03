@@ -1,6 +1,6 @@
 # Compiler and Flags
 CC = gcc
-CFLAGS = -I$(INC_DIR) -g -O3 -pedantic #-fsanitize=address
+CFLAGS = -I$(INC_DIR) -g -O3 -pedantic -lm #-fsanitize=address
 
 # Directories
 SRC_DIR = src/
