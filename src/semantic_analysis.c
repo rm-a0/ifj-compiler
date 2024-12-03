@@ -11,6 +11,7 @@
 #include <float.h>
 #include <stdint.h>
 #include <math.h>
+#include <limits.h>
 #include "parser.h"
 #include "ast.h"
 #include "stack.h"
@@ -155,7 +156,7 @@ unsigned int unused_vars_funcs_frame(SymbolTable *current_table) {
 
 }
 
-void process_binding(ASTNode *expression, SymbolTable *global_table, ScopeStack *local_stack, Frame *current_frame, const char *bind_name, DataType condition_type) {
+void process_binding(ASTNode *expression, SymbolTable *global_table, ScopeStack *local_stack, Frame *current_frame, const char *bind_name, DataType condition_type, bool has_literal) {
     OperatorType operator = expression->BinaryOperator.operator;
 
     if (!operator) {
@@ -163,24 +164,31 @@ void process_binding(ASTNode *expression, SymbolTable *global_table, ScopeStack 
         exit(SEMANTIC_ERROR_TYPE_COMPAT);
     }
 
-    if (expression->type != AST_IDENTIFIER && expression->type != AST_FN_CALL) {
-        fprintf(stderr, "Semantic Error: Identifier in binding must be AST_IDENTIFIER or AST_FN_CALL.\n");
-        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+    printf("expression->type: %u\n", expression->type);
+
+    if (expression->type == AST_IDENTIFIER || expression->type == AST_FN_CALL) {
+        printf("clear\n");
+        // Perform semantic analysis on the identifier
+        semantic_analysis(expression, global_table, local_stack);
+
+        // Look up the symbol in the scopes
+        Symbol *identifier = lookup_symbol_in_scope(global_table, local_stack, expression->Identifier.identifier, current_frame);
+
+        if (!identifier->var.is_nullable) {
+            fprintf(stderr, "Semantic Error: The variable in binding is not nullable.\n");
+            exit(OTHER_SEMANTIC_ERROR);
+        }
+
+        add_variable_symbol(current_frame->symbol_table, bind_name, condition_type, true, false, has_literal, identifier->var.value);
+        return;
+
+    } else if (expression->type == AST_NULL) {
+        add_variable_symbol(current_frame->symbol_table, bind_name, condition_type, true, false, has_literal, 0);
+        return;
     }
 
-    printf("clear\n");
-    // Perform semantic analysis on the identifier
-    semantic_analysis(expression, global_table, local_stack);
-
-    // Look up the symbol in the scopes
-    Symbol *identifier = lookup_symbol_in_scopes(global_table, local_stack, expression->Identifier.identifier, current_frame);
-
-    if (!identifier->var.is_nullable) {
-        fprintf(stderr, "Semantic Error: The variable in binding is not nullable.\n");
-        exit(OTHER_SEMANTIC_ERROR);
-    }
-
-    add_variable_symbol(current_frame->symbol_table, bind_name, condition_type, true, false, identifier->var.value);
+    fprintf(stderr, "Semantic Error: Identifier in binding must be AST_IDENTIFIER or AST_FN_CALL or AST_NULL.\n");
+    exit(SEMANTIC_ERROR_TYPE_COMPAT);
 }
 
 DataType evaluate_condition(ASTNode *expression, SymbolTable *global_table, ScopeStack *local_stack, Frame *current_frame) {
@@ -209,7 +217,7 @@ void check_main_function(SymbolTable *global_table) {
 
     if (main_symbol->func.type != AST_VOID) {
         fprintf(stderr, "Semantic Error: Main is of non-void type.\n");
-        exit(OTHER_SEMANTIC_ERROR);
+        exit(SEMANTIC_ERROR_PARAMS);
     }
 
     // Check if the main function has zero parameters
@@ -222,7 +230,7 @@ void check_main_function(SymbolTable *global_table) {
 }
 
 bool evaluate_fractionless_float (SymbolTable *global_table, ScopeStack *local_stack, const char *name, Frame *local_frame) {
-    Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, name, local_frame);
+    Symbol *symbol = lookup_symbol_in_scope(global_table, local_stack, name, local_frame);
 
     printf("symbol->var.value = AST_I32: %f\n", symbol->var.value);
 
@@ -239,7 +247,7 @@ bool evaluate_nullable_identifier(ASTNode *node, SymbolTable *global_table, Scop
 
     printf("got here\n");
     printf("node->type: %u\n", node->type);
-    Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, node->Identifier.identifier, local_frame);
+    Symbol *symbol = lookup_symbol_in_scope(global_table, local_stack, node->Identifier.identifier, local_frame);
     printf("got here2\n");
 
     bool is_nullable = false;
@@ -250,6 +258,10 @@ bool evaluate_nullable_identifier(ASTNode *node, SymbolTable *global_table, Scop
     }
 
     return is_nullable;
+}
+
+bool is_literal(ASTNode *operation_element) {
+    return operation_element->type == AST_INT || operation_element->type == AST_FLOAT;
 }
 
 DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack, Frame *local_frame) {
@@ -272,100 +284,123 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
 
     // Determine the operator type
     OperatorType operator = node->BinaryOperator.operator;
+    printf("operator_type: %u\n", operator);
 
     // Check type compatibility based on the operator
     switch (operator) {
         case AST_PLUS:
         case AST_MINUS:
         case AST_MUL:
-        case AST_DIV:
+        case AST_DIV: {
 
             // Arithmetic operators
             if ((left_type == AST_I32 && right_type == AST_I32) || 
                 (left_type == AST_F64 && right_type == AST_F64)) {
                 return left_type;
-            } 
 
-            if (left_type == AST_I32 && right_type == AST_F64) {
-                // If left arithmetic operator is literal, implicit conversion is allowed
-                if (node->BinaryOperator.left->type == AST_INT) {
-                    printf("implicit conversion of left op.\n");
-                    return AST_F64;  // Explicit return here
+            } else if ((left_type == AST_I32 && right_type == AST_F64) || 
+                    (left_type == AST_F64 && right_type == AST_I32)) {
+                // Check if the integer operand is a literal
+                if ((left_type == AST_I32 && right_type == AST_F64 && node->BinaryOperator.left->type == AST_INT) ||
+                    (left_type == AST_F64 && right_type == AST_I32 && node->BinaryOperator.right->type == AST_INT)) {
+                    // Implicit conversion of integer literal to F64
+                    return AST_F64; 
+
+                } else if (node->BinaryOperator.left->type == AST_BIN_OP || 
+                           node->BinaryOperator.right->type == AST_BIN_OP) {
+                    // Evaluate nested binary operations recursively
+
+                    ASTNode *bin_operator_with_binary_operation = node->BinaryOperator.left->type == AST_BIN_OP ?  
+                                                                  node->BinaryOperator.left : node->BinaryOperator.right;
+                    DataType bin_operation_type = evaluate_operator_type(bin_operator_with_binary_operation, 
+                                                                        global_table, local_stack, local_frame);
+                    return bin_operation_type;
+
+                } else {
+                    fprintf(stderr, "Semantic Error: Incompatible types for arithmetic operation. Left: %d, Right: %d\n",
+                            left_type, right_type);
+                    exit(SEMANTIC_ERROR_TYPE_COMPAT);
                 }
-                fprintf(stderr, "Semantic Error: Incompatible types for arithmetic operation. Left: %d, Right: %d\n", left_type, right_type);
-                exit(SEMANTIC_ERROR_TYPE_COMPAT);  // Handle incompatible cases
-            }
 
-            if (left_type == AST_F64 && right_type == AST_I32) {
-                // If right arithmetic operator is literal, implicit conversion is allowed
-                if (node->BinaryOperator.right->type == AST_INT) {
-                    printf("implicit conversion of right op.\n");
-                    return AST_F64;  // Explicit return here
-                }
-                fprintf(stderr, "Semantic Error: Incompatible types for arithmetic operation. Left: %d, Right: %d\n", left_type, right_type);
-                exit(SEMANTIC_ERROR_TYPE_COMPAT);  // Handle incompatible cases
+            } else {
+                // If no cases matched, it's a semantic error
+                fprintf(stderr, "Semantic Error: Incompatible types for arithmetic operation. Left: %d, Right: %d\n", 
+                        left_type, right_type);
+                exit(SEMANTIC_ERROR_TYPE_COMPAT);
             }
-
-            // If no cases matched, it's a semantic error
-            fprintf(stderr, "Semantic Error: Incompatible types for arithmetic operation. Left: %d, Right: %d\n", left_type, right_type);
-            exit(SEMANTIC_ERROR_TYPE_COMPAT);
+        }
 
 
         case AST_GREATER:
         case AST_GREATER_EQU:
         case AST_LESS:
-        case AST_LESS_EQU:
-        case AST_EQU:
-        case AST_NOT_EQU:
+        case AST_LESS_EQU: {
 
-            if ((left_is_nullable || right_is_nullable) && (operator != AST_EQU && operator != AST_NOT_EQU)) {
-                fprintf(stderr, "Semantic Error: Nullable identifier is used in binary operator comparison where operator is not AST_EQU or AST_NOT_EQU\n");
+            // Check for nullability (assignment requirement)
+            if (left_is_nullable || right_is_nullable) {
+                fprintf(stderr, "Semantic Error: Nullability not allowed in relational operations.\n");
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
             }
 
-            // Relational operators
-            if ((left_type == AST_I32 && right_type == AST_I32) || (left_type == AST_F64 && right_type == AST_F64)) {
-                // Relational operator returns a boolean result
+            // Prevent relational operators on slices or strings (assignment requirement)
+            if (left_type == AST_SLICE || right_type == AST_SLICE ||
+                left_type == AST_STRING || right_type == AST_STRING) {
+                fprintf(stderr, "Semantic Error: Relational operators cannot be applied to slices or strings.\n");
+                exit(SEMANTIC_ERROR_TYPE_COMPAT);
+            }
+
+            if ((left_type == AST_I32 && right_type == AST_I32) ||
+                (left_type == AST_F64 && right_type == AST_F64)) {
+                // Both operands are of the same numeric type
                 return AST_I32; // Representing boolean as an integer type
-            } else if (!(left_type == AST_I32 && right_type == AST_F64) || (left_type == AST_F64 && right_type == AST_I32)) {
-                printf("ererkbdbf\n");
-                if (left_type == AST_F64) {
 
-                    // left type is fractionless
-                    bool fractionless_left = fabs(node->BinaryOperator.left->Float.number - (int)node->BinaryOperator.left->Float.number) < 1e-9;
-                    if (fractionless_left)  {
-                        return AST_I32;
-                    }
-                    
-                } else if (right_type == AST_F64) {
+            } else if ((left_type == AST_F64 && right_type == AST_I32 && is_literal(node->BinaryOperator.right))) {
+                // Implicitly convert integer literal to f64
+                return AST_I32;
 
-                    // right type is fractionless
-                    bool fractionless_right = fabs(node->BinaryOperator.right->Float.number - (int)node->BinaryOperator.right->Float.number) < 1e-9;
-                    if (fractionless_right)  {
-                        return AST_I32;
-                    }
+            } else if ((left_type == AST_I32 && right_type == AST_F64 && is_literal(node->BinaryOperator.left))) {
+                // Implicitly convert integer literal to f64
+                return AST_I32;
 
-                // left is not nullable 
-                } else {
-                    if (left_is_nullable && right_type == AST_UNSPECIFIED) {
-                        return AST_I32;
-                    } else if (right_is_nullable && left_type == AST_UNSPECIFIED) {
-                        return AST_I32;
-                    } else if (right_is_nullable && left_is_nullable) {
-                        return AST_I32;
-                    }
-                }
-                
-            // When left side is nullable and it stores 
+            } else if (left_type == AST_BIN_OP) {
+                // Evaluate left operand recursively
+                return evaluate_operator_type(node->BinaryOperator.left, global_table, local_stack, local_frame);
+
+            } else if (right_type == AST_BIN_OP) {
+                // Evaluate right operand recursively
+                return evaluate_operator_type(node->BinaryOperator.right, global_table, local_stack, local_frame);
 
             } else {
                 fprintf(stderr, "Semantic Error: Incompatible types for relational operation. Left: %d, Right: %d\n", left_type, right_type);
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
+            }  
+        } 
+
+        case AST_EQU:
+        case AST_NOT_EQU: {
+
+            if ((left_is_nullable || right_is_nullable) &&
+                (left_type == right_type || left_type == AST_UNSPECIFIED || right_type == AST_UNSPECIFIED)) {
+                return AST_I32;
+
+            } else if ((left_type == AST_I32 && right_type == AST_I32) || (left_type == AST_F64 && right_type == AST_F64)) {
+                return AST_I32;
+
+            } else if ((left_type == AST_I32 && right_type == AST_F64 && node->BinaryOperator.left->type == AST_INT) ||
+                    (left_type == AST_F64 && right_type == AST_I32 && node->BinaryOperator.right->type == AST_INT)) {
+                return AST_I32; // Implicit conversion for literals
+
+            } else {
+                fprintf(stderr, "Semantic Error: Incompatible types for equality comparison. Left: %d, Right: %d\n", left_type, right_type);
+                exit(SEMANTIC_ERROR_TYPE_COMPAT);
             }
 
-        default:
+        }
+
+        default: {
             fprintf(stderr, "Semantic Error: Unsupported operator type '%d'.\n", operator);
             exit(SEMANTIC_ERROR_TYPE_COMPAT);
+        }
     }
 }
 
@@ -399,7 +434,7 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
             return AST_SLICE;
 
         } case AST_IDENTIFIER: { 
-            Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, node->Identifier.identifier, local_frame);
+            Symbol *symbol = lookup_symbol_in_scope(global_table, local_stack, node->Identifier.identifier, local_frame);
             printf("is_symbol!\n");
             if (!symbol) {
                 fprintf(stderr, "Semantic Error: Undefined symbol '%s'.\n", node->Identifier.identifier);
@@ -429,7 +464,7 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
             const char *fn_name = node->FnCall.fn_name;
     
             // Lookup the function symbol
-            Symbol *fn_symbol = lookup_symbol_in_scopes(global_table, local_stack, fn_name, local_frame);
+            Symbol *fn_symbol = lookup_symbol_in_scope(global_table, local_stack, fn_name, local_frame);
             semantic_analysis(node, global_table, local_stack);
 
             if (!fn_symbol) {
@@ -463,21 +498,41 @@ void check_initialization(ASTNode *expression, bool is_nullable, const char *nam
     }
 }
 
-void check_type_compatibility(DataType data_type_declared, DataType data_type_stored, bool is_nullable, double value) {
+void check_type_compatibility(DataType data_type_declared, DataType data_type_stored, bool is_nullable, double value, bool expression_is_literal) {
     if (data_type_declared != data_type_stored) {
 
-        printf("data_type_declared: %u, data_type_stored: %u\n",data_type_declared, data_type_stored);
+        printf("data_type_declared: %u, data_type_stored: %u\n", data_type_declared, data_type_stored);
 
-        // Check whether it is able to execute implicit conversion
-        bool is_fractionless = ((data_type_declared == AST_I32 && data_type_stored == AST_F64) || (data_type_declared == AST_F64 && data_type_stored == AST_I32));
-        is_fractionless = is_fractionless && fabs(value - (int)value) < 1e-9;
-        
-        // Data types dont match, isnt fractionless for implicit conversion, isnt nullable and of data type: AST_UNSPECIFIED (null)
-        if (!(is_nullable && data_type_stored == AST_UNSPECIFIED) && !is_fractionless) {
-            fprintf(stderr, "Semantic Error: Cannot assign data of type: %u to the var with defined type: %u\n", 
-                    data_type_stored, data_type_declared);
-            exit(SEMANTIC_ERROR_TYPE_COMPAT);
+        // Implicit conversion is allowed only if the expression is a literal
+        if (expression_is_literal) {
+            if (data_type_declared == AST_F64 && data_type_stored == AST_I32) {
+                // Assigning integer literal to f64 variable
+                // Implicit conversion allowed
+                return;
+            } else if (data_type_declared == AST_I32 && data_type_stored == AST_F64) {
+                // Assigning f64 literal to i32 variable
+                // Check if value is an exact integer within i32 range
+                if (fabs(value - round(value)) < 1e-9 && value >= INT_MIN && value <= INT_MAX) {
+                    // Value is effectively an integer within i32 range
+                    // Implicit conversion allowed
+                    return;
+                }
+            }
         }
+
+        // Handle null assignments
+        if (is_nullable && data_type_stored == AST_UNSPECIFIED) {
+            // Assigning null to a nullable variable
+            return;
+        }
+
+        // If none of the above conditions are met, it's a semantic error
+        fprintf(stderr, "Semantic Error: Cannot assign data of type: %u to the variable with defined type: %u\n",
+                data_type_stored, data_type_declared);
+        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+    } else {
+        // Data types match, assignment is allowed
+        return;
     }
 }
 
@@ -507,6 +562,12 @@ void populate_global_table_with_functions(ASTNode *root, SymbolTable *global_tab
             bool is_nullable = decl->FnDecl.nullable;
 
             printf("name_fn_decl: %u\n", decl->type);
+            // Check for redefinition
+            Symbol *existing_symbol = lookup_symbol(global_table, name);
+            if (existing_symbol && existing_symbol->type == SYMBOL_FUNC) {
+                fprintf(stderr, "Semantic Error: Function '%s' is redefined.\n", name);
+                exit(SEMANTIC_ERROR_REDEF);
+            }
             // Verify the addition
 
             // Add the function to the global table
@@ -598,7 +659,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
                 printf("param_node->type: %u\n", param_node->type);
 
-                add_variable_symbol(function_stack->frames[function_stack->top]->symbol_table, param_name, param_type, true, param_node->Param.nullable, 0);
+                add_variable_symbol(function_stack->frames[function_stack->top]->symbol_table, param_name, param_type, true, param_node->Param.nullable, false, 0);
             }
 
             printf("done with params\n");
@@ -647,7 +708,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             }
 
             // Add the parameter to the local symbol table
-            add_variable_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name, param_type, true, symbol->var.is_nullable, symbol->var.value);            
+            add_variable_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name, param_type, true, symbol->var.is_nullable, symbol->var.has_literal, symbol->var.value);            
             break;
         }
 
@@ -763,17 +824,24 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 DataType condition_type = evaluate_expression_type(condition_expression, global_table, local_stack, current_frame);
 
                 if (bind_name) {
-                    Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, condition_expression->Identifier.identifier, current_frame);
+                    Symbol *symbol = NULL;
+                    bool has_literal = false;
 
-                    printf("condition_type: %u\n", condition_type);
+                    if (condition_expression->type == AST_IDENTIFIER) {
+                        symbol = lookup_symbol_in_scope(global_table, local_stack, condition_expression->Identifier.identifier, current_frame);
 
-                    if (condition_type != AST_I32 && !symbol->var.is_nullable) { // Ensures the condition is a boolean-compatible type
-                        fprintf(stderr, "Semantic Error: Condition must evaluate to int.\n");
-                        exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                        has_literal = symbol->var.has_literal ? true : false;
+
+                        printf("condition_type: %u\n", condition_type);
+
+                        if (condition_type != AST_I32 && !symbol->var.is_nullable) { // Ensures the condition is a boolean-compatible type
+                            fprintf(stderr, "Semantic Error: Condition must evaluate to int.\n");
+                            exit(SEMANTIC_ERROR_TYPE_COMPAT);
+                        }
                     }
 
                     printf("not_condition_type_error\n");
-                    process_binding(condition_expression, global_table, local_stack, current_frame, bind_name, condition_type);
+                    process_binding(condition_expression, global_table, local_stack, current_frame, bind_name, condition_type, has_literal);
 
                 } else {
                     // Perform semantic analysis on the condition if no binding
@@ -866,12 +934,13 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             } else {
                 // If not a built-in function, check user-defined functions
                 Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
-                printf("fn_symbol->func.name: %s\n", fn_symbol->func.name);
                 
                 if (!fn_symbol || fn_symbol->type != SYMBOL_FUNC) {
                     fprintf(stderr, "Semantic Error: Undefined function '%s'.\n", fn_name);
                     exit(SEMANTIC_ERROR_UNDEFINED);
                 } 
+
+                printf("fn_symbol->func.name: %s\n", fn_symbol->func.name);
 
                 // Mark the function as used
                 fn_symbol->func.used = true;
@@ -1100,10 +1169,14 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             break;
         }
 
+        case AST_NULL: {
+            break;
+        }
+
         case AST_IDENTIFIER: {
             Frame *current_frame = top_frame(local_stack);
             // Look up the identifier in the current scope stack or global table.
-            Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, node->Identifier.identifier, current_frame);
+            Symbol *symbol = lookup_symbol_in_scope(global_table, local_stack, node->Identifier.identifier, current_frame);
 
             if (!symbol) {
                 // If the identifier is not found, it's an undeclared variable.
@@ -1131,7 +1204,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             const char *identifier = node->Assignment.identifier;
 
             // Lookup the identifier in the symbol table (local or global)
-            Symbol *symbol = lookup_symbol_in_scopes(global_table, local_stack, identifier, current_frame);
+            Symbol *symbol = lookup_symbol_in_scope(global_table, local_stack, identifier, current_frame);
 
             if (!symbol) {
                 // If the variable/constant is not declared, raise an error
@@ -1159,7 +1232,15 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             printf("expression type: %u, symbol->var.type: %u\n", expression_type, symbol->var.type);
             printf("symbol->var.value: %f\n", symbol->var.value);
 
-            check_type_compatibility(symbol->var.type, expression_type, symbol->var.is_nullable, symbol->var.value);
+            bool expression_is_literal = false;
+
+            if (node->Assignment.expression->type == AST_INT || node->Assignment.expression->type == AST_FLOAT) {
+                expression_is_literal = true;
+            }
+
+            check_type_compatibility(symbol->var.type, expression_type, symbol->var.is_nullable, symbol->var.value, expression_is_literal);
+
+
 
             break;
         }
@@ -1171,7 +1252,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
     }
 }
 
-bool process_nullable_content(ASTNode *expression) {
+bool process_expression_content(ASTNode *expression, DataType data_type_declared) {
 
     printf("expression->type: %u\n", expression->type);
 
@@ -1189,32 +1270,16 @@ bool process_nullable_content(ASTNode *expression) {
             }
         }
 
-        case AST_IDENTIFIER: {
-            return false;
-        }
-
-        case AST_NULL: {
-            return false;
-        }
-
-        case AST_SLICE: {
-            return false;
-        }
-
-        case AST_FLOAT:
-            return false;
-
-        case AST_INT:
-            return false;
-        
         case AST_BIN_OP: {
-            return false;
+            if (data_type_declared == AST_UNSPECIFIED) {
+                return true;
+            } else {
+                return false;
+            }
         }
-
 
         default: {
-            fprintf(stderr, "Semantic Error: Failed to process_nullable_content.\n");
-            exit(SEMANTIC_ERROR_TYPE_COMPAT);
+            return false;
         }
 
     }
@@ -1241,7 +1306,7 @@ void process_declaration(
     }
 
     // Check if already declared
-    Symbol *existing_symbol = lookup_symbol_in_scopes(global_table, local_stack, name, current_frame);
+    Symbol *existing_symbol = lookup_symbol_in_scope(global_table, local_stack, name, current_frame);
     if (existing_symbol) {
         fprintf(stderr, "Semantic Error: %s '%s' is already declared in the current scope.\n", 
                 is_constant ? "Constant" : "Variable", name);
@@ -1257,7 +1322,16 @@ void process_declaration(
 
     if (!is_nullable) {
         printf("process_nullable_content\n");
-        is_nullable = process_nullable_content(expression);
+        printf("var_name_null: %s\n", name);
+        is_nullable = process_expression_content(expression, data_type_declared);
+    }
+
+    bool has_literal = false;
+
+    // || expression->type == AST_SLICE || expression->type NLLL ???
+
+    if (expression->type == AST_INT || expression->type == AST_FLOAT) {
+        has_literal = true;
     }
 
     // Deduce data type
@@ -1275,7 +1349,7 @@ void process_declaration(
     }
 
     // Perform type compatibility check
-    check_type_compatibility(data_type_declared, data_type_stored, is_nullable, value);
+    check_type_compatibility(data_type_declared, data_type_stored, is_nullable, value, has_literal);
 
     // Add the variable/constant to the appropriate symbol table
     if (local_stack && local_stack->top >= 0) {
@@ -1283,7 +1357,7 @@ void process_declaration(
             printf("data_type_declared_here: %u\n", data_type_declared);
             printf("var_decl_name: %s\n", name);
             printf("var_decl_is_nullable: %d\n", is_nullable);
-            add_variable_symbol(current_frame->symbol_table, name, data_type_declared, is_constant, is_nullable, value);
+            add_variable_symbol(current_frame->symbol_table, name, data_type_declared, is_constant, is_nullable, has_literal, value);
         } else {
             fprintf(stderr, "Internal Error: No valid scope to declare %s '%s'.\n",
                     is_constant ? "constant" : "variable", name);

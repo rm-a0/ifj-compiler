@@ -59,7 +59,7 @@ ScopeStack *init_scope_stack();
  * @param name Name of the symbol to look for.
  * @return Pointer to the found symbol or NULL if not found.
  */
-Symbol *lookup_symbol_in_scopes(SymbolTable *global_table, ScopeStack *local_stack, const char *name, Frame *local_frame);
+Symbol *lookup_symbol_in_scope(SymbolTable *global_table, ScopeStack *local_stack, const char *name, Frame *local_frame);
 
 /**
  * @brief Pushes a new frame onto the ScopeStack, resizing if needed.

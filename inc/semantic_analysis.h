@@ -13,6 +13,7 @@
 #include <string.h>
 #include <float.h>
 #include <stdint.h>
+#include <limits.h>
 #include <math.h>
 #include "ast.h"
 #include "symtable.h"

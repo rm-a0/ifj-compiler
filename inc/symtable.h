@@ -28,6 +28,7 @@ typedef struct VarSymbol {
     bool used;               /**< Indicates if the variable was used */
     bool is_nullable;        /**< Indicates if the var's expression can be of AST_NULL value */
     bool redefined;          /**< Indicates if the variable was redefined */
+    bool has_literal;
     float value;             /**< Indicates the value of variable */
 } VarSymbol;
 
@@ -55,7 +56,7 @@ SymbolTable *init_symbol_table();
 void free_symbol_table(SymbolTable *table);
 void resize(SymbolTable *table);
 void add_function_symbol(SymbolTable *table, const char *name, DataType return_type, bool is_initialized, ASTNode *fn_node, bool is_nullable);
-void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant, bool is_nullable, double value);
+void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant, bool is_nullable, bool has_literal, double value);
 Symbol *lookup_symbol(SymbolTable *table, const char *name);
 void print_symbol_table(const SymbolTable *table);
 
