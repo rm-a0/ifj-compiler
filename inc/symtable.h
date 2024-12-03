@@ -16,6 +16,8 @@ typedef struct FuncSymbol {
     bool has_return;         /**< Indicates that a function has a return statement if not of void-type */
     bool used;               /**< Indicates if the function was called */
     bool is_nullable;        /**< Indicates if the function's expression can be of AST_NULL value */
+    bool is_initialized;
+    ASTNode *fn_node;
     ScopeStack *scope_stack; /**< Pointer to a ScopeStack for function scope */
 } FuncSymbol;
 
@@ -52,8 +54,8 @@ typedef struct SymbolTable {
 SymbolTable *init_symbol_table();
 void free_symbol_table(SymbolTable *table);
 void resize(SymbolTable *table);
-void add_function_symbol(SymbolTable *table, const char *name, DataType return_type);
-void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant, double value);
+void add_function_symbol(SymbolTable *table, const char *name, DataType return_type, bool is_initialized, ASTNode *fn_node, bool is_nullable);
+void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant, bool is_nullable, double value);
 Symbol *lookup_symbol(SymbolTable *table, const char *name);
 void print_symbol_table(const SymbolTable *table);
 
