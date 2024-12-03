@@ -188,14 +188,10 @@ Token* get_token(Lexer* lexer) {
                             break;
                     }
                 }
-                else if (isvalid(c, lexer->ascii_l_table) || isspace(c)) {
+                else {
                     lexer->state = START;
                     ungetc(c, lexer->src);
                     return create_token(lexer->ascii_l_table[(int)lexer->buff[0]], 0, NULL);
-                }
-                else {
-                    set_error(LEXICAL_ERROR);
-                    return NULL;
                 }
                 break;
             case ID_OR_KEY:
