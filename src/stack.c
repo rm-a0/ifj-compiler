@@ -1,8 +1,8 @@
 /**
  * @file stack.h
- * @brief Source files implementating stack data structure
+ * @brief Source files implementing stack data structure
  * @authors Alex Marinica (xmarina00)
-*/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,6 +15,7 @@
 
 /**
  * @brief Resizes the ScopeStack by doubling its capacity.
+ *
  * @param scopeStack Pointer to the ScopeStack to resize.
  */
 void resize_scope_stack(ScopeStack *scopeStack) {
@@ -24,6 +25,7 @@ void resize_scope_stack(ScopeStack *scopeStack) {
 
 /**
  * @brief Initializes a new ScopeStack for managing frames within a function.
+ *
  * @return Pointer to the initialized ScopeStack, or NULL if memory allocation fails.
  */
 ScopeStack *init_scope_stack() {
@@ -42,19 +44,18 @@ ScopeStack *init_scope_stack() {
     return stack;
 }
 
-
 /**
- * @brief Looks up a symbol in the local stack and global table.
- * 
- * This function searches for a symbol starting from the top frame of the local stack 
- * and then falls back to the global table if not found in the local scopes.
- * 
- * @param global_table Pointer to the global symbol table.
+ * @brief Looks up a symbol in the local stack, global table, or provided frame.
+ *
+ * This function searches for a symbol starting from the specified local frame,
+ * falling back to the local stack, and then the global table if not found.
+ *
  * @param local_stack Pointer to the local scope stack.
  * @param name Name of the symbol to look for.
+ * @param local_frame Pointer to a specific local frame to search first, or NULL to skip.
  * @return Pointer to the found symbol or NULL if not found.
  */
-Symbol *lookup_symbol_in_scope(SymbolTable *global_table, ScopeStack *local_stack, const char *name, Frame *local_frame) {
+Symbol *lookup_symbol_in_scope(ScopeStack *local_stack, const char *name, Frame *local_frame) {
     printf("Looking up symbol: %s\n", name);
 
     // 1. Check if local_frame is explicitly provided
@@ -85,27 +86,17 @@ Symbol *lookup_symbol_in_scope(SymbolTable *global_table, ScopeStack *local_stac
         }
     }
 
-    // 3. Fall back to global table if symbol not found in local frames
-    if (global_table) {
-        printf("Checking global table:\n");
-        print_symbol_table(global_table);
-
-        Symbol *symbol = lookup_symbol(global_table, name);
-        if (symbol) {
-            printf("Found symbol '%s' in global table.\n", name);
-            return symbol;
-        }
-    }
-
-    // 4. Symbol not found
+    // 3. Symbol not found
     printf("Symbol '%s' not found in any scope.\n", name);
     return NULL;
 }
 
-
 /**
  * @brief Pushes a new frame onto the ScopeStack, resizing if needed.
- * @param scope_stack Pointer to the ScopeStack where the frame will be pushed.
+ *
+ * Allocates memory for a new frame and its symbol table, pushing it onto the stack.
+ *
+ * @param stack Pointer to the ScopeStack where the frame will be pushed.
  */
 void push_frame(ScopeStack *stack) {
     if (!stack) {
@@ -130,9 +121,11 @@ void push_frame(ScopeStack *stack) {
     stack->frames[stack->top]->symbol_table = init_symbol_table();
 }
 
-
 /**
  * @brief Removes the top frame from the ScopeStack.
+ *
+ * Frees the memory associated with the top frame and removes it from the stack.
+ *
  * @param scope_stack Pointer to the ScopeStack to pop from.
  */
 void pop_frame(ScopeStack *scope_stack) {
@@ -143,6 +136,7 @@ void pop_frame(ScopeStack *scope_stack) {
 
 /**
  * @brief Retrieves the top frame of the ScopeStack without removing it.
+ *
  * @param scope_stack Pointer to the ScopeStack.
  * @return Pointer to the top Frame, or NULL if the stack is empty.
  */
@@ -155,7 +149,9 @@ Frame *top_frame(ScopeStack *scope_stack) {
 
 /**
  * @brief Frees the memory associated with a single frame.
- * 
+ *
+ * Cleans up the symbol table and the frame structure itself.
+ *
  * @param frame Pointer to the Frame to be freed.
  */
 void free_frame(Frame *frame) {
@@ -172,7 +168,9 @@ void free_frame(Frame *frame) {
 
 /**
  * @brief Frees the memory associated with a ScopeStack.
- * 
+ *
+ * Cleans up all frames within the stack and then the stack structure itself.
+ *
  * @param stack Pointer to the ScopeStack to be freed.
  */
 void free_scope_stack(ScopeStack *stack) {
@@ -192,6 +190,9 @@ void free_scope_stack(ScopeStack *stack) {
 
 /**
  * @brief Initializes a Frame with a new symbol table.
+ *
+ * Allocates memory for the frame and its associated symbol table.
+ *
  * @return Pointer to the initialized Frame, or NULL if memory allocation fails.
  */
 Frame *init_frame() {
@@ -202,11 +203,11 @@ Frame *init_frame() {
     return frame;
 }
 
-#include <stdio.h>
-
 /**
  * @brief Prints the contents of a function's ScopeStack for debugging.
- * 
+ *
+ * Iterates through all frames in the stack and prints their symbol tables.
+ *
  * @param scope_stack Pointer to the ScopeStack to print.
  */
 void print_scope_stack(ScopeStack *scope_stack) {
@@ -216,4 +217,3 @@ void print_scope_stack(ScopeStack *scope_stack) {
         print_symbol_table(frame->symbol_table);
     }
 }
-

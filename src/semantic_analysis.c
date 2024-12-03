@@ -166,13 +166,14 @@ void process_binding(ASTNode *expression, SymbolTable *global_table, ScopeStack 
 
     printf("expression->type: %u\n", expression->type);
 
-    if (expression->type == AST_IDENTIFIER || expression->type == AST_FN_CALL) {
-        printf("clear\n");
-        // Perform semantic analysis on the identifier
-        semantic_analysis(expression, global_table, local_stack);
 
+    // Perform semantic analysis on the identifier
+    semantic_analysis(expression, global_table, local_stack);
+
+    if (expression->type == AST_IDENTIFIER) {
         // Look up the symbol in the scopes
-        Symbol *identifier = lookup_symbol_in_scope(global_table, local_stack, expression->Identifier.identifier, current_frame);
+        const char *name = expression->Identifier.identifier;
+        Symbol *identifier = lookup_symbol_in_scope(local_stack, name, current_frame);
 
         if (!identifier->var.is_nullable) {
             fprintf(stderr, "Semantic Error: The variable in binding is not nullable.\n");
@@ -182,9 +183,24 @@ void process_binding(ASTNode *expression, SymbolTable *global_table, ScopeStack 
         add_variable_symbol(current_frame->symbol_table, bind_name, condition_type, true, false, has_literal, identifier->var.value);
         return;
 
+    } else if (expression->type == AST_FN_CALL) {
+
+        const char *fn_name = expression->FnCall.fn_name;
+        Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
+
+        if (fn_symbol && !fn_symbol->func.is_nullable) {
+            fprintf(stderr, "Semantic Error: The variable in binding is not nullable.\n");
+            exit(OTHER_SEMANTIC_ERROR);
+        }
+
+        add_variable_symbol(current_frame->symbol_table, bind_name, fn_symbol->func.type, true, false, false, 0);
+        return;
+
     } else if (expression->type == AST_NULL) {
+
         add_variable_symbol(current_frame->symbol_table, bind_name, condition_type, true, false, has_literal, 0);
         return;
+        
     }
 
     fprintf(stderr, "Semantic Error: Identifier in binding must be AST_IDENTIFIER or AST_FN_CALL or AST_NULL.\n");
@@ -229,8 +245,8 @@ void check_main_function(SymbolTable *global_table) {
     }
 }
 
-bool evaluate_fractionless_float (SymbolTable *global_table, ScopeStack *local_stack, const char *name, Frame *local_frame) {
-    Symbol *symbol = lookup_symbol_in_scope(global_table, local_stack, name, local_frame);
+bool evaluate_fractionless_float (ScopeStack *local_stack, const char *name, Frame *local_frame) {
+    Symbol *symbol = lookup_symbol_in_scope(local_stack, name, local_frame);
 
     printf("symbol->var.value = AST_I32: %f\n", symbol->var.value);
 
@@ -243,11 +259,11 @@ bool evaluate_fractionless_float (SymbolTable *global_table, ScopeStack *local_s
     return false;
 }
 
-bool evaluate_nullable_identifier(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack, Frame *local_frame) {
+bool evaluate_nullable_identifier(ASTNode *node, ScopeStack *local_stack, Frame *local_frame) {
 
     printf("got here\n");
     printf("node->type: %u\n", node->type);
-    Symbol *symbol = lookup_symbol_in_scope(global_table, local_stack, node->Identifier.identifier, local_frame);
+    Symbol *symbol = lookup_symbol_in_scope(local_stack, node->Identifier.identifier, local_frame);
     printf("got here2\n");
 
     bool is_nullable = false;
@@ -272,12 +288,12 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
     // Evaluate the left and right operand types
     DataType left_type = evaluate_expression_type(node->BinaryOperator.left, global_table, local_stack, local_frame);
     if (node->BinaryOperator.left->type == AST_IDENTIFIER) {
-        left_is_nullable = evaluate_nullable_identifier(node->BinaryOperator.left, global_table, local_stack, local_frame);
+        left_is_nullable = evaluate_nullable_identifier(node->BinaryOperator.left, local_stack, local_frame);
     }
 
     DataType right_type = evaluate_expression_type(node->BinaryOperator.right, global_table, local_stack, local_frame);
     if (node->BinaryOperator.right->type == AST_IDENTIFIER) {
-        right_is_nullable = evaluate_nullable_identifier(node->BinaryOperator.right, global_table, local_stack, local_frame);
+        right_is_nullable = evaluate_nullable_identifier(node->BinaryOperator.right, local_stack, local_frame);
     }
 
     printf("left_type: %u, right_type: %u\n", left_type, right_type);
@@ -434,7 +450,7 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
             return AST_SLICE;
 
         } case AST_IDENTIFIER: { 
-            Symbol *symbol = lookup_symbol_in_scope(global_table, local_stack, node->Identifier.identifier, local_frame);
+            Symbol *symbol = lookup_symbol_in_scope(local_stack, node->Identifier.identifier, local_frame);
             printf("is_symbol!\n");
             if (!symbol) {
                 fprintf(stderr, "Semantic Error: Undefined symbol '%s'.\n", node->Identifier.identifier);
@@ -464,7 +480,8 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
             const char *fn_name = node->FnCall.fn_name;
     
             // Lookup the function symbol
-            Symbol *fn_symbol = lookup_symbol_in_scope(global_table, local_stack, fn_name, local_frame);
+            Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
+            printf("hereeee\n");
             semantic_analysis(node, global_table, local_stack);
 
             if (!fn_symbol) {
@@ -662,7 +679,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
                 printf("param_node->type: %u\n", param_node->type);
 
-                Symbol *existing_symbol = lookup_symbol_in_scope(global_table, function_stack, param_name, base_frame);
+                Symbol *existing_symbol = lookup_symbol_in_scope(function_stack, param_name, base_frame);
 
                 if (existing_symbol) {
                     fprintf(stderr, "Semantic Error: Duplicate parameter name '%s' in function '%s'.\n", param_name, fn_name);
@@ -832,6 +849,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             // Evaluate the condition expression
             if (condition_expression) {
+
                 DataType condition_type = evaluate_expression_type(condition_expression, global_table, local_stack, current_frame);
 
                 if (bind_name) {
@@ -839,7 +857,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                     bool has_literal = false;
 
                     if (condition_expression->type == AST_IDENTIFIER) {
-                        symbol = lookup_symbol_in_scope(global_table, local_stack, condition_expression->Identifier.identifier, current_frame);
+                        symbol = lookup_symbol_in_scope(local_stack, condition_expression->Identifier.identifier, current_frame);
 
                         has_literal = symbol->var.has_literal ? true : false;
 
@@ -1039,7 +1057,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
 
             }
-
+            printf("break\n");
             break;
         }
 
@@ -1188,7 +1206,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         case AST_IDENTIFIER: {
             Frame *current_frame = top_frame(local_stack);
             // Look up the identifier in the current scope stack or global table.
-            Symbol *symbol = lookup_symbol_in_scope(global_table, local_stack, node->Identifier.identifier, current_frame);
+            Symbol *symbol = lookup_symbol_in_scope(local_stack, node->Identifier.identifier, current_frame);
 
             if (!symbol) {
                 // If the identifier is not found, it's an undeclared variable.
@@ -1222,7 +1240,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             }
 
             // Lookup the identifier in the symbol table (local or global)
-            Symbol *symbol = lookup_symbol_in_scope(global_table, local_stack, identifier, current_frame);
+            Symbol *symbol = lookup_symbol_in_scope(local_stack, identifier, current_frame);
             
             if (!symbol) {
                 // If the variable/constant is not declared, raise an error
@@ -1328,7 +1346,7 @@ void process_declaration(
     }
 
     // Check if already declared
-    Symbol *existing_symbol = lookup_symbol_in_scope(global_table, local_stack, name, current_frame);
+    Symbol *existing_symbol = lookup_symbol_in_scope(local_stack, name, current_frame);
     if (existing_symbol) {
         fprintf(stderr, "Semantic Error: %s '%s' is already declared in the current scope.\n", 
                 is_constant ? "Constant" : "Variable", name);

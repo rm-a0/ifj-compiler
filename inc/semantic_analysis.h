@@ -123,7 +123,7 @@ void check_type_compatibility(
  * @param local_frame Pointer to the current local frame.
  * @return True if the float value is fractionless, false otherwise.
  */
-bool evaluate_fractionless_float(SymbolTable *global_table, ScopeStack *local_stack, const char *name, Frame *local_frame);
+bool evaluate_fractionless_float(ScopeStack *local_stack, const char *name, Frame *local_frame);
 
 /**
  * @brief Evaluates the type of a function call expression.
@@ -149,7 +149,7 @@ DataType evaluate_fn_call_type(ASTNode *expression, SymbolTable *global_table, S
  * @param local_frame Pointer to the current local frame.
  * @return True if the identifier is nullable, false otherwise.
  */
-bool evaluate_nullable_identifier(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack, Frame *local_frame);
+bool evaluate_nullable_identifier(ASTNode *node, ScopeStack *local_stack, Frame *local_frame);
 
 /**
  * @brief Processes the initialization and binding of elements in control statements.
