@@ -103,6 +103,9 @@ Token* get_token(Lexer* lexer) {
                     case '/':
                         lexer->state = FWD_SLASH;
                         break;
+                    case '\\':
+                        lexer->state = BCK_SLASH;
+                        break;
                     case '@':
                         lexer->state = IMPORT;
                         break;
@@ -151,6 +154,37 @@ Token* get_token(Lexer* lexer) {
                         break;
                 }
                 break;
+            case BCK_SLASH:
+                if (c == '\\') {
+                    lexer->state = MULTI_STRING;
+                }
+                else {
+                    set_error(LEXICAL_ERROR);
+                    return NULL;
+                }
+                break;
+            case MULTI_STRING: 
+                if (c == '\n') {
+                    append(lexer, &idx, c);
+                    lexer->state = EO_ML_STRING;
+                }
+                else {
+                    append(lexer, &idx, c);
+                }
+                break;
+            case EO_ML_STRING:
+                if (c == ' ' || c == '\t') {
+                    break;
+                }
+                else if (c == '\\') {
+                    lexer->state = BCK_SLASH;
+                    break;
+                }
+                else {
+                    lexer->state = START;
+                    ungetc(c, lexer->src);
+                    return create_token(TOKEN_STRING, idx, lexer->buff);
+                }
             case IMPORT:
                 if (idx < 5) {
                     append(lexer, &idx, c);
