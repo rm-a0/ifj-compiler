@@ -7,6 +7,8 @@
 #include "ast.h"
 #include "symtable.h"
 
+
+void generate_local_constant(ASTNode* const_decl_node);
 /**
  * @brief Generates code for the entire program.
  * 

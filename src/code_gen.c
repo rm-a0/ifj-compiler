@@ -4,10 +4,14 @@
 #include "ast.h"
 #include "symtable.h"
 #include "code_gen.h"
+#include "stack.h"
+
+
 
 // Global variables for code generation
-int label_counter = 0;               // For generating unique labels
-SymbolTable* global_symtable = NULL; // Global symbol table
+int label_counter = 0;          // For generating unique labels
+SymbolTable* global_table = NULL; // Global symbol table
+ScopeStack* local_stack = NULL;   // Local scope stack
 
 // Enable or disable debugging
 #define DEBUG 1
@@ -31,6 +35,9 @@ void generate_function_declaration(ASTNode* fn_decl_node) {
     const char* fn_name = fn_decl_node->FnDecl.fn_name;
     DEBUG_PRINT("Generating function declaration for function: %s\n", fn_name);
 
+    // Push a new frame onto the local scope stack
+    push_frame(local_stack);
+
     // Label for the function
     printf("\nLABEL %s\n", fn_name);
     printf("PUSHFRAME\n");
@@ -44,8 +51,8 @@ void generate_function_declaration(ASTNode* fn_decl_node) {
         const char* param_name = param->Param.identifier;
         DEBUG_PRINT("Processing parameter: %s\n", param_name);
 
-        // Add parameter to symbol table
-        add_variable_symbol(global_symtable, param_name, param->Param.data_type, false, 0);
+        // Add parameter to the top frame's symbol table
+        add_variable_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name, param->Param.data_type, false, 0);
 
         // Declare parameter in LF
         printf("DEFVAR LF@%s\n", param_name);
@@ -58,7 +65,12 @@ void generate_function_declaration(ASTNode* fn_decl_node) {
     // Function return
     printf("POPFRAME\n");
     printf("RETURN\n");
+
+    // Pop the frame after the function ends
+    pop_frame(local_stack);
 }
+
+
 
 void generate_global_variable(ASTNode* var_decl_node) {
     const char* var_name = var_decl_node->VarDecl.var_name;
@@ -66,6 +78,14 @@ void generate_global_variable(ASTNode* var_decl_node) {
 
     // Declare variable in GF
     printf("DEFVAR GF@%s\n", var_name);
+    add_variable_symbol(
+        global_table,
+        var_name,
+        var_decl_node->VarDecl.data_type,
+        false,                                     // is_constant
+        var_decl_node->VarDecl.nullable,           // is_nullable
+        0.0                                        // value (default to 0.0)
+    );
 
     // If there's an initialization expression
     if (var_decl_node->VarDecl.expression != NULL) {
@@ -112,11 +132,49 @@ void generate_block(ASTNode* block_node) {
     }
 }
 
+
+void generate_local_variable(ASTNode* var_decl_node) {
+    const char* var_name = var_decl_node->VarDecl.var_name;
+    DEBUG_PRINT("Generating local variable: %s\n", var_name);
+
+    // Declare variable in LF
+    printf("DEFVAR LF@%s\n", var_name);
+
+    // Add variable to the top frame's symbol table
+    add_variable_symbol(
+            local_stack->frames[local_stack->top]->symbol_table,
+            var_name,
+            var_decl_node->VarDecl.data_type,
+            false,                                     // is_constant
+            var_decl_node->VarDecl.nullable,           // is_nullable
+            0.0                                        // value (default to 0.0)
+        );
+
+    // If there's an initialization expression
+    if (var_decl_node->VarDecl.expression != NULL) {
+        DEBUG_PRINT("Local variable %s has initialization expression\n", var_name);
+        // Generate code for the expression
+        generate_expression(var_decl_node->VarDecl.expression);
+
+        // Pop the value from the stack and move it to the variable
+        printf("POPS LF@%s\n", var_name);
+    } else {
+        // Initialize variable with a default value (e.g., nil)
+        printf("MOVE LF@%s nil@nil\n", var_name);
+    }
+}
+
+
+
 void generate_statement(ASTNode* stmt_node) {
     DEBUG_PRINT("Generating statement of type %d\n", stmt_node->type);
     switch (stmt_node->type) {
         case AST_VAR_DECL:
             generate_local_variable(stmt_node);
+            break;
+
+        case AST_CONST_DECL:
+            generate_local_constant(stmt_node);
             break;
 
         case AST_ASSIGNMENT:
@@ -139,13 +197,14 @@ void generate_statement(ASTNode* stmt_node) {
             generate_return(stmt_node);
             break;
 
-        // Handle other statement types
+        // Handle other statement types if necessary
 
         default:
-            fprintf(stderr, "Error: Unknown statement type.\n");
+            fprintf(stderr, "Error: Unknown statement type %d.\n", stmt_node->type);
             exit(1);
     }
 }
+
 
 void generate_local_variable(ASTNode* var_decl_node) {
     const char* var_name = var_decl_node->VarDecl.var_name;
@@ -155,7 +214,6 @@ void generate_local_variable(ASTNode* var_decl_node) {
     printf("DEFVAR LF@%s\n", var_name);
 
     // Add variable to symbol table
-    add_variable_symbol(global_symtable, var_name, var_decl_node->VarDecl.data_type, false, 0);
 
     // If there's an initialization expression
     if (var_decl_node->VarDecl.expression != NULL) {
@@ -171,18 +229,19 @@ void generate_local_variable(ASTNode* var_decl_node) {
     }
 }
 
+
 void generate_assignment(ASTNode* assignment_node) {
     const char* var_name = assignment_node->Assignment.identifier;
     DEBUG_PRINT("Generating assignment to variable: %s\n", var_name);
 
     // Lookup the variable in the symbol table to determine its frame
-    Symbol* sym = lookup_symbol(global_symtable, var_name);
+    Symbol* sym = lookup_symbol_in_scopes(global_table, local_stack, var_name, NULL);
     if (sym == NULL) {
         fprintf(stderr, "Error: Variable '%s' not declared.\n", var_name);
         exit(1);
     }
 
-    const char* frame = (sym->var.is_constant) ? "GF" : "LF"; // Simplified logic
+    const char* frame = (sym->is_constant || sym->scope == GLOBAL_SCOPE) ? "GF" : "LF";
 
     // Generate code for the expression
     generate_expression(assignment_node->Assignment.expression);
@@ -190,6 +249,7 @@ void generate_assignment(ASTNode* assignment_node) {
     // Assign the value to the variable
     printf("POPS %s@%s\n", frame, var_name);
 }
+
 
 void generate_binary_operation(OperatorType operator) {
     DEBUG_PRINT("Generating binary operation for operator %d\n", operator);
@@ -238,17 +298,20 @@ char* escape_string(const char* str) {
 }
 
 void cleanup_code_generator() {
-    // Free the global symbol table
     DEBUG_PRINT("Cleaning up code generator\n");
-    free_symbol_table(global_symtable);
+    free_symbol_table(global_table);
+    free_scope_stack(local_stack);
 }
 
 // ---------- HELPER FUNCTIONS ------------ //
 
-void generate_program(ASTNode* program_node, SymbolTable* symbol_table) {
+void generate_program(ASTNode* program_node) {
     DEBUG_PRINT("Generating program\n");
     printf(".IFJcode24\n");
-    global_symtable = symbol_table;
+
+    // Initialize global symbol table and local scope stack
+    global_table = init_symbol_table();
+    local_stack = init_scope_stack();
 
     // Traverse the top-level declarations
     for (int i = 0; i < program_node->Program.decl_count; i++) {
@@ -257,32 +320,31 @@ void generate_program(ASTNode* program_node, SymbolTable* symbol_table) {
 
         switch (decl->type) {
             case AST_FN_DECL:
-                // Add function to symbol table
                 DEBUG_PRINT("Adding function '%s' to symbol table\n", decl->FnDecl.fn_name);
-                add_function_symbol(global_symtable, decl->FnDecl.fn_name, decl->FnDecl.return_type);
+                add_function_symbol(global_table, decl->FnDecl.fn_name, decl->FnDecl.return_type);
+
                 // Generate code for function declaration
                 generate_function_declaration(decl);
                 break;
 
             case AST_VAR_DECL:
-                // Add global variable to symbol table
                 DEBUG_PRINT("Adding global variable '%s' to symbol table\n", decl->VarDecl.var_name);
-                add_variable_symbol(global_symtable, decl->VarDecl.var_name, decl->VarDecl.data_type, false, 0);
+                add_variable_symbol(global_table, decl->VarDecl.var_name, decl->VarDecl.data_type, false, 0);
+
                 // Generate code for global variable declaration
                 generate_global_variable(decl);
                 break;
 
             case AST_CONST_DECL:
-                // Add constant to symbol table
                 DEBUG_PRINT("Adding constant '%s' to symbol table\n", decl->ConstDecl.const_name);
-                add_variable_symbol(global_symtable, decl->ConstDecl.const_name, decl->ConstDecl.data_type, true, 0);
+                add_variable_symbol(global_table, decl->ConstDecl.const_name, decl->ConstDecl.data_type, true, 0);
+
                 // Generate code for constant declaration
                 generate_global_constant(decl);
                 break;
 
             default:
-                // Handle other possible declarations
-                fprintf(stderr, "Error: Unknown top-level declaration.\n");
+                fprintf(stderr, "Error: Unknown top-level declaration of type %d.\n", decl->type);
                 exit(1);
         }
     }
@@ -291,7 +353,12 @@ void generate_program(ASTNode* program_node, SymbolTable* symbol_table) {
     DEBUG_PRINT("Calling main function and exiting\n");
     printf("CALL main\n");
     printf("EXIT int@0\n");
+
+    // Cleanup
+    cleanup_code_generator();
 }
+
+
 
 void generate_function_call(ASTNode* fn_call_node) {
     DEBUG_PRINT("Generating function call to '%s' with %d arguments\n", fn_call_node->FnCall.fn_name, fn_call_node->FnCall.arg_count);
@@ -440,6 +507,7 @@ void generate_relational_operation(OperatorType operator) {
     }
 }
 
+
 void generate_expression(ASTNode* expr_node) {
     DEBUG_PRINT("Generating expression of type %d\n", expr_node->type);
     switch (expr_node->type) {
@@ -466,13 +534,13 @@ void generate_expression(ASTNode* expr_node) {
             DEBUG_PRINT("Identifier: %s\n", var_name);
 
             // Lookup the variable to get its frame
-            Symbol* sym = lookup_symbol(global_symtable, var_name);
+            Symbol* sym = lookup_symbol_in_scopes(global_table, local_stack, var_name, NULL);
             if (sym == NULL) {
                 fprintf(stderr, "Error: Variable '%s' not declared.\n", var_name);
                 exit(1);
             }
 
-            const char* frame = (sym->var.is_constant) ? "GF" : "LF"; // Simplified logic
+            const char* frame = (sym->is_constant || sym->scope == GLOBAL_SCOPE) ? "GF" : "LF";
 
             printf("PUSHS %s@%s\n", frame, var_name);
             break;
