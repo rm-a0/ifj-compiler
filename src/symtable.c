@@ -92,7 +92,7 @@ void resize(SymbolTable *table) {
 }
 
 /* Add a function symbol to the table */
-void add_function_symbol(SymbolTable *table, const char *name, DataType return_type, bool is_nullable) {
+void add_function_symbol(SymbolTable *table, const char *name, DataType return_type, bool is_initialized, ASTNode *fn_node, bool is_nullable) {
     // Resize the table if the load factor threshold is reached
     if ((float)table->count / table->capacity >= LOAD_FACTOR) {
         resize(table);
@@ -104,17 +104,35 @@ void add_function_symbol(SymbolTable *table, const char *name, DataType return_t
         index = (index + 1) % table->capacity;
     }
 
-    // Initialize the function symbol
-    FuncSymbol func = {.name = strdup(name), .type = return_type, .has_return = false, .used = false, .is_nullable = false, .scope_stack = init_scope_stack()};
+    // Allocate and initialize the function symbol
+    FuncSymbol *func = malloc(sizeof(FuncSymbol));
+    if (!func) {
+        fprintf(stderr, "Internal Error: Failed to allocate memory for function symbol '%s'.\n", name);
+    }
+
+    func->name = strdup(name);
+    func->type = return_type;
+    func->has_return = false;
+    func->used = false;
+    func->is_nullable = is_nullable;
+    func->is_initialized = is_initialized;
+    func->fn_node = fn_node;
+    func->scope_stack = init_scope_stack();
+
+    // Create the Symbol structure
     Symbol *symbol = malloc(sizeof(Symbol));
-    symbol->func.is_nullable = is_nullable;
+    if (!symbol) {
+        fprintf(stderr, "Internal Error: Failed to allocate memory for symbol '%s'.\n", name);
+    }
+
     symbol->type = SYMBOL_FUNC;
-    symbol->func = func;
+    symbol->func = *func; // Assign the initialized FuncSymbol
 
     // Add the symbol to the table
     table->symbols[index] = symbol;
     table->count++;
 }
+
 
 
 /* Add a variable symbol to the table */
