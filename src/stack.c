@@ -7,9 +7,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../inc/stack.h"
-#include "../inc/symtable.h"
-#include "../inc/error.h"
+#include "stack.h"
+#include "symtable.h"
+#include "error.h"
 
 #define INITIAL_STACK_CAPACITY 10
 
