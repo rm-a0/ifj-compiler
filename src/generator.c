@@ -255,7 +255,7 @@ void generate_code_in_node(ASTNode* node){
 
                 if (strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.string") == 0) {
                         printf("MOVE LF@%s string@%s\n", node->ConstDecl.const_name,
-                               node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string);
+                               escape_string(node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string));
 
                 } else if (strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readstr") == 0) {
                     printf("READ %s%s string\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
@@ -626,7 +626,7 @@ void generate_code_in_node(ASTNode* node){
 
                     if (strcmp(node->Assignment.expression->FnCall.fn_name, "ifj.string") == 0) {
                         printf("MOVE LF@%s string@%s\n", node->Assignment.identifier,
-                               node->Assignment.expression->FnCall.args[0]->Argument.expression->String.string);
+                               escape_string(node->Assignment.expression->FnCall.args[0]->Argument.expression->String.string));
                     } else if (strcmp(node->Assignment.expression->FnCall.fn_name, "ifj.readstr") == 0) {
                         printf("READ %s%s string\n", frame_prefix(node->Assignment.identifier),
                                node->Assignment.identifier);
@@ -793,7 +793,7 @@ void generate_code_in_node(ASTNode* node){
                 case AST_PLUS: printf("ADDS\n"); break;
                 case AST_MINUS: printf("SUBS\n"); break;
                 case AST_MUL: printf("MULS\n"); break;
-                case AST_DIV: printf("DIVS\n"); break;  // k tomuto by nemalo nikdy dojst
+                case AST_DIV: printf("DIVS\n"); break;  // k tomuto by nemalo nikdy dojst, je to tu pre istotu
                 case AST_GREATER: printf("GTS\n"); break;
                 case AST_GREATER_EQU:
                     printf("LTS\n");

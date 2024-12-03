@@ -20,7 +20,11 @@ char* escape_string(const char* input) {
     //register_allocation(output);
     size_t j = 0;
     for (size_t i = 0; i < length; i++) {
-        if (input[i] == '\\' && input[i + 1] == 'n') {
+        if (input[i] == '\n') {
+            // Nahradiť neviditeľný nový riadok sekvenciou "\\010"
+            strcpy(&output[j], "\\010");
+            j += 4;
+        } else if (input[i] == '\\' && input[i + 1] == 'n') {
             // Ak sa nájde sekvencia "\n", nahradiť "\010"
             strcpy(&output[j], "\\010");
             j += 4;
