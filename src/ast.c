@@ -79,9 +79,8 @@ ASTNode* create_binary_op_node(int operator, ASTNode* left, ASTNode* right) {
         case TOKEN_NOT_EQU:
             op_type = AST_NOT_EQU;
             break;
-        // Add other operators as needed
         default:
-            // Invalid operator token
+            // Invalid
             set_error(SYNTAX_ERROR);
             return NULL;
     }
@@ -93,7 +92,7 @@ ASTNode* create_binary_op_node(int operator, ASTNode* left, ASTNode* right) {
         return NULL;
     }
 
-    // Set the node type
+    // Set node type
     node->type = AST_BIN_OP;
 
     // Initialize the BinaryOperator struct
@@ -108,18 +107,15 @@ ASTNode* create_identifier_node(char* identifier) {
     // Allocate memory for the ASTNode
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     if (node == NULL) {
-        // Handle memory allocation failure
         set_error(INTERNAL_ERROR);
         return NULL;
     }
 
-    // Set the node type
     node->type = AST_IDENTIFIER;
 
     // Initialize the Identifier struct
     node->Identifier.identifier = strdup(identifier);
     if (node->Identifier.identifier == NULL) {
-        // Handle memory allocation failure
         set_error(INTERNAL_ERROR);
         free(node);
         return NULL;
@@ -132,12 +128,10 @@ ASTNode* create_i32_node(int value) {
     // Allocate memory for the ASTNode
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     if (node == NULL) {
-        // Handle memory allocation failure
         set_error(INTERNAL_ERROR);
         return NULL;
     }
 
-    // Set the node type
     node->type = AST_INT;
 
     // Set the integer value
