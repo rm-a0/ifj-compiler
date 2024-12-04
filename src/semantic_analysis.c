@@ -145,7 +145,6 @@ void process_binding(ASTNode *expression, SymbolTable *global_table, ScopeStack 
         
     }
 
-    
     exit(SEMANTIC_ERROR_TYPE_COMPAT);
 }
 
@@ -199,25 +198,30 @@ DataType deduce_builtin_function_type(const char *fn_name) {
 }
 
 bool evaluate_nullable_operand(SymbolTable *global_table, ASTNode *node, ScopeStack *local_stack, Frame *local_frame) {
-    
-    // Setting flag for nullability which is used in evaluate_operator_type function to set flags when the operand is nullable
-    Symbol *symbol = lookup_symbol_in_scope(local_stack, node->Identifier.identifier, local_frame);
-    
-    // No other node than identifier or function or identifier can get here so no check required
+        
+    // No other node than identifier or function call can get here so we dont check for anything else
     bool is_nullable = false;
     if (node->type == AST_IDENTIFIER) {
         Symbol *symbol = lookup_symbol_in_scope(local_stack, node->Identifier.identifier, local_frame);
+
+        // Setting flag for nullability which is used in evaluate_operator_type function to set flags when the operand is nullable
         is_nullable = symbol->var.is_nullable;
+
     } else {
         Symbol *symbol = lookup_symbol(global_table, node->FnCall.fn_name);
         const char *fn_name = node->FnCall.fn_name;
         if (!symbol) {
             for (size_t j = 0; j < sizeof(built_in_functions) / sizeof(built_in_functions[0]); j++) {
                 if (strcmp(fn_name, built_in_functions[j].name) == 0 && built_in_functions[j].is_nullable) {
+
+                    // When we couldnt find function in global table, it has to be built-in so we iterate over built-in
+                    // functions and if we find match with name and nullability of the return type we set the nullability flag
                     is_nullable = true;
                 }
             }
         } else {
+
+            // Function found and nullability retrieved from the symbol can be of false or true
             is_nullable = symbol->func.is_nullable;
         }
     }
@@ -226,6 +230,7 @@ bool evaluate_nullable_operand(SymbolTable *global_table, ASTNode *node, ScopeSt
 }
 
 bool is_literal(ASTNode *operation_element) {
+    // Used in AST_VAR_DECL & AST_CONST_DECL where implicit conversion is allowed for floats and integers, returns true when the operation_element (operand) is literal
     return operation_element->type == AST_INT || operation_element->type == AST_FLOAT;
 }
 
@@ -245,11 +250,8 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
         right_is_nullable = evaluate_nullable_operand(global_table, node->BinaryOperator.right, local_stack, local_frame);
     }
 
-    
-
     // Determine the operator type
     OperatorType operator = node->BinaryOperator.operator;
-    
 
     // Check type compatibility based on the operator
     switch (operator) {
@@ -258,14 +260,16 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
         case AST_MUL:
         case AST_DIV: {
 
-            // Arithmetic operators
+            // Arithmetic operators same
             if ((left_type == AST_I32 && right_type == AST_I32) || 
                 (left_type == AST_F64 && right_type == AST_F64)) {
                 return left_type;
 
             } else if ((left_type == AST_I32 && right_type == AST_F64) || 
-                    (left_type == AST_F64 && right_type == AST_I32)) {
-                // Check if the integer operand is a literal
+                       (left_type == AST_F64 && right_type == AST_I32)) {
+
+                // Check if the integer operand is a literal because we want to check if we can perform implicit conversion
+
                 if ((left_type == AST_I32 && right_type == AST_F64 && node->BinaryOperator.left->type == AST_INT) ||
                     (left_type == AST_F64 && right_type == AST_I32 && node->BinaryOperator.right->type == AST_INT)) {
                     // Implicit conversion of integer literal to F64
@@ -299,7 +303,6 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
 
             // Check for nullability (assignment requirement)
             if (left_is_nullable || right_is_nullable) {
-                
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
             }
 
@@ -316,11 +319,11 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
                 return AST_I32; // Representing boolean as an integer type
 
             } else if ((left_type == AST_F64 && right_type == AST_I32 && is_literal(node->BinaryOperator.right))) {
-                // Implicitly convert integer literal to f64
+                // Implicitly convert integer literal to f64 when it is literal and left_type is of type AST_F64 and right_type is of type AST_I32
                 return AST_I32;
 
             } else if ((left_type == AST_I32 && right_type == AST_F64 && is_literal(node->BinaryOperator.left))) {
-                // Implicitly convert integer literal to f64
+                // Implicitly convert integer literal to f64when it is literal and right_type is of type AST_F64 and left_type is of type AST_I32
                 return AST_I32;
 
             } else if (left_type == AST_BIN_OP) {
@@ -332,7 +335,7 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
                 return evaluate_operator_type(node->BinaryOperator.right, global_table, local_stack, local_frame);
 
             } else {
-                
+                // If no cases matched, it's a semantic error
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
             }  
         } 
