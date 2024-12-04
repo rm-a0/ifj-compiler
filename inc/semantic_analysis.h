@@ -113,19 +113,6 @@ void check_type_compatibility(
 );
 
 /**
- * @brief Evaluates the type of a function call expression.
- *
- * Checks the return type of the function being called and validates the arguments
- * against the expected parameter types.
- *
- * @param expression Pointer to the AST node representing the function call.
- * @param global_table Pointer to the global symbol table.
- * @param local_stack Pointer to the local scope stack.
- * @return The data type of the function call's return value.
- */
-DataType evaluate_fn_call_type(ASTNode *expression, SymbolTable *global_table, ScopeStack *local_stack);
-
-/**
  * @brief Checks the nullability of an identifier in the current scope.
  *
  * Determines if the specified identifier can hold null values based on its declaration.
@@ -136,7 +123,7 @@ DataType evaluate_fn_call_type(ASTNode *expression, SymbolTable *global_table, S
  * @param local_frame Pointer to the current local frame.
  * @return True if the identifier is nullable, false otherwise.
  */
-bool evaluate_nullable_identifier(ASTNode *node, ScopeStack *local_stack, Frame *local_frame);
+bool evaluate_nullable_operand(SymbolTable *global_table, ASTNode *node, ScopeStack *local_stack, Frame *local_frame);
 
 /**
  * @brief Processes the initialization and binding of elements in control statements.

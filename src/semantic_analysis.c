@@ -145,7 +145,6 @@ void process_binding(ASTNode *expression, SymbolTable *global_table, ScopeStack 
         
     }
 
-    
     exit(SEMANTIC_ERROR_TYPE_COMPAT);
 }
 
@@ -185,23 +184,53 @@ void check_main_function(SymbolTable *global_table) {
     }
 }
 
-bool evaluate_nullable_identifier(ASTNode *node, ScopeStack *local_stack, Frame *local_frame) {
-    
-    // Setting flag for nullability which is used in evaluate_operator_type function to set flags when the operand is nullable
-    Symbol *symbol = lookup_symbol_in_scope(local_stack, node->Identifier.identifier, local_frame);
-    
-    // No other node than identifier or function or identifier can get here so no check required
+DataType deduce_builtin_function_type(const char *fn_name) {
+
+    size_t built_in_count = sizeof(built_in_functions) / sizeof(built_in_functions[0]);
+    for (size_t i = 0; i < built_in_count; i++) {
+        if (strcmp(fn_name, built_in_functions[i].name) == 0) {
+            
+            return built_in_functions[i].return_type;
+        }
+    }
+
+    exit(SEMANTIC_ERROR_UNDEFINED);
+}
+
+bool evaluate_nullable_operand(SymbolTable *global_table, ASTNode *node, ScopeStack *local_stack, Frame *local_frame) {
+        
+    // No other node than identifier or function call can get here so we dont check for anything else
     bool is_nullable = false;
-    if (symbol->type == SYMBOL_VAR) {
+    if (node->type == AST_IDENTIFIER) {
+        Symbol *symbol = lookup_symbol_in_scope(local_stack, node->Identifier.identifier, local_frame);
+
+        // Setting flag for nullability which is used in evaluate_operator_type function to set flags when the operand is nullable
         is_nullable = symbol->var.is_nullable;
+
     } else {
-        is_nullable = symbol->func.is_nullable;
+        Symbol *symbol = lookup_symbol(global_table, node->FnCall.fn_name);
+        const char *fn_name = node->FnCall.fn_name;
+        if (!symbol) {
+            for (size_t j = 0; j < sizeof(built_in_functions) / sizeof(built_in_functions[0]); j++) {
+                if (strcmp(fn_name, built_in_functions[j].name) == 0 && built_in_functions[j].is_nullable) {
+
+                    // When we couldnt find function in global table, it has to be built-in so we iterate over built-in
+                    // functions and if we find match with name and nullability of the return type we set the nullability flag
+                    is_nullable = true;
+                }
+            }
+        } else {
+
+            // Function found and nullability retrieved from the symbol can be of false or true
+            is_nullable = symbol->func.is_nullable;
+        }
     }
 
     return is_nullable;
 }
 
 bool is_literal(ASTNode *operation_element) {
+    // Used in AST_VAR_DECL & AST_CONST_DECL where implicit conversion is allowed for floats and integers, returns true when the operation_element (operand) is literal
     return operation_element->type == AST_INT || operation_element->type == AST_FLOAT;
 }
 
@@ -212,20 +241,17 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
 
     // Evaluate the left and right operand types
     DataType left_type = evaluate_expression_type(node->BinaryOperator.left, global_table, local_stack, local_frame);
-    if (node->BinaryOperator.left->type == AST_IDENTIFIER) {
-        left_is_nullable = evaluate_nullable_identifier(node->BinaryOperator.left, local_stack, local_frame);
+    if (node->BinaryOperator.left->type == AST_IDENTIFIER || node->BinaryOperator.left->type == AST_FN_CALL) {
+        left_is_nullable = evaluate_nullable_operand(global_table, node->BinaryOperator.left, local_stack, local_frame);
     }
 
     DataType right_type = evaluate_expression_type(node->BinaryOperator.right, global_table, local_stack, local_frame);
-    if (node->BinaryOperator.right->type == AST_IDENTIFIER) {
-        right_is_nullable = evaluate_nullable_identifier(node->BinaryOperator.right, local_stack, local_frame);
+    if (node->BinaryOperator.right->type == AST_IDENTIFIER || node->BinaryOperator.right->type == AST_FN_CALL) {
+        right_is_nullable = evaluate_nullable_operand(global_table, node->BinaryOperator.right, local_stack, local_frame);
     }
-
-    
 
     // Determine the operator type
     OperatorType operator = node->BinaryOperator.operator;
-    
 
     // Check type compatibility based on the operator
     switch (operator) {
@@ -234,14 +260,16 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
         case AST_MUL:
         case AST_DIV: {
 
-            // Arithmetic operators
+            // Arithmetic operators same
             if ((left_type == AST_I32 && right_type == AST_I32) || 
                 (left_type == AST_F64 && right_type == AST_F64)) {
                 return left_type;
 
             } else if ((left_type == AST_I32 && right_type == AST_F64) || 
-                    (left_type == AST_F64 && right_type == AST_I32)) {
-                // Check if the integer operand is a literal
+                       (left_type == AST_F64 && right_type == AST_I32)) {
+
+                // Check if the integer operand is a literal because we want to check if we can perform implicit conversion
+
                 if ((left_type == AST_I32 && right_type == AST_F64 && node->BinaryOperator.left->type == AST_INT) ||
                     (left_type == AST_F64 && right_type == AST_I32 && node->BinaryOperator.right->type == AST_INT)) {
                     // Implicit conversion of integer literal to F64
@@ -267,7 +295,6 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
             }
         }
 
-
         case AST_GREATER:
         case AST_GREATER_EQU:
         case AST_LESS:
@@ -275,7 +302,6 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
 
             // Check for nullability (assignment requirement)
             if (left_is_nullable || right_is_nullable) {
-                
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
             }
 
@@ -292,11 +318,11 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
                 return AST_I32; // Representing boolean as an integer type
 
             } else if ((left_type == AST_F64 && right_type == AST_I32 && is_literal(node->BinaryOperator.right))) {
-                // Implicitly convert integer literal to f64
+                // Implicitly convert integer literal to f64 when it is literal and left_type is of type AST_F64 and right_type is of type AST_I32
                 return AST_I32;
 
             } else if ((left_type == AST_I32 && right_type == AST_F64 && is_literal(node->BinaryOperator.left))) {
-                // Implicitly convert integer literal to f64
+                // Implicitly convert integer literal to f64when it is literal and right_type is of type AST_F64 and left_type is of type AST_I32
                 return AST_I32;
 
             } else if (left_type == AST_BIN_OP) {
@@ -308,7 +334,7 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
                 return evaluate_operator_type(node->BinaryOperator.right, global_table, local_stack, local_frame);
 
             } else {
-                
+                // If no cases matched, it's a semantic error
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
             }  
         } 
@@ -316,49 +342,34 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
         case AST_EQU:
         case AST_NOT_EQU: {
 
+            // Nullable operands can be used only with operator == or =! plus they have to be accompanied with nullable type operand on the other side
             if ((left_is_nullable || right_is_nullable) &&
                 (left_type == right_type || left_type == AST_UNSPECIFIED || right_type == AST_UNSPECIFIED)) {
                 return AST_I32;
 
+
+            // Allow comparisons between matching integer or float types (boolean-like)
             } else if ((left_type == AST_I32 && right_type == AST_I32) || (left_type == AST_F64 && right_type == AST_F64)) {
                 return AST_I32;
 
+            // Allow implicit conversion for comparisons involving integer literals and floats
             } else if ((left_type == AST_I32 && right_type == AST_F64 && node->BinaryOperator.left->type == AST_INT) ||
                     (left_type == AST_F64 && right_type == AST_I32 && node->BinaryOperator.right->type == AST_INT)) {
                 return AST_I32; // Implicit conversion for literals
 
             } else {
-                
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
             }
 
         }
 
         default: {
-            
             exit(SEMANTIC_ERROR_TYPE_COMPAT);
         }
     }
 }
 
-DataType deduce_builtin_function_type(const char *fn_name) {
-
-    size_t built_in_count = sizeof(built_in_functions) / sizeof(built_in_functions[0]);
-    for (size_t i = 0; i < built_in_count; i++) {
-        if (strcmp(fn_name, built_in_functions[i].name) == 0) {
-            
-            return built_in_functions[i].return_type;
-        }
-    }
-
-    
-    exit(SEMANTIC_ERROR_UNDEFINED);
-}
-
 DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack, Frame *local_frame) {
-
-    
-    
 
     switch (node->type) {
         case AST_INT: {
@@ -374,27 +385,28 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
             Symbol *symbol = lookup_symbol_in_scope(local_stack, node->Identifier.identifier, local_frame);
             
             if (!symbol) {
-                
+                // When variable has been used but wasnt declared, it results in undefined error
                 exit(SEMANTIC_ERROR_UNDEFINED);
             }
             
-            // when var used in fun. mark it as used 
+            // We flag variable as used when it has been part of an expression
             if (symbol->type == SYMBOL_VAR) {
                 symbol->var.used = true;
             }
             
-            
             return symbol->var.type;
+
         } case AST_BIN_OP: {
-            
             return evaluate_operator_type(node, global_table, local_stack, local_frame);
 
         } case AST_ARG: {
+
             if (!node->Argument.expression) {
-                
                 exit(SEMANTIC_ERROR_UNDEFINED);
             }
-            // Recurs. eval. expression
+
+            // Recursively evaluate expression
+            // We perform this because every node in this case can be a child node of AST_ARG_NODE
             return evaluate_expression_type(node->Argument.expression, global_table, local_stack, local_frame);
 
         } case AST_FN_CALL: {
@@ -402,42 +414,35 @@ DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, Scop
     
             // Lookup the function symbol
             Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
-            
+
+            // We call semantic analysis in order to add decleration of function that hasn't been declared and other semantic checks regarding function call
+            // For further infromation navigate to semantic_analysis->case : AST_FN_CALL
             semantic_analysis(node, global_table, local_stack);
 
             if (!fn_symbol) {
-                
+                // Function not found, has to be built-in one
                 DataType built_in_fn_data_type = deduce_builtin_function_type(fn_name);
                 return built_in_fn_data_type;
 
             } else {
-                // Return the function's return type
-                
+                // Function found, retrieve type from the symbol table                
                 return fn_symbol->func.type;
             }
 
         } case AST_NULL: {
-            
+            // We assign AST_NULL type data type of AST_UNSPECIFIED
             return AST_UNSPECIFIED;
         }
 
         default: 
-            
+            // Error for missing expression
             exit(SEMANTIC_ERROR_RETURN);
     }
 }
 
 
-void check_initialization(ASTNode *expression, bool is_nullable, const char *name, bool is_constant) {
-    if (expression->type == AST_NULL && !is_nullable) {
-        exit(SEMANTIC_ERROR_TYPE_DERIVATION);
-    }
-}
-
 void check_type_compatibility(DataType data_type_declared, DataType data_type_stored, bool is_nullable, double value, bool expression_is_literal) {
     if (data_type_declared != data_type_stored) {
-
-        
 
         // Implicit conversion is allowed only if the expression is a literal
         if (expression_is_literal) {
@@ -471,22 +476,10 @@ void check_type_compatibility(DataType data_type_declared, DataType data_type_st
     }
 }
 
-DataType evaluate_fn_call_type(ASTNode *expression, SymbolTable *global_table, ScopeStack *local_stack) {
-
-    semantic_analysis(expression, global_table, local_stack);
-    Symbol *fn_symbol = lookup_symbol(global_table, expression->FnCall.fn_name);
-    const char *fn_name = expression->FnCall.fn_name;;
-
-    if (fn_symbol) {
-        
-        return fn_symbol->func.type;
-    } else {
-        
-
-        return deduce_builtin_function_type(fn_name);   
-    }
-
-}
+// As tests in assignment stat, we don't have to have declaration of the function before it is used so we populate global table with function
+// declarations from AST_PROGRAM and then when we encounter them, we perform semantic analysis on them from AST_FN_CALL, which will perform
+// needed semantic checks This approach minimizes for time spent evaluating every function, before we can even tell if it'll be used.
+// If not used and it is not error when the function is declared but not used semantic_analysis shouldnt care
 
 void populate_global_table_with_functions(ASTNode *root, SymbolTable *global_table) {
     for (int i = 0; i < root->Program.decl_count; i++) {
@@ -495,15 +488,12 @@ void populate_global_table_with_functions(ASTNode *root, SymbolTable *global_tab
             const char *name = decl->FnDecl.fn_name;
             DataType function_type = decl->FnDecl.return_type;
             bool is_nullable = decl->FnDecl.nullable;
-
             
-            // Check for redefinition
+            // Check for redefinition of the function (same name already used)
             Symbol *existing_symbol = lookup_symbol(global_table, name);
             if (existing_symbol && existing_symbol->type == SYMBOL_FUNC) {
-                
                 exit(SEMANTIC_ERROR_REDEF);
             }
-            // Verify the addition
 
             // Add the function to the global table
             add_function_symbol(global_table, name, function_type, false, decl, is_nullable);
@@ -512,7 +502,6 @@ void populate_global_table_with_functions(ASTNode *root, SymbolTable *global_tab
 }
 
 void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack) {
-    
 
     if (!node) return;
     switch (node->type) {
@@ -521,11 +510,11 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             populate_global_table_with_functions(node, global_table);
 
             for (int i = 0; i < node->Program.decl_count; i++) {
-                // "node->Program.declarations[i]" can take a shape of fn, var or const
                 ASTNode *decl = node->Program.declarations[i];
                 Symbol *symbol = lookup_symbol(global_table, decl->FnDecl.fn_name);
 
                 if (!symbol->func.is_initialized) {
+                    // Performing semantic analysis on function declarations
                     semantic_analysis(node->Program.declarations[i], global_table, local_stack);
                 }
             }
@@ -546,33 +535,12 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         }
 
         case AST_FN_DECL: {
-            
             const char *fn_name = node->FnDecl.fn_name;
             bool func_is_nullable = node->FnDecl.nullable;
             DataType return_type = node->FnDecl.return_type;
-            
-
-            // Check if the function is already declared
-            // Symbol *existing_symbol = lookup_symbol(global_table, fn_name);
-
-            // if (existing_symbol != NULL) {
-            //     
-            //     exit(SEMANTIC_ERROR_REDEF);
-            // }
-
-            // Add the function symbol to the global symbol table
-            // add_function_symbol(global_table, fn_name, return_type, is_nullable);
 
             // Retrieve the function symbol to access its scope stack
             Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
-            // if (fn_symbol == NULL || fn_symbol->type != SYMBOL_FUNC) {
-            //     
-            //     exit(SEMANTIC_ERROR_UNDEFINED);
-            // }
-
-            // // Initialize the scope stack for the function
-            // fn_symbol->func.scope_stack = init_scope_stack();
-            
             ScopeStack *function_stack = fn_symbol->func.scope_stack;
 
             // Push a frame for the function parameters
@@ -582,36 +550,15 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             // Process function parameters
             for (int i = 0; i < node->FnDecl.param_count; i++) {
-                ASTNode *param_node = node->FnDecl.params[i];
-                const char *param_name = param_node->Param.identifier;
-                DataType param_type = param_node->Param.data_type;
-
-                // Ensure the parameter node is valid
-                if (param_node->type != AST_PARAM) {
-                    
-                    exit(SEMANTIC_ERROR_PARAMS);
-                }
-
-                
-
-                Symbol *existing_symbol = lookup_symbol_in_scope(function_stack, param_name, base_frame);
-
-                if (existing_symbol) {
-                    
-                    exit(SEMANTIC_ERROR_REDEF);
-
-                } else {
-                    add_variable_symbol(function_stack->frames[function_stack->top]->symbol_table, param_name, param_type, true, param_node->Param.nullable, false, 0);
-                }
+                semantic_analysis(node->FnDecl.params[i], global_table, function_stack);
             }
 
-            
-
+            // When the declared function is nullable, we assign it a true flag in appropriate entry of fn_symbol in fn_scope_stack
             if (func_is_nullable) {
-                
                 fn_symbol->func.is_nullable = true;
             }
 
+            // This is checked in AST_FN_CALL, so when the function has already been analyzed, it won't perform semantic analysis again
             fn_symbol->func.is_initialized = true;
 
             // Push a new frame for the function body
@@ -625,7 +572,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             // Ensure non-void functions have a return statement
             if (return_type != AST_VOID && fn_symbol && fn_symbol->type == SYMBOL_FUNC && !fn_symbol->func.has_return) {
                 if (!(strcmp(fn_symbol->func.name, "main") == 0)) {
-                    
                     exit(SEMANTIC_ERROR_RETURN);
                 }
             }
@@ -637,21 +583,24 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
     
 
         case AST_PARAM: {
-            // Retrieve parameter details
             const char *param_name = node->Param.identifier;
             DataType param_type = node->Param.data_type;
-            // bool nullable = node->Param.nullable;
 
-            Symbol *symbol = lookup_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name);
-            
-            // Check if the parameter already exists in the current scope
-            if (!symbol) {
-                
+            // Ensure the parameter node is valid
+            if (node->type != AST_PARAM) {
                 exit(SEMANTIC_ERROR_PARAMS);
             }
 
-            // Add the parameter to the local symbol table
-            add_variable_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name, param_type, true, symbol->var.is_nullable, symbol->var.has_literal, symbol->var.value);            
+            Frame *frame = top_frame(local_stack);
+            Symbol *existing_symbol = lookup_symbol_in_scope(local_stack, param_name, frame);
+
+            if (existing_symbol) {
+                fprintf(stderr, "Semantic Error: Duplicate parameter name.\n");
+                exit(SEMANTIC_ERROR_REDEF);
+
+            } else {
+                add_variable_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name, param_type, true, node->Param.nullable, false, 0);
+            }
             break;
         }
 
@@ -659,8 +608,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         case AST_BLOCK: {
             // Push a new frame to the local stack for the block
             push_frame(local_stack);
-
-            
             Symbol *enclosing_function;
 
             // Iterate through the global symbol table to find the matching function
@@ -678,10 +625,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 // Perform semantic analysis on each child node
                 semantic_analysis(child_node, global_table, local_stack);
 
-                
-
                 // Check if the child node is a function call and its return value is discarded
-
                 if (enclosing_function) {
                     
                     if (child_node->type == AST_FN_CALL) {
@@ -708,7 +652,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
                         // Error handling for undefined functions
                         if (!fn_symbol && !is_builtin) {
-                            
                             exit(SEMANTIC_ERROR_UNDEFINED);
                         }
 
@@ -717,7 +660,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                             exit(SEMANTIC_ERROR_PARAMS);
                         }
                     } else if (child_node->type == AST_RETURN) {
-                        
                         enclosing_function->func.has_return = true;
                     }
                 }
@@ -727,15 +669,19 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             Frame *current_frame = top_frame(local_stack);
             
             if (current_frame && current_frame->symbol_table) {
+
+                // Get the current table
                 SymbolTable *current_table = current_frame->symbol_table;
 
                 for (int j = 0; j < current_table->capacity; j++) {
                     Symbol *symbol = current_table->symbols[j];
+
+                    // When found symbol that doesnt have flag .used == true => SEMANTIC_ERROR_UNUSED_VAR
                     if (symbol && symbol->type == SYMBOL_VAR && !symbol->var.used) {
-                        
                         exit(SEMANTIC_ERROR_UNUSED_VAR);
+
+                    // When found symbol that doesnt have flag .used == true => SEMANTIC_ERROR_UNUSED_VAR
                     } else if (symbol && symbol->type == SYMBOL_VAR && !symbol->var.is_constant  && !symbol->var.redefined) {
-                        
                         exit(SEMANTIC_ERROR_UNUSED_VAR);
                     }
                 }
