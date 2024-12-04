@@ -1,6 +1,6 @@
 # Compiler and Flags
 CC = gcc
-CFLAGS = -I$(INC_DIR) -g -O3 -pedantic -lm #-fsanitize=address
+CFLAGS = -I$(INC_DIR) -g -O3 -pedantic #-fsanitize=address
 
 # Directories
 SRC_DIR = src/
@@ -20,7 +20,7 @@ OBJ_FILES = $(patsubst %.c,%.o,$(notdir $(SRC_FILES)))
 all: $(TARGET)
 
 $(TARGET): $(OBJ_FILES)
-	$(CC) $(CFLAGS) $(OBJ_FILES) -o $(TARGET)
+	$(CC) $(CFLAGS) $(OBJ_FILES) -o $(TARGET) -lm
 
 %.o: $(SRC_DIR)/%.c $(INC_FILES)
 	$(CC) $(CFLAGS) -c $< -o $@
