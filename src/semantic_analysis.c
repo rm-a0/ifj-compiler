@@ -546,8 +546,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             // Push a frame for the function parameters
             push_frame(function_stack);
 
-            Frame *base_frame = top_frame(function_stack);
-
             // Process function parameters
             for (int i = 0; i < node->FnDecl.param_count; i++) {
                 semantic_analysis(node->FnDecl.params[i], global_table, function_stack);
