@@ -273,26 +273,29 @@ DataType deduce_builtin_function_type(const char *fn_name) {
     exit(SEMANTIC_ERROR_UNDEFINED);
 }
 
-bool evaluate_nullable_identifier(SymbolTable *global_table, ASTNode *node, ScopeStack *local_stack, Frame *local_frame) {
-
-    printf("got here\n");
-    printf("node->type: %u\n", node->type);
+bool evaluate_nullable_operand(SymbolTable *global_table, ASTNode *node, ScopeStack *local_stack, Frame *local_frame) {
     
-    printf("got here2\n");
-
+    // Setting flag for nullability which is used in evaluate_operator_type function to set flags when the operand is nullable
+    
+    // No other node than identifier or function or identifier can get here so no check required
     bool is_nullable = false;
     if (node->type == AST_IDENTIFIER) {
         Symbol *symbol = lookup_symbol_in_scope(local_stack, node->Identifier.identifier, local_frame);
         is_nullable = symbol->var.is_nullable;
     } else {
         Symbol *symbol = lookup_symbol(global_table, node->FnCall.fn_name);
+        const char *fn_name = node->FnCall.fn_name;
         if (!symbol) {
-            return deduce_builtin_function_type(node->FnCall.fn_name);
+            for (size_t j = 0; j < sizeof(built_in_functions) / sizeof(built_in_functions[0]); j++) {
+                if (strcmp(fn_name, built_in_functions[j].name) == 0 && built_in_functions[j].is_nullable) {
+                    is_nullable = true;
+                }
+            }
         } else {
             is_nullable = symbol->func.is_nullable;
         }
     }
-    printf("returned\n");
+
     return is_nullable;
 }
 
@@ -308,12 +311,12 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
     // Evaluate the left and right operand types
     DataType left_type = evaluate_expression_type(node->BinaryOperator.left, global_table, local_stack, local_frame);
     if (node->BinaryOperator.left->type == AST_IDENTIFIER || node->BinaryOperator.left->type == AST_FN_CALL) {
-        left_is_nullable = evaluate_nullable_identifier(global_table, node->BinaryOperator.left, local_stack, local_frame);
+        left_is_nullable = evaluate_nullable_operand(global_table, node->BinaryOperator.left, local_stack, local_frame);
     }
 
     DataType right_type = evaluate_expression_type(node->BinaryOperator.right, global_table, local_stack, local_frame);
     if (node->BinaryOperator.right->type == AST_IDENTIFIER || node->BinaryOperator.right->type == AST_FN_CALL) {
-        right_is_nullable = evaluate_nullable_identifier(global_table, node->BinaryOperator.right, local_stack, local_frame);
+        right_is_nullable = evaluate_nullable_operand(global_table, node->BinaryOperator.right, local_stack, local_frame);
     }
 
     printf("left_type: %u, right_type: %u\n", left_type, right_type);
