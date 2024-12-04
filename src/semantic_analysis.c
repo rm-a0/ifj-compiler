@@ -476,7 +476,7 @@ void check_type_compatibility(DataType data_type_declared, DataType data_type_st
     }
 }
 
-// As tests in assignment stat, we don't have to have declaration of the function before it is used so we populate global table with function
+// As tests in assignment state, we don't have to have declaration of the function before it is used so we populate global table with function
 // declarations from AST_PROGRAM and then when we encounter them, we perform semantic analysis on them from AST_FN_CALL, which will perform
 // needed semantic checks This approach minimizes for time spent evaluating every function, before we can even tell if it'll be used.
 // If not used and it is not error when the function is declared but not used semantic_analysis shouldnt care
