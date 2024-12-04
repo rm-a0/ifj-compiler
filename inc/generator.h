@@ -88,7 +88,6 @@ int get_tmp_counter();
  */
 void increment_tmp_counter();
 
-/* Stack structures for while loops */
 
 /**
  * @brief Structure representing a node in the while loop stack.
