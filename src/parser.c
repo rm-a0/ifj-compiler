@@ -204,14 +204,14 @@ ASTNode* parse_operand(Lexer* lexer, Token** token) {
 }
 
 ASTNode* parse_expression(Lexer* lexer, Token** token) {
-    // Initialize operator stack using stack.h
+    // Initialize operator stack using stack_exp.h
     StackPtr op_stack = init_stack();
     if (!op_stack) {
         set_error(INTERNAL_ERROR);
         return NULL;
     }
 
-    // Initialize operand stack for ASTNode*
+    // Initialize operand stack
     ASTNodeStackPtr operand_stack = init_ast_node_stack();
     if (!operand_stack) {
         set_error(INTERNAL_ERROR);
@@ -219,14 +219,13 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
         return NULL;
     }
     
-    // Begin parsing tokens
+    // Begin parsing
     int paren_counter = 0;
     while (*token != NULL && !check_token(*token, TOKEN_EOF, NULL) && !is_end_of_expression(paren_counter, *token)) {
         if (is_operand_token(*token)) {
-            // Create AST node for operand and push to operand stack
+            // Create ASTNOde for operand and push to operand stack
             ASTNode* operand = parse_operand(lexer, token);
             if (!operand) {
-                // Handle error
                 set_error(SYNTAX_ERROR);
                 free_resources(op_stack);
                 free_ast_node_stack(operand_stack);
@@ -243,7 +242,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
 
                 pop(op_stack);
 
-                // Attempt to pop two operands
+                // Pops two operands
                 ASTNode* right = pop_ast_node(operand_stack);
                 ASTNode* left = pop_ast_node(operand_stack);
 
@@ -254,7 +253,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
                     return NULL;
                 }
 
-                // Create binary operator node
+                // Creates binary operator node
                 ASTNode* op_node = create_binary_op_node(top_op, left, right);
                 if (!op_node) {
                     set_error(INTERNAL_ERROR);
@@ -265,7 +264,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
                 push_ast_node(operand_stack, op_node);
             }
 
-            // Push current operator onto operator stack
+            // Pushes current operator in the operator stack
             push(op_stack, op);
             advance_token(token, lexer);
             if (*token == NULL || (*token)->token_type == TOKEN_EOF){
@@ -295,7 +294,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
 
                 pop(op_stack);
 
-                // Attempt to pop two operands
+                // Pops two operands
                 ASTNode* right = pop_ast_node(operand_stack);
                 ASTNode* left = pop_ast_node(operand_stack);
 
@@ -306,7 +305,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
                     return NULL;
                 }
 
-                // Create binary operator node
+                // Creates binary operator node
                 ASTNode* op_node = create_binary_op_node(top_op, left, right);
                 if (!op_node) {
                     set_error(INTERNAL_ERROR);
@@ -318,7 +317,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
             }
 
             if (is_empty(op_stack->top)) {
-                // Mismatched parentheses
+                // Wrong parenthesis
                 set_error(SYNTAX_ERROR);
 
                 free_resources(op_stack);
@@ -326,7 +325,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
                 return NULL;
             }
 
-            // Pop the left parenthesis from the operator stack
+            // Pop left parenthesis from the stack
             pop(op_stack);
             advance_token(token, lexer);
             if (*token == NULL || (*token)->token_type == TOKEN_EOF) {
@@ -352,14 +351,14 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
         return NULL;
     }
 
-    // Pop remaining operators
+    // Pops remaining operators
     while (!is_empty(op_stack->top)) {
         int top_op = top(op_stack);
 
         pop(op_stack);
 
         if (top_op == TOKEN_L_PAREN || top_op == TOKEN_R_PAREN) {
-            // Mismatched parentheses
+            // Wrong parenthesis
             set_error(SYNTAX_ERROR);
 
             free_resources(op_stack);
@@ -367,7 +366,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
             return NULL;
         }
 
-        // Attempt to pop two operands
+        // Pops two operands
         ASTNode* right = pop_ast_node(operand_stack);
         ASTNode* left = pop_ast_node(operand_stack);
 
@@ -385,7 +384,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
             return NULL;
         }
 
-        // Create binary operator node
+        // Creates binary operator node
         ASTNode* op_node = create_binary_op_node(top_op, left, right);
         if (!op_node) {
             set_error(INTERNAL_ERROR);
@@ -400,7 +399,7 @@ ASTNode* parse_expression(Lexer* lexer, Token** token) {
         push_ast_node(operand_stack, op_node);
     }
 
-    // The result should be the only operand left
+    // There should be only one node left
     if (operand_stack->top != 0) {
         set_error(SYNTAX_ERROR);
 
