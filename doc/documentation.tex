@@ -1,0 +1,246 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{setspace} % Add to the preamble
+\usepackage{graphicx} % For including images
+%\usepackage{geometry} % Adjust margins
+\usepackage{amsmath}  % For math symbols
+\usepackage{rotating}
+\usepackage{array}
+\usepackage{hyperref} % For hyperlinks
+\usepackage{tocloft}  % For customizing table of contents
+\usepackage[left=2cm, top=3cm, text={17cm, 24cm}]{geometry}
+
+% Removed duplicate geometry specification
+% \geometry{margin=1in}
+
+\begin{document}
+\begin{titlepage}
+    \begin{center}
+        \includegraphics[width=0.6\linewidth]{vut_logo.png} \\
+
+        \vspace{\stretch{0.382}}
+
+        \huge{Projektová dokumentace} \\
+        \Large{\textbf{Implementace překladače imperativního jazyka IFJ24}} \\
+        
+       \vspace{1cm}
+       \large{Tým \textbf{xrepcim00}, TRP-izp variant} \\
+       \large Extensions: \textbf{FUNEXP}
+
+        
+        \vspace{\stretch{0.618}}
+    \end{center}
+
+    \begin{minipage}{0.5 \textwidth}
+        {\Large \today}
+    \end{minipage}
+    \hspace{-2 cm}
+    \begin{minipage}[r]{0.5 \textwidth}
+            \large
+            \begin{tabular}{l l l}
+                \textbf{Michal Repčík} & \textbf{(xrepcim00)} & \quad 25\,\% \\
+                Alex Marinica & (xmarina00) & \quad 25\,\% \\
+                Šimon Bobko & (xbobkos00) & \quad 25\,\% \\
+                Martin Kandera & (xkande00) & \quad 25\,\% \\
+            \end{tabular}
+    \end{minipage}
+\end{titlepage}
+
+
+% Table of Contents
+\newpage
+\tableofcontents
+\newpage
+
+\section{Workflow and Team Contributions}
+\subsection{Team Member Responsibilities}
+\begin{itemize}
+    \item \textbf{Michal Repčík (xrepcim00)}: 
+    \begin{itemize}
+        \item Designed and implemented the FSM for lexical analysis (Lexer)
+        \item Designed and implemented the Abstract Syntax Tree (AST)
+        \item Implemented the parser (excluding expression parsing)
+    \end{itemize}
+    \item \textbf{Alex Marinica (xmarina00)}: 
+    \begin{itemize}
+        \item Designed and implemented symbol table
+        \item Designed and implemented semantic analysis 
+    \end{itemize}
+    \item \textbf{Šimon Bobko (xbobkos00)}: 
+    \begin{itemize}
+        \item Defined the language grammar
+        \item Implemented the LL parsing table
+        \item Developed the expression parsing module
+    \end{itemize}
+    \item \textbf{Martin Kandera (xkande00)}: 
+    \begin{itemize}
+        \item Designed and implemented code generation
+    \end{itemize}
+\end{itemize}
+
+\subsection{Workflow}
+\begin{itemize}
+    \item \textbf{Week 1 - 2}: 
+    \begin{itemize}
+        \item Task organization, project scheduling, and studying task requirements
+        \item Specification of token types and the creation of tokens
+        \item FSM design and parser implementation
+    \end{itemize}
+    \item \textbf{Week 3 - 4}:
+    \begin{itemize}
+        \item Parser optimization and debugging
+        \item AST design and node creation
+    \end{itemize}
+    \item \textbf{Week 4 - 6}:
+    \begin{itemize}
+        \item AST implementation
+        \item Parser design and implementation (including expression parser)
+        \item Starting on semantic analysis 
+    \end{itemize}
+\end{itemize}
+
+\newpage
+
+% Error chapter
+\section{Error Handling}
+To manage errors, we added an external variable, \texttt{error\_tracker}, to track the current error state, and a \texttt{set\_error} function to update the tracker. This function only updates if the current state is \texttt{NO\_ERROR}, preventing overwriting previous errors. Error states are predefined in the \texttt{ErrorType} enumeration.
+
+Details on error tracking can be found in \texttt{error.c} and \texttt{error.h}.
+
+% Lexer Chapter
+\section{Lexer}
+
+\subsection{Overview}
+The lexer (or scanner) is the first compiler stage, converting raw source code into tokens for the parser. It operates in sync with the parser, invoked on-demand to optimize memory use and detect syntax errors faster.
+
+\subsection{Finite State Machine Representation}
+The lexer uses a Finite-State Machine (FSM) to identify patterns in the source code. Each state represents a step in token recognition, with transitions driven by character inputs.
+
+The FSM diagram in higher resolution can be viewed at the following link:  
+
+\href{https://shorturl.at/rr1NE}{https://shorturl.at/rr1NE}.
+
+\begin{center}
+    \includegraphics[width=\textwidth]{lexer_fsm.jpg} % Replace with your FSM image
+\end{center}
+
+\subsection{Tokens}
+The lexer converts lexemes into tokens, each comprising a type and optionally a value. Most tokens avoid allocating memory for values unless necessary, improving efficiency.
+
+For example, given the source code:
+\begin{verbatim}
+    var x : ?i32 = 10;
+\end{verbatim}
+
+The lexer generates:
+
+\begin{table}[h!]
+\centering
+\setlength{\arrayrulewidth}{0.2mm} % Adjust line thickness
+\setlength{\tabcolsep}{6pt} % Adjust column padding
+\renewcommand{\arraystretch}{1.3} % Adjust row height
+\begin{tabular}{|p{3cm}|p{5cm}|p{4cm}|} % Adjust column widths
+\hline
+\textbf{Lexeme} & \textbf{Token Type} & \textbf{Token Value} \\ \hline
+\texttt{var}    & \texttt{TOKEN\_VAR}          & \texttt{NULL}         \\ \hline
+\texttt{x}      & \texttt{TOKEN\_IDENTIFIER}   & \texttt{"x"}          \\ \hline
+\texttt{:}      & \texttt{TOKEN\_COLON}        & \texttt{NULL}         \\ \hline
+\texttt{?}      & \texttt{TOKEN\_Q\_MARK}      & \texttt{NULL}         \\ \hline
+\texttt{i32}    & \texttt{TOKEN\_I32}          & \texttt{NULL}         \\ \hline
+\texttt{=}      & \texttt{TOKEN\_ASSIGN}       & \texttt{NULL}         \\ \hline
+\texttt{10}     & \texttt{TOKEN\_INT}          & \texttt{"10"}         \\ \hline
+\texttt{;}      & \texttt{TOKEN\_SEMICOLON}    & \texttt{NULL}         \\ \hline
+\end{tabular}
+\caption{Example of Tokens Generated by the Lexer}
+\label{table:tokens}
+\end{table}
+
+Detailed token implementation can be found in \texttt{token.c} and \texttt{token.h} files.
+
+\subsection{Optimization}
+The lexer uses a keyword hash table and an ASCII lookup table for speed and efficiency.
+
+\subsubsection{Keyword Hash Table}
+The hash table distinguishes keywords from identifiers. It uses the djb2 hash function for quick lookups with perfect hashing. This design is scalable and outperformed alternatives in speed tests. 
+
+Implementation details are in \texttt{keyword\_htab.c} and \texttt{keyword\_htab.h}.
+
+\subsubsection{ASCII Lookup Table}
+A stack-based ASCII lookup table validates characters after keywords, identifiers, or terms. With only 17 elements, lookups have \( O(1) \) complexity, reducing overhead. 
+
+Implementation details are in \texttt{ascii\_lookup.c} and \texttt{ascii\_lookup.h}.
+
+\newpage
+
+\subsection{Lexer Architecture}
+The lexer consists of the \texttt{Lexer} structure and \texttt{get\_token} function. The \texttt{Lexer} structure includes:
+
+\begin{itemize}
+    \item \texttt{src} – Pointer to the input source (file or \texttt{stdin}).
+    \item \texttt{ascii\_l\_table} – The ASCII lookup table.
+    \item \texttt{keyword\_htab} – The keyword hash table.
+    \item \texttt{buff} – A dynamic string storing token values.
+    \item \texttt{buff\_len} – Maximum buffer length for memory management.
+\end{itemize}
+
+\texttt{get\_token} processes the source code using the FSM, creating tokens or setting an error state if tokenization fails.
+
+Details are in \texttt{lexer.c} and \texttt{lexer.h}.
+
+% Parser Chapter
+\section{Parser}
+The parser (syntax analyzer) ensures token sequences match the language grammar.
+
+Our parser uses recursive descent, retrieving tokens with \texttt{advance\_token} and validating them with \texttt{check\_token}. Since the grammar is relatively simple, the parser tracks only a single instance of the current token, occasionally storing token values when necessary for Abstract Syntax Tree (AST) node creation.
+
+Details are in \texttt{parser.c} and \texttt{parser.h}.
+
+\subsection{Grammar}
+The grammar for the language was initially defined in Extended Backus-Naur Form (EBNF), which contains more expressive constructs and is easier to read. The implementation can be found 
+\href{https://github.com/rm-a0/ifj-compiler/blob/main/doc/grammar\_edited.go}{here}.
+
+This form of grammar was used to implement the parser. Later, it was rewritten into standard Backus-Naur Form (BNF) for the purpose of constructing the LL table.
+
+\newpage
+\section*{LL Parsing Table}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{LLtable.png} % Replace with your image file name
+    \caption{LL Parsing Table}
+    \label{fig:ll_table}
+\end{figure}
+
+\subsection{Abstract Syntax Tree}
+The AST was designed as a collection of nodes, each representing a specific part of the code. Our AST nodes are less modular than those in typical compilers, but given the simple and immutable grammar, this design choice was practical and effective.
+
+Below is a simple example of an AST for this code:
+\begin{verbatim}
+    pub fn main (x : ?i32) void {
+        if (x) |temp| {
+            var y = temp;
+            return;
+        }
+    } 
+\end{verbatim}
+\textit{Note: This code is intentionally not semantically correct and serves only as a simplified example.}
+
+\begin{center}
+    \includegraphics[width=1\linewidth]{ast_design.png}
+\end{center}
+
+Complete AST implementation can be found in \texttt{ast.c} and \texttt{ast.h} files.
+
+\subsection{Expression Parser}
+The expression parser implementation is inspired by the precedence syntactical analysis. Expressions are parsed based on operator precedence, which is defined in the \texttt{get\_precedence()} function. It uses two stacks: an operator stack, which holds AST \texttt{OperatorType}-s, and an operand stack, which holds \texttt{ASTNode}-s. Additionally, the parser supports both user-defined and built-in function calls as part of expressions.
+
+\newpage
+% Code Generator Chapter
+
+\section{Semantic Analysis}
+\section{Code Generator}
+
+\subsection{Overview}
+The code generator is responsible for transforming the Abstract Syntax Tree (AST) into intermediate code in IFJcode24, which can be executed by a virtual machine. This process includes managing variable scoping, function calls, loops, conditionals, and expressions.
+
+% [Rest of the code remains the same]
+\end{document}
