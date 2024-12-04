@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
-#include "ast.h" // Include your AST node definitions
+#include "ast.h"
 
 #define AST_NODE_STACK_INITIAL_CAPACITY 16
 
@@ -18,7 +18,6 @@ typedef struct ASTNodeStack {
     int capacity;      // Current maximum capacity of the stack
 } *ASTNodeStackPtr;
 
-// Function declarations
 ASTNodeStackPtr init_ast_node_stack();
 void resize_ast_node_stack(ASTNodeStackPtr stack);
 bool is_empty_ast_node_stack(ASTNodeStackPtr stack);
