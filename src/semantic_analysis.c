@@ -961,6 +961,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             break;
         }
 
+        // Only difference between var and const declaration is is_constant flag that we set so it calls forward decleration of the function processing it
         case AST_VAR_DECL: {
             process_declaration(
                 global_table,
