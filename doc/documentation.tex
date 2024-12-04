@@ -8,6 +8,8 @@
 \usepackage{hyperref} % For hyperlinks
 \usepackage{tocloft}  % For customizing table of contents
 \usepackage[left=2cm, top=3cm, text={17cm, 24cm}]{geometry}
+\usepackage[backend=bibtex]{biblatex}
+\addbibresource{references.bib}
 
 % Removed duplicate geometry specification
 % \geometry{margin=1in}
@@ -37,10 +39,10 @@
     \begin{minipage}[r]{0.5 \textwidth}
             \large
             \begin{tabular}{l l l}
-                \textbf{Michal Repčík} & \textbf{(xrepcim00)} & \quad 25\,\% \\
-                Alex Marinica & (xmarina00) & \quad 25\,\% \\
-                Šimon Bobko & (xbobkos00) & \quad 25\,\% \\
-                Martin Kandera & (xkande00) & \quad 25\,\% \\
+                \textbf{Michal Repčík} & \textbf{(xrepcim00)} & \quad 28\,\% \\
+                Alex Marinica & (xmarina00) & \quad 22\,\% \\
+                Šimon Bobko & (xbobkos00) & \quad 28\,\% \\
+                Martin Kandera & (xkande00) & \quad 22\,\% \\
             \end{tabular}
     \end{minipage}
 \end{titlepage}
@@ -70,31 +72,38 @@
         \item Defined the language grammar
         \item Implemented the LL parsing table
         \item Developed the expression parsing module
+        \item Written test cases for semantic analysis
     \end{itemize}
     \item \textbf{Martin Kandera (xkande00)}: 
     \begin{itemize}
         \item Designed and implemented code generation
+        \item Written test cases for code generation
     \end{itemize}
 \end{itemize}
+
+The points are allocated based on each individual's participation and performance (the results from the first two test submissions). This is why members xrepcim00 and xbobkos00 received more points. 
 
 \subsection{Workflow}
 \begin{itemize}
     \item \textbf{Week 1 - 2}: 
     \begin{itemize}
         \item Task organization, project scheduling, and studying task requirements
-        \item Specification of token types and the creation of tokens
-        \item FSM design and parser implementation
+        \item Token, FSM and lexer design and implementation
     \end{itemize}
     \item \textbf{Week 3 - 4}:
     \begin{itemize}
-        \item Parser optimization and debugging
+        \item Lexer optimization and debugging
         \item AST design and node creation
     \end{itemize}
-    \item \textbf{Week 4 - 6}:
+    \item \textbf{Week 5 - 6}:
     \begin{itemize}
-        \item AST implementation
-        \item Parser design and implementation (including expression parser)
-        \item Starting on semantic analysis 
+        \item AST and parser implementation (including expression parser)
+        \item Starting on semantic analysis and code generation
+    \end{itemize}
+    \item \textbf{Week 7 - 9}:
+    \begin{itemize}
+        \item Finishing and merging all modules
+        \item Testing and debugging completed compiler
     \end{itemize}
 \end{itemize}
 
@@ -107,7 +116,7 @@ To manage errors, we added an external variable, \texttt{error\_tracker}, to tra
 Details on error tracking can be found in \texttt{error.c} and \texttt{error.h}.
 
 % Lexer Chapter
-\section{Lexer}
+\section{Lexer\cite{lexer}}
 
 \subsection{Overview}
 The lexer (or scanner) is the first compiler stage, converting raw source code into tokens for the parser. It operates in sync with the parser, invoked on-demand to optimize memory use and detect syntax errors faster.
@@ -187,14 +196,14 @@ The lexer consists of the \texttt{Lexer} structure and \texttt{get\_token} funct
 Details are in \texttt{lexer.c} and \texttt{lexer.h}.
 
 % Parser Chapter
-\section{Parser}
+\section{Parser \cite{parser}}
 The parser (syntax analyzer) ensures token sequences match the language grammar.
 
 Our parser uses recursive descent, retrieving tokens with \texttt{advance\_token} and validating them with \texttt{check\_token}. Since the grammar is relatively simple, the parser tracks only a single instance of the current token, occasionally storing token values when necessary for Abstract Syntax Tree (AST) node creation.
 
 Details are in \texttt{parser.c} and \texttt{parser.h}.
 
-\subsection{Grammar}
+\subsection{Grammar \cite{grammar}}
 The grammar for the language was initially defined in Extended Backus-Naur Form (EBNF), which contains more expressive constructs and is easier to read. The implementation can be found 
 \href{https://github.com/rm-a0/ifj-compiler/blob/main/doc/grammar\_edited.go}{here}.
 
@@ -210,7 +219,7 @@ This form of grammar was used to implement the parser. Later, it was rewritten i
     \label{fig:ll_table}
 \end{figure}
 
-\subsection{Abstract Syntax Tree}
+\subsection{Abstract Syntax Tree \cite{ast}}
 The AST was designed as a collection of nodes, each representing a specific part of the code. Our AST nodes are less modular than those in typical compilers, but given the simple and immutable grammar, this design choice was practical and effective.
 
 Below is a simple example of an AST for this code:
@@ -233,14 +242,51 @@ Complete AST implementation can be found in \texttt{ast.c} and \texttt{ast.h} fi
 \subsection{Expression Parser}
 The expression parser implementation is inspired by the precedence syntactical analysis. Expressions are parsed based on operator precedence, which is defined in the \texttt{get\_precedence()} function. It uses two stacks: an operator stack, which holds AST \texttt{OperatorType}-s, and an operand stack, which holds \texttt{ASTNode}-s. Additionally, the parser supports both user-defined and built-in function calls as part of expressions.
 
+Implementation of expression parser can be found within \texttt{parser.c} and \texttt{parser.h} files. Stack implementation can be found in \texttt{stack\_exp.h}, \texttt{stack\_exp.c}, \texttt{ast\_node\_stack.h} and \texttt{ast\_node\_stack.c} files.
+
 \newpage
 % Code Generator Chapter
-
-\section{Semantic Analysis}
 \section{Code Generator}
 
 \subsection{Overview}
-The code generator is responsible for transforming the Abstract Syntax Tree (AST) into intermediate code in IFJcode24, which can be executed by a virtual machine. This process includes managing variable scoping, function calls, loops, conditionals, and expressions.
+The code generator converts the Abstract Syntax Tree (AST) into intermediate IFJcode24, executable by a virtual machine. It supports constructs like variable declarations, expressions, loops, conditionals, and function calls, ensuring all frames remain local.
 
+Implementation of code generator can be found in \texttt{generator.c} and \texttt{generator.h} files. Helper function for generator can be found in \texttt{generator\_instructions.c} and \\
+\texttt{generator\_instructions.h} files.
+
+\subsection{Structure and Components}
+Implemented in \texttt{generator.c} and \texttt{generator\_instructions.c}, the generator relies on:
+\begin{itemize}
+    \item \textbf{Local Frame Array}: Tracks variables in a dynamically managed local frame.
+    \item \textbf{While Stack}: Handles nested \texttt{while} loops with unique labels and counters.
+    \item \textbf{Temporary Counter}: Generates unique names for variables and labels.
+\end{itemize}
+
+\subsection{Workflow}
+\begin{enumerate}
+    \item \textbf{Initialization}: Prepare data structures (local frame, \texttt{while} stack).
+    \item \textbf{AST Traversal}: Process nodes recursively, invoking routines for specific constructs.
+    \item \textbf{Instruction Generation}: Emit instructions for variables, control flow, expressions, and function calls.
+    \item \textbf{Resource Cleanup}: Clear local frames and loop stack after processing blocks.
+\end{enumerate}
+
+\subsection{Features}
+\begin{itemize}
+    \item \textbf{Variable Management}: Variables are declared with \texttt{DEFVAR} in dynamically scoped local frames.
+    \item \textbf{Control Flow}: Constructs like \texttt{if-else} and \texttt{while} are implemented using labels and stack-based nesting.
+    \item \textbf{Expressions and Operations}: Arithmetic and logical expressions use stack-based evaluation with instructions like \texttt{PUSHS}, \texttt{ADDS}, and \texttt{POPS}.
+    \item \textbf{Function Calls}: Functions create a new local frame, and their execution context is restored on return.
+\end{itemize}
+
+\subsection{Error Handling}
+Errors are limited to:
+\begin{itemize}
+    \item Memory allocation failures for local frame or loop stack.
+    \item A \texttt{NULL} AST root passed to \texttt{generate\_code}.
+    \item Encountering unsupported AST nodes during traversal.
+\end{itemize}
+
+\printbibliography
 % [Rest of the code remains the same]
 \end{document}
+
