@@ -9,14 +9,12 @@
 ASTNodeStackPtr init_ast_node_stack() {
     ASTNodeStackPtr stack = malloc(sizeof(struct ASTNodeStack));
     if (!stack) {
-        // Handle memory allocation failure
         return NULL;
     }
     stack->capacity = AST_NODE_STACK_INITIAL_CAPACITY;
     stack->top = -1;
     stack->arr = malloc(stack->capacity * sizeof(ASTNode*));
     if (!stack->arr) {
-        // Handle memory allocation failure
         free(stack);
         return NULL;
     }
@@ -27,9 +25,6 @@ void resize_ast_node_stack(ASTNodeStackPtr stack) {
     stack->capacity *= 2;
     ASTNode** new_arr = realloc(stack->arr, stack->capacity * sizeof(ASTNode*));
     if (!new_arr) {
-        // Handle memory allocation failure
-        // Possibly exit or set an error code
-        // For now, we'll exit
         fprintf(stderr, "Failed to resize ASTNodeStack\n");
         exit(EXIT_FAILURE);
     }
@@ -62,7 +57,6 @@ ASTNode* pop_ast_node(ASTNodeStackPtr stack) {
 
 ASTNode* top_ast_node(ASTNodeStackPtr stack) {
     if (is_empty_ast_node_stack(stack)) {
-        // Handle empty stack
         return NULL;
     }
     return stack->arr[stack->top];
@@ -70,23 +64,23 @@ ASTNode* top_ast_node(ASTNodeStackPtr stack) {
 
 void free_ast_node_stack(ASTNodeStackPtr stack) {
     if (stack != NULL) {
-        // Free any ASTNodes remaining in the stack
+        // Free any ASTNodes in the stack
         while (!is_empty_ast_node_stack(stack)) {
             ASTNode* node = pop_ast_node(stack);
             if (node) {
-                free_ast_node(node);  // Ensure this function correctly frees the AST node
+                free_ast_node(node);
             }
         }
 
         // Free the array of ASTNode* pointers
         if (stack->arr != NULL) {
             free(stack->arr);
-            stack->arr = NULL; // Optional: Set to NULL to avoid dangling pointer
+            stack->arr = NULL;
         }
 
-        // Free the stack structure itself
+        // Free the stack
         free(stack);
-        stack = NULL; // Optional: Set to NULL to avoid dangling pointer
+        stack = NULL;
     }
 }
 
