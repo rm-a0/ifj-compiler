@@ -592,6 +592,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             Frame *frame = top_frame(local_stack);
             Symbol *existing_symbol = lookup_symbol_in_scope(local_stack, param_name, frame);
 
+            // Check for already defined parameter
             if (existing_symbol) {
                 fprintf(stderr, "Semantic Error: Duplicate parameter name.\n");
                 exit(SEMANTIC_ERROR_REDEF);
@@ -685,8 +686,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 }
             }
 
-            // Pop the frame after exiting the block
-            
+            // Pop the frame after exiting the block, generator doesn't use them
             pop_frame(local_stack);
             break;
         }
@@ -695,7 +695,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         case AST_WHILE:
         case AST_IF_ELSE: {
             
-
             // Push a frame for the block
             push_frame(local_stack);
             Frame *current_frame = top_frame(local_stack);
@@ -715,17 +714,13 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
                     if (condition_expression->type == AST_IDENTIFIER) {
                         symbol = lookup_symbol_in_scope(local_stack, condition_expression->Identifier.identifier, current_frame);
-
                         has_literal = symbol->var.has_literal ? true : false;
 
-                        
-
-                        if (condition_type != AST_I32 && !symbol->var.is_nullable) { // Ensures the condition is a boolean-compatible type
-                            
+                        // Ensures the condition is a boolean-compatible type
+                        if (condition_type != AST_I32 && !symbol->var.is_nullable) {
                             exit(SEMANTIC_ERROR_TYPE_COMPAT);
                         }
                     }
-
                     
                     process_binding(condition_expression, global_table, local_stack, current_frame, bind_name, condition_type, has_literal);
 
@@ -762,14 +757,10 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             // Determine the operator type
             OperatorType operator = node->BinaryOperator.operator;
 
-            
-
             // Check if the operator is valid isRelationalOperator
             if (!isRelationalOperator(operator)) {
-                
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
             }
-
             
             break;
         }
@@ -779,14 +770,11 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             const char *fn_name = node->FnCall.fn_name;
             Frame *current_frame = top_frame(local_stack);
 
-            
-
             // Check if the function is built-in
             bool is_builtin = false;
             BuiltInFunction *builtin_func = NULL;  
             for (size_t i = 0; i < sizeof(built_in_functions) / sizeof(built_in_functions[0]); i++) {
                 if (strcmp(fn_name, built_in_functions[i].name) == 0) {
-                    
                     is_builtin = true;
                     builtin_func = &built_in_functions[i];
                     break;
@@ -794,7 +782,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             }
 
             if (is_builtin) {
-                
 
                 // Validate argument count for built-in functions
                 if (builtin_func->param_count != -1 && node->FnCall.arg_count != builtin_func->param_count) {
@@ -816,48 +803,42 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
                 
                 if (!fn_symbol || fn_symbol->type != SYMBOL_FUNC) {
-                    
                     exit(SEMANTIC_ERROR_UNDEFINED);
                 } 
 
-                
-
-                // Mark the function as used
+                // Mark the function as used when found
                 fn_symbol->func.used = true;
 
                 if (!fn_symbol->func.fn_node) {
-                    
                     exit(INTERNAL_ERROR);
                 }
 
-                
-
+                // If the function hasn't been initialized, initialize it and set flag initialized to true
                 if (!fn_symbol->func.is_initialized) {
-                    
                     semantic_analysis(fn_symbol->func.fn_node, global_table, local_stack);
-                    
                     fn_symbol->func.is_initialized = true;
                 }
 
                 // Check argument count for user-defined functions
                 ScopeStack *fn_scope_stack = fn_symbol->func.scope_stack;
 
+                // Perform check for initialization
                 if (!fn_scope_stack || fn_scope_stack->top < 0) {
-                    
                     exit(INTERNAL_ERROR);
                 }
 
-                Frame *fn_frame_args = fn_scope_stack->frames[0]; // Function parameters are in the first frame
+                // Function parameters are in the first frame
+                Frame *fn_frame_args = fn_scope_stack->frames[0];
                 
+                // If arguments not present in symbol table check
                 if (!fn_frame_args || !fn_frame_args->symbol_table) {
-                    
                     exit(INTERNAL_ERROR);
                 }
 
                 SymbolTable *param_table = fn_frame_args->symbol_table;
-
                 int expected_arg_count = param_table->count;
                 
+                // Check if declared argument count corresponds to the expected argument cound
                 if (node->FnCall.arg_count != expected_arg_count) {
                     exit(SEMANTIC_ERROR_PARAMS);
                 }
