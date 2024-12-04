@@ -550,25 +550,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             // Process function parameters
             for (int i = 0; i < node->FnDecl.param_count; i++) {
-                ASTNode *param_node = node->FnDecl.params[i];
-                const char *param_name = param_node->Param.identifier;
-                DataType param_type = param_node->Param.data_type;
-
-                // Ensure the parameter node is of a valid type
-                if (param_node->type != AST_PARAM) {
-                    exit(SEMANTIC_ERROR_PARAMS);
-                }
-
-                Symbol *existing_symbol = lookup_symbol_in_scope(function_stack, param_name, base_frame);
-
-                // Check for same parameter name
-                if (existing_symbol) {
-                    exit(SEMANTIC_ERROR_REDEF);
-
-                } else {
-                    // When all passed, the symbol is added to the top of a scope stack frame (0th) with appropriate attributes retrieved from declaration
-                    add_variable_symbol(function_stack->frames[function_stack->top]->symbol_table, param_name, param_type, true, param_node->Param.nullable, false, 0);
-                }
+                semantic_analysis(node->FnDecl.params[i], global_table, function_stack);
             }
 
             // When the declared function is nullable, we assign it a true flag in appropriate entry of fn_symbol in fn_scope_stack
@@ -601,18 +583,24 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
     
 
         case AST_PARAM: {
-            // Retrieve parameter details
             const char *param_name = node->Param.identifier;
             DataType param_type = node->Param.data_type;
-            Symbol *symbol = lookup_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name);
-            
-            // Check if the parameter already exists in the current scope
-            if (!symbol) {
+
+            // Ensure the parameter node is valid
+            if (node->type != AST_PARAM) {
                 exit(SEMANTIC_ERROR_PARAMS);
             }
 
-            // Add the parameter to the local symbol table
-            add_variable_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name, param_type, true, symbol->var.is_nullable, symbol->var.has_literal, symbol->var.value);            
+            Frame *frame = top_frame(local_stack);
+            Symbol *existing_symbol = lookup_symbol_in_scope(local_stack, param_name, frame);
+
+            if (existing_symbol) {
+                fprintf(stderr, "Semantic Error: Duplicate parameter name.\n");
+                exit(SEMANTIC_ERROR_REDEF);
+
+            } else {
+                add_variable_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name, param_type, true, node->Param.nullable, false, 0);
+            }
             break;
         }
 
@@ -620,8 +608,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         case AST_BLOCK: {
             // Push a new frame to the local stack for the block
             push_frame(local_stack);
-
-            
             Symbol *enclosing_function;
 
             // Iterate through the global symbol table to find the matching function
@@ -639,10 +625,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 // Perform semantic analysis on each child node
                 semantic_analysis(child_node, global_table, local_stack);
 
-                
-
                 // Check if the child node is a function call and its return value is discarded
-
                 if (enclosing_function) {
                     
                     if (child_node->type == AST_FN_CALL) {
@@ -669,7 +652,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
                         // Error handling for undefined functions
                         if (!fn_symbol && !is_builtin) {
-                            
                             exit(SEMANTIC_ERROR_UNDEFINED);
                         }
 
@@ -678,7 +660,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                             exit(SEMANTIC_ERROR_PARAMS);
                         }
                     } else if (child_node->type == AST_RETURN) {
-                        
                         enclosing_function->func.has_return = true;
                     }
                 }
@@ -688,15 +669,19 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             Frame *current_frame = top_frame(local_stack);
             
             if (current_frame && current_frame->symbol_table) {
+
+                // Get the current table
                 SymbolTable *current_table = current_frame->symbol_table;
 
                 for (int j = 0; j < current_table->capacity; j++) {
                     Symbol *symbol = current_table->symbols[j];
+
+                    // When found symbol that doesnt have flag .used == true => SEMANTIC_ERROR_UNUSED_VAR
                     if (symbol && symbol->type == SYMBOL_VAR && !symbol->var.used) {
-                        
                         exit(SEMANTIC_ERROR_UNUSED_VAR);
+
+                    // When found symbol that doesnt have flag .used == true => SEMANTIC_ERROR_UNUSED_VAR
                     } else if (symbol && symbol->type == SYMBOL_VAR && !symbol->var.is_constant  && !symbol->var.redefined) {
-                        
                         exit(SEMANTIC_ERROR_UNUSED_VAR);
                     }
                 }
