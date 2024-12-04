@@ -4,30 +4,53 @@
  * @authors Martin Kandera (xkande00)
 */
 
+#include <setjmp.h>
 #include "generator.h"
 #include "generator_instructions.h"
 
-#define MAX_VAR_NAME_LENGTH 128             // Maximálna dĺžka názvu premennej v GF
-#define MAX_GF_VAR_COUNT 1024               // Maximálny počet globálnych premenných
-#define MAX_LF_VAR_COUNT 1024               // Maximálny počet lokálnych premenných
-char* lf_vars[MAX_LF_VAR_COUNT] = {NULL};   // Inicializácia všetkých prvkov na NULL
+jmp_buf error_buf;                  // Buffer for error handling
 
-static int if_counter = 1420;       // Počiatočné číslovanie pre unikátne labely
-static int while_counter = 1420;    // Počiatočné číslovanie pre unikátne labely
-int tmp_counter = 128;       // Počiatočné číslovanie pre unikátne premenné
+#define MAX_VAR_NAME_LENGTH 128             // Maximum length of a variable name in the global frame (GF)
+#define MAX_GF_VAR_COUNT 1024               // Maximum number of global variables
+#define MAX_LF_VAR_COUNT 1024               // Maximum number of local variables
+char* lf_vars[MAX_LF_VAR_COUNT] = {NULL};   // Initialization of all elements to NULL for the local frame array
 
+static int if_counter = 1420;       // Initial numbering for unique labels used in if statements
+static int while_counter = 1420;    // Initial numbering for unique labels used in while loops
+int tmp_counter = 128;              // Initial numbering for unique temporary variables
+
+/**
+ * @brief Error handler for the generator.
+ */
+void generator_error_handler(int error_code) {
+    printf("debug2 %i\n", error_code);
+    longjmp(error_buf, error_code);
+}
+/**
+ * @brief Get the current value of the temporary variable counter.
+ * @return Current temporary variable counter value.
+ */
 int get_tmp_counter() {
     return tmp_counter;
 }
 
+/**
+ * @brief Increment the temporary variable counter by 1.
+ */
 void increment_tmp_counter() {
     tmp_counter++;
 }
 
-WhileStack while_stack = { .top = NULL };    // Globálny zásobník pre while cykly
+/**
+ * @brief Global stack structure for managing nested while loops.
+ */
+WhileStack while_stack = { .top = NULL };
 
 
-// Vráti počet while-cyklov v zásobníku
+/**
+ * @brief Get the current size of the while loop stack.
+ * @return Number of while loops currently in the stack.
+ */
 int while_stack_size() {
     int size = 0;
     WhileStackNode *current = while_stack.top;
@@ -38,7 +61,11 @@ int while_stack_size() {
     return size;
 }
 
-// Získa hodnotu čísla while na konkrétnej pozícii (od 0 po vrchol)
+/**
+ * @brief Retrieve the while loop identifier at a specific index in the stack.
+ * @param index Index in the stack (0 is the bottom).
+ * @return Identifier of the while loop at the given index.
+ */
 int get_while_at_index(int index) {
     int i = 0;
     WhileStackNode *current = while_stack.top;
@@ -53,39 +80,49 @@ int get_while_at_index(int index) {
     exit(99);
 }
 
-// Pridanie čísla while-u do globálneho zásobníka
+/**
+ * @brief Add a new while loop identifier to the global stack.
+ * @param while_number The unique identifier for the while loop.
+ */
 void add_while_stack(int while_number) {
     WhileStackNode *new_node = (WhileStackNode *)malloc(sizeof(WhileStackNode));
     if (!new_node) {
         fprintf(stderr, "Chyba: Nepodarilo sa alokovať pamäť pre uzol zásobníka.\n");
-        exit(99); // Interná chyba
+        exit(99);
     }
     new_node->while_number = while_number;
     new_node->next = while_stack.top;
     while_stack.top = new_node;
 }
 
-// Odstránenie čísla while-u z globálneho zásobníka
+/**
+ * @brief Remove the topmost while loop identifier from the global stack.
+ */
 void remove_while_stack() {
     if (while_stack.top == NULL) {
         fprintf(stderr, "Chyba: Zásobník while cyklov je prázdny.\n");
-        exit(99); // Interná chyba
+        exit(99);
     }
     WhileStackNode *temp = while_stack.top;
     while_stack.top = while_stack.top->next;
     free(temp);
 }
 
-// Získanie aktuálneho čísla while-u z globálneho zásobníka
+/**
+ * @brief Retrieve the identifier of the current (topmost) while loop.
+ * @return Identifier of the current while loop.
+ */
 int actual_while() {
     if (while_stack.top == NULL) {
         fprintf(stderr, "Chyba: Zásobník while cyklov je prázdny.\n");
-        exit(99); // Interná chyba
+        exit(99);
     }
     return while_stack.top->while_number;
 }
 
-// Uvoľnenie celého zásobníka
+/**
+ * @brief Free the entire while stack, releasing all allocated memory.
+ */
 void free_while_stack() {
     WhileStackNode *current = while_stack.top;
     while (current) {
@@ -95,28 +132,36 @@ void free_while_stack() {
     }
     while_stack.top = NULL;
 }
-// Štruktúra pre dynamické pole
+
+/**
+ * @brief Dynamic array structure for managing variables in the local frame.
+ */
 typedef struct LocalFrameArray {
-    char **variables;    // Pole premenných
-    size_t size;         // Počet aktuálnych prvkov
-    size_t capacity;     // Kapacita poľa
+    char **variables;    ///< Array of variable names.
+    size_t size;         ///< Current number of variables.
+    size_t capacity;     ///< Capacity of the array.
 } LocalFrameArray;
 
-// Globálny dynamický local frame
+/**
+ * @brief Global dynamic local frame for managing local variables.
+ */
 static LocalFrameArray local_frame = {NULL, 0, 0};
 
-// Inicializácia dynamického poľa
+/**
+ * @brief Initialize the dynamic local frame array.
+ */
 void init_local_frame() {
     local_frame.size = 0;
     local_frame.capacity = 8; // Počiatočná kapacita
     local_frame.variables = malloc(local_frame.capacity * sizeof(char *));
     if (local_frame.variables == NULL) {
-        fprintf(stderr, "ERROR: Memory allocation failed for local frame array\n");
-        exit(99); // Interná chyba programu
+        generator_error_handler(99);
     }
 }
 
-// Uvoľnenie dynamického poľa
+/**
+ * @brief Free all memory associated with the dynamic local frame array.
+ */
 void free_local_frame() {
     for (size_t i = 0; i < local_frame.size; ++i) {
         free(local_frame.variables[i]);
@@ -127,7 +172,9 @@ void free_local_frame() {
     local_frame.capacity = 0;
 }
 
-// Vymazanie všetkých premenných bez dealokácie poľa
+/**
+ * @brief Clear all variables in the local frame without deallocating the array.
+ */
 void clear_local_frame() {
     for (size_t i = 0; i < local_frame.size; ++i) {
         free(local_frame.variables[i]);
@@ -135,69 +182,76 @@ void clear_local_frame() {
     local_frame.size = 0;
 }
 
-// Pridanie premennej do dynamického poľa
+/**
+ * @brief Add a variable to the local frame array.
+ * @param var_name Name of the variable to add.
+ */
 void add_to_local(const char* var_name) {
-    // Kontrola, či už premenná existuje
+    // Check if the variable already exists
     for (size_t i = 0; i < local_frame.size; ++i) {
         if (strcmp(local_frame.variables[i], var_name) == 0) {
-            return; // Premenná už existuje, nič nepridávame
+            return; // Variable already exists, no need to add it
         }
     }
 
-    // Skontroluj, či je potrebná expanzia
+    // Expand the array if necessary
     if (local_frame.size >= local_frame.capacity) {
-        local_frame.capacity *= 2; // Zvýšenie kapacity
+        local_frame.capacity *= 2; // Double the capacity
         local_frame.variables = realloc(local_frame.variables, local_frame.capacity * sizeof(char *));
         if (local_frame.variables == NULL) {
-            fprintf(stderr, "ERROR: Memory reallocation failed for local frame array\n");
-            exit(99); // Interná chyba programu
+            generator_error_handler(99);
         }
     }
 
-    // Pridanie novej premennej s dynamickou alokáciou
-    size_t name_length = strlen(var_name) + 1; // Zahŕňa null terminátor
+    // Add the new variable with dynamic allocation
+    size_t name_length = strlen(var_name) + 1; // Include null terminator
     local_frame.variables[local_frame.size] = malloc(name_length);
     if (local_frame.variables[local_frame.size] == NULL) {
-        fprintf(stderr, "ERROR: Memory allocation failed for local frame variable\n");
-        exit(99); // Interná chyba programu
+        generator_error_handler(99);
     }
     strncpy(local_frame.variables[local_frame.size], var_name, name_length);
     local_frame.size++;
 }
 
-// Kontrola existencie premennej v dynamickom poli
+/**
+ * @brief Check if a variable exists in the local frame.
+ * @param var_name Name of the variable to check.
+ * @return true if the variable exists, false otherwise.
+ */
 bool is_it_local(const char* var_name) {
     for (size_t i = 0; i < local_frame.size; ++i) {
         if (strcmp(local_frame.variables[i], var_name) == 0) {
-            return true; // Premenná existuje
+            return true; // Variable exists
         }
     }
-    return false; // Premenná neexistuje
+    return false;  // Variable does not exist
 }
 
-
-
-
+/**
+ * @brief Generate code for each node in the AST recursively.
+ * @param node The current AST node to process.
+ */
 void generate_code_in_node(ASTNode* node){
     if (node == NULL) return;
-
+    // Code generation logic for different AST node types
     switch (node->type) {
         case AST_PROGRAM:
+            // Code generation for the entire program
             for (int i = 0; i < node->Program.decl_count; ++i) {
                 if (strcmp(node->Program.declarations[i]->FnDecl.fn_name, "main") == 0) {
                     label("main");
                     gen_create_frame();
                     gen_push_frame();
-                    generate_code_in_node(node->Program.declarations[i]);  // Generovanie kódu `main`
-                    gen_pop_frame();    // ?? netusim ci tu treba naspat pop-ovat ramec
-                    printf("EXIT int@0\n");  // Ukončí program ?? - je to nutné?
+                    generate_code_in_node(node->Program.declarations[i]);  // generating `main` function body
+                    gen_pop_frame();
+                    printf("EXIT int@0\n");
                     print_new_line();
                 }
                 else {
                     label(node->Program.declarations[i]->FnDecl.fn_name);
                     gen_create_frame();
                     gen_push_frame();
-                    generate_code_in_node(node->Program.declarations[i]);  // Ostatné funkcie
+                    generate_code_in_node(node->Program.declarations[i]);  // generating other functions body
                     gen_pop_frame();
                     return_f();
                     print_new_line();
@@ -207,6 +261,7 @@ void generate_code_in_node(ASTNode* node){
             break;
 
         case AST_FN_DECL:
+            // Code generation for function declarations
             for (int i = 0; i < node->FnDecl.param_count; ++i) {
                 def_var(node->FnDecl.params[i]->Param.identifier);
                 add_to_local(node->FnDecl.params[i]->Param.identifier);
@@ -218,19 +273,19 @@ void generate_code_in_node(ASTNode* node){
         case AST_PARAM:
             def_var(node->Param.identifier);
             add_to_local(node->Param.identifier);
-            // ?? neviem ci toto tu nie je zbytocne
             break;
 
         case AST_VAR_DECL:
         case AST_CONST_DECL: {
+            // Handle variable or constant declarations.
             if (!(is_it_local(node->VarDecl.var_name))) {
                 def_var(node->VarDecl.var_name);
                 add_to_local(node->VarDecl.var_name);
             }
 
-
+            // Check if the variable has an initialization expression.
             if (node->ConstDecl.expression) {
-
+                // Handle different types of initialization expressions.
                 if (node->VarDecl.expression->type == AST_INT) {
                     printf("MOVE %s%s int@%d\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name,
                            node->VarDecl.expression->Integer.number);
@@ -252,10 +307,10 @@ void generate_code_in_node(ASTNode* node){
 
                     break;
                 }
-
+                // Handle function calls and built-in functions.
                 if (strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.string") == 0) {
-                        printf("MOVE LF@%s string@%s\n", node->ConstDecl.const_name,
-                               node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string);
+                    printf("MOVE LF@%s string@%s\n", node->ConstDecl.const_name,
+                           escape_string(node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string));
 
                 } else if (strcmp(node->ConstDecl.expression->FnCall.fn_name, "ifj.readstr") == 0) {
                     printf("READ %s%s string\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
@@ -274,9 +329,10 @@ void generate_code_in_node(ASTNode* node){
             break;
         }
         case AST_BLOCK:
+            // Process a block of statements.
             for (int i = 0; i < node->Block.node_count; ++i) {
                 ASTNode* block_node = node->Block.nodes[i];
-
+                // Special handling for string concatenation
                 if (block_node->type == AST_CONST_DECL || block_node->type == AST_VAR_DECL) {
                     if (block_node->VarDecl.expression &&
                         block_node->VarDecl.expression->type == AST_FN_CALL &&
@@ -293,15 +349,12 @@ void generate_code_in_node(ASTNode* node){
                             def_var(result);
                             add_to_local(result);
                         }
-                        //if(block_node->VarDecl.expression->FnCall.args[0]->type == AST_ARG){
-                            //printf("string");
-                            //debug function
-                        //}
                         concat(result, arg1, arg2);
                         continue;
 
                     }
                 }
+                // Special handling for string length
                 if (block_node->type == AST_CONST_DECL || block_node->type == AST_VAR_DECL) {
                     if (block_node->VarDecl.expression &&
                         block_node->VarDecl.expression->type == AST_FN_CALL &&
@@ -318,8 +371,7 @@ void generate_code_in_node(ASTNode* node){
                             add_to_local(result);
                         }
                         if(block_node->VarDecl.expression->FnCall.args[0]->type == AST_ARG){
-                            //printf("string");
-                            //debug function
+
                         }
                         printf("STRLEN %s%s %s%s\n", frame_prefix(result), result, frame_prefix(arg1), arg1);
                         generate_code_in_node(block_node);
@@ -330,29 +382,10 @@ void generate_code_in_node(ASTNode* node){
             }
             break;
         case AST_FN_CALL :{
-            //printf("debug: start of function call\n");
+            // Generate code for an if-else construct.
             const char *fn_name = node->FnCall.fn_name;
-
-            /*if (strcmp(node->FnCall.fn_name, "ifj.string") == 0) {
-                printf("MOVE LF@%s string@%s\n", node->ConstDecl.const_name, node->ConstDecl.expression->FnCall.args[0]->Argument.expression->String.string);
-                break;
-
-            } else if(strcmp(node->FnCall.fn_name, "ifj.readstr") == 0){
-                printf("READ %s%s string\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
-                break;
-
-            } else if(strcmp(node->FnCall.fn_name, "ifj.readi32") == 0){
-                printf("READ %s%s int\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
-                break;
-
-            } else if(strcmp(node->FnCall.fn_name, "ifj.readf64") == 0){
-                printf("READ %s%s float\n", frame_prefix(node->VarDecl.var_name), node->VarDecl.var_name);
-                break;
-
-            }*/
-
+            // Handle built-in functions
             if (strcmp(fn_name, "ifj.length") == 0) {
-                // TO-DO: nepotrebný push ale neviem sa ho ľahko zbaviť
                 generate_code_in_node(node->FnCall.args[0]->Argument.expression);
                 char temp_var[32];
                 snprintf(temp_var, sizeof(temp_var), "tmp_length_%d", tmp_counter++);
@@ -364,12 +397,12 @@ void generate_code_in_node(ASTNode* node){
                 break;
             }
             if (strcmp(fn_name, "ifj.substring") == 0) {
-                // Generovanie argumentov: s, i, j
+                // Generate code for the arguments
                 generate_code_in_node(node->FnCall.args[0]->Argument.expression); // s
                 generate_code_in_node(node->FnCall.args[1]->Argument.expression); // i
                 generate_code_in_node(node->FnCall.args[2]->Argument.expression); // j
 
-                // Pridanie pomocných premenných
+                // Create temporary variables for the arguments
                 char temp_s[32], temp_i[32], temp_j[32], temp_result[32], temp_char[32];
                 snprintf(temp_s, sizeof(temp_s), "tmp_s_%d", tmp_counter);
                 snprintf(temp_i, sizeof(temp_i), "tmp_i_%d", tmp_counter);
@@ -384,43 +417,14 @@ void generate_code_in_node(ASTNode* node){
                 def_var(temp_result);
 
 
-                // Uloženie argumentov do pomocných premenných
+                // Pop arguments from the stack
                 printf("POPS LF@%s\n", temp_j);
                 printf("POPS LF@%s\n", temp_i);
                 printf("POPS LF@%s\n", temp_s);
 
-                // Inicializácia výsledného reťazca
                 printf("MOVE LF@%s string@\n", temp_result);
 
-                // Kontroly pre validáciu
-                // neviem či to máme kontrolovať ??
-               /* printf("PUSHS %s\n", temp_i);
-                printf("PUSHS int@0\n");
-                printf("LTS\n");
-                printf("JUMPIFNEQ invalid_substring\n");
-
-                printf("PUSHS %s\n", temp_j);
-                printf("PUSHS int@0\n");
-                printf("LTS\n");
-                printf("JUMPIFNEQ invalid_substring\n");
-
-                printf("PUSHS %s\n", temp_i);
-                printf("PUSHS %s\n", temp_j);
-                printf("GTS\n");
-                printf("JUMPIFNEQ invalid_substring\n");*/
-
-                /*printf("STRLEN %s %s\n", temp_char, temp_s); // Dĺžka reťazca
-                printf("PUSHS %s\n", temp_i);
-                printf("PUSHS %s\n", temp_char);
-                printf("GTS\n");
-                printf("JUMPIFNEQ invalid_substring\n");
-
-                printf("PUSHS %s\n", temp_j);
-                printf("PUSHS %s\n", temp_char);
-                printf("GTS\n");
-                printf("JUMPIFNEQ invalid_substring\n");*/
-
-                // Ak je validné, vytvor substring
+                // Check if the arguments are valid
                 printf("LABEL substring_loop_start_%i\n", while_counter);
                 printf("PUSHS LF@%s\n", temp_i);
                 printf("PUSHS LF@%s\n", temp_j);
@@ -435,13 +439,7 @@ void generate_code_in_node(ASTNode* node){
 
                 printf("LABEL substring_loop_end_%i\n", while_counter);
                 printf("PUSHS LF@%s\n", temp_result); // Push výsledný substring na zásobník
-                /*printf("JUMP end_substring\n");
 
-                // Neplatný podreťazec
-                printf("LABEL invalid_substring\n");
-                printf("PUSHS nil@nil\n");
-
-                printf("LABEL end_substring\n");*/
 
                 while_counter++;
                 break;
@@ -535,27 +533,26 @@ void generate_code_in_node(ASTNode* node){
                 break;
             }
 
-            // Vestavěná funkce i2f
+            // built-in function ifj.print, for changing int to float
             if (strcmp(fn_name, "ifj.i2f") == 0) {
                 generate_code_in_node(node->FnCall.args[0]->Argument.expression);
                 printf("INT2FLOATS\n");
                 break;
             }
-            // Vestavěná funkce f2i
+            // built-in function ifj.f2i, for changing float to int
             if (strcmp(fn_name, "ifj.f2i") == 0) {
                 generate_code_in_node(node->FnCall.args[0]->Argument.expression);
                 printf("FLOAT2INTS\n");
                 break;
             }
-            // Vestavěná funkce length
+            // built-in function ifj.length
 
             if (strcmp(fn_name, "ifj.length") == 0) {
                 generate_code_in_node(node->FnCall.args[0]->Argument.expression);
             }
-
+            // built-in function ifj.write, ifj.writef64
             if ((strcmp(fn_name, "ifj.write") == 0) || (strcmp(fn_name, "ifj.writef64") == 0)) {
-                //generate_code_in_node(node->FnCall.args[0]);
-                //write(node->FnCall.args[0]->Argument.expression->Identifier.identifier);
+                // If the argument is a string, integer or float literal, write it directly
                 ASTNode *expression = node->FnCall.args[0]->Argument.expression;
                 switch (expression->type) {
                     case AST_STRING: {
@@ -574,6 +571,7 @@ void generate_code_in_node(ASTNode* node){
                         printf("WRITE %s%s\n", frame_prefix(expression->Identifier.identifier),
                                expression->Identifier.identifier);
                         break;
+                        // If the argument is a binary operation or a function call, evaluate it first
                     case AST_BIN_OP:
                     case AST_FN_CALL: {
                         generate_code_in_node(expression);
@@ -586,20 +584,21 @@ void generate_code_in_node(ASTNode* node){
                         break;
                     }
                     default:
-                        fprintf(stderr, "ERROR: Unsupported argument type for ifj.write\n");
-                        exit(99);
+                        generator_error_handler(12);
                 }
             } else {
+                // Generate code for function arguments
                 for (int i = node->FnCall.arg_count; i > 0; --i) {
-                    generate_code_in_node(node->FnCall.args[i - 1]);// Generovanie kódu argumentov
-                    //pushs(node->FnCall.args[i - 1]->Argument.expression->Identifier.identifier);
+                    generate_code_in_node(node->FnCall.args[i - 1]);
+
                 }
-                call(fn_name);  // Volanie funkcie
+                call(fn_name);
             }
             break;
         }
         case AST_ASSIGNMENT:
-
+            // Generate code for an assignment.
+            // If the expression is an integer, float or string literal, move it directly to the variable
             if (node->Assignment.expression) {
                 if(node->Assignment.expression->type == AST_INT){
                     printf("MOVE %s%s int@%d\n", frame_prefix(node->Assignment.identifier), node->Assignment.identifier, node->Assignment.expression->Integer.number);
@@ -622,11 +621,12 @@ void generate_code_in_node(ASTNode* node){
 
                     break;
                 }
+                // If the expression is a function call, generate code for the function call and move the result to the variable
                 if (node->Assignment.expression->type == AST_FN_CALL) {
-
+                    // If the function call is a built-in function, handle it separately
                     if (strcmp(node->Assignment.expression->FnCall.fn_name, "ifj.string") == 0) {
                         printf("MOVE LF@%s string@%s\n", node->Assignment.identifier,
-                               node->Assignment.expression->FnCall.args[0]->Argument.expression->String.string);
+                               escape_string(node->Assignment.expression->FnCall.args[0]->Argument.expression->String.string));
                     } else if (strcmp(node->Assignment.expression->FnCall.fn_name, "ifj.readstr") == 0) {
                         printf("READ %s%s string\n", frame_prefix(node->Assignment.identifier),
                                node->Assignment.identifier);
@@ -646,7 +646,6 @@ void generate_code_in_node(ASTNode* node){
                         concat(result, arg1, arg2);
                         break;
                     }
-                    // TODO: add other functions
                     else {
                         generate_code_in_node(node->Assignment.expression);
                         pops(node->Assignment.identifier);
@@ -659,52 +658,51 @@ void generate_code_in_node(ASTNode* node){
             break;
 
         case AST_IF_ELSE: {
-            int current_if = if_counter++; // Unikátne číslo pre aktuálny if-else blok
+            int current_if = if_counter++; //  unique label for the current if-else block
 
-            // Definícia pre element_bind, ak existuje
+            // if there is an element bind, check if it is local
             if (node->WhileCycle.element_bind != NULL) {
                 if(!(is_it_local(node->WhileCycle.element_bind))){
-                    def_var(node->WhileCycle.element_bind);    //printf("DEFVAR LF@%s\n", node->WhileCycle.element_bind);
+                    def_var(node->WhileCycle.element_bind);
                     add_to_local(node->WhileCycle.element_bind);
                 }
             }
 
-            // Generovanie výrazu v podmienke
+            // generate code for the expression
             generate_code_in_node(node->IfElse.expression);
 
-            // Rozhodovanie podľa typu výrazu
+            // depending on the type of the expression, we need to compare it with nil or bool@false
 
-            //treba zabaliť do if-u že ak je tam element bind a či nie
+            // if the expression is an identifier, int, float or string, we need to compare it with nil
             switch (node->IfElse.expression->type) {
                 case AST_IDENTIFIER:
                 case AST_INT:
                 case AST_FLOAT:
                 case AST_STRING: {
-                    // Porovnanie s nil
                     printf("PUSHS nil@nil\n");
                     printf("JUMPIFEQS else_block_%d\n", current_if);
                     break;
                 }
                 default: {
-                    // Porovnanie s bool@false
+                    // if the expression is a function call, we need to compare it with bool@false
                     printf("PUSHS bool@false\n");
                     printf("JUMPIFEQS else_block_%d\n", current_if);
                     break;
                 }
             }
 
-            // Ak je element_bind definovaný, nastav jeho hodnotu
+            //  if there is an element bind, move the value of the expression to the element bind
             if (node->IfElse.element_bind != NULL) {
                 printf("MOVE LF@%s %s%s\n", node->IfElse.element_bind,
                        frame_prefix(node->IfElse.expression->Identifier.identifier),
                        node->IfElse.expression->Identifier.identifier);
             }
 
-            // Generovanie tela IF
+            // generate code for the if block
             generate_code_in_node(node->IfElse.if_block);
             printf("JUMP end_block_%d\n", current_if);
 
-            // ELSE blok (ak existuje)
+            // else block
             printf("LABEL else_block_%d\n", current_if);
             if (node->IfElse.element_bind != NULL) {
                 printf("MOVE LF@%s %s%s\n", node->IfElse.element_bind,
@@ -715,22 +713,23 @@ void generate_code_in_node(ASTNode* node){
                 generate_code_in_node(node->IfElse.else_block);
             }
 
-            // Koniec celého bloku
+            // end block
             printf("LABEL end_block_%d\n", current_if);
             break;
         }
 
         case AST_ARG:
+            // Generate code for an argument.
             generate_code_in_node(node->Argument.expression);
             break;
 
         case AST_RETURN:
+            // Generate code for a return statement.
+            // Check if the return expression is an identifier
             if (node->Return.expression && node->Return.expression->type == AST_IDENTIFIER) {
                 const char* return_var = node->Return.expression->Identifier.identifier;
                 if (return_var != NULL) {
                     pushs(return_var);
-                } else {
-                    printf("ERROR: Return expression is NULL\n");
                 }
             } else {
                 generate_code_in_node(node->Return.expression);
@@ -738,7 +737,8 @@ void generate_code_in_node(ASTNode* node){
             break;
 
         case AST_BIN_OP:
-
+            // Generate code for a binary operation.
+            // Handle division separately to avoid coliisions with different types (int/float)
             if(node->BinaryOperator.operator == AST_DIV){
                 generate_code_in_node(node->BinaryOperator.left);
                 generate_code_in_node(node->BinaryOperator.right);
@@ -751,37 +751,40 @@ void generate_code_in_node(ASTNode* node){
                 snprintf(temp_d_3, sizeof(temp_d_3), "tmp_div_3_%d", tmp_counter);
                 snprintf(temp_t_3, sizeof(temp_t_3), "tmp_type_3_%d", tmp_counter);
 
-
-                def_var(temp_d_2);      //printf("DEFVAR LF@tmp_div_2_%i\n", tmp_counter);        //129
-                def_var(temp_t_2);      //printf("DEFVAR LF@tmp_type_2_%i\n", tmp_counter);       //129
-                printf("POPS LF@tmp_div_2_%i\n", tmp_counter);           //129
-                printf("TYPE LF@tmp_type_2_%i LF@tmp_div_2_%i\n", tmp_counter, tmp_counter); //129
-                def_var(temp_d_1);      //printf("DEFVAR LF@tmp_div_1_%i\n", tmp_counter);        //129
-                def_var(temp_t_1);      //printf("DEFVAR LF@tmp_type_1_%i\n", tmp_counter);       //129
-                printf("POPS LF@tmp_div_1_%i\n", tmp_counter);           //129
-                printf("TYPE LF@tmp_type_1_%i LF@tmp_div_1_%i\n", tmp_counter, tmp_counter); //129
-                printf("PUSHS LF@tmp_div_1_%i\n", tmp_counter);          //129
-                printf("JUMPIFEQ label_div_1_%i LF@tmp_type_1_%i string@float\n", tmp_counter, tmp_counter); //129
-                printf("INT2FLOATS\n");                                 //129
-                printf("LABEL label_div_1_%i\n", tmp_counter);          //129
-                printf("PUSHS LF@tmp_div_2_%i\n", tmp_counter);          //129
-                printf("JUMPIFEQ label_div_2_%i LF@tmp_type_2_%i string@float\n", tmp_counter, tmp_counter); //129
+                // it checks if the type of the first operand is float
+                def_var(temp_d_2);
+                def_var(temp_t_2);
+                printf("POPS LF@tmp_div_2_%i\n", tmp_counter);
+                printf("TYPE LF@tmp_type_2_%i LF@tmp_div_2_%i\n", tmp_counter, tmp_counter);
+                // it checks if the type of the second operand is float
+                def_var(temp_d_1);
+                def_var(temp_t_1);
+                printf("POPS LF@tmp_div_1_%i\n", tmp_counter);
+                printf("TYPE LF@tmp_type_1_%i LF@tmp_div_1_%i\n", tmp_counter, tmp_counter);
+                printf("PUSHS LF@tmp_div_1_%i\n", tmp_counter);
+                // it converts the first operand to float
+                printf("JUMPIFEQ label_div_1_%i LF@tmp_type_1_%i string@float\n", tmp_counter, tmp_counter);
                 printf("INT2FLOATS\n");
-                printf("LABEL label_div_2_%i\n", tmp_counter);          //129
+                printf("LABEL label_div_1_%i\n", tmp_counter);
+                printf("PUSHS LF@tmp_div_2_%i\n", tmp_counter);
+                // it converts the second operand to float
+                printf("JUMPIFEQ label_div_2_%i LF@tmp_type_2_%i string@float\n", tmp_counter, tmp_counter);
+                printf("INT2FLOATS\n");
+                printf("LABEL label_div_2_%i\n", tmp_counter);
                 printf("DIVS\n");
                 tmp_counter++;
-                def_var(temp_d_4);      //printf("DEFVAR LF@tmp_div_4_%i\n", tmp_counter - 1 );        //129
-                //printf("DEFVAR LF@tmp_type_4_%i\n", tmp_counter - 1 );       //129
-                printf("POPS LF@tmp_div_4_%i\n", tmp_counter - 1 );           //129
-                def_var(temp_d_3);      //printf("DEFVAR LF@tmp_div_3_%i\n", tmp_counter - 1 );        //129
-                def_var(temp_t_3);      //printf("DEFVAR LF@tmp_type_3_%i\n", tmp_counter - 1 );       //129
-                printf("POPS LF@tmp_div_3_%i\n", tmp_counter - 1 );           //129
-                printf("TYPE LF@tmp_type_3_%i LF@tmp_div_3_%i\n", tmp_counter - 1, tmp_counter - 1); //129
-                printf("PUSHS LF@tmp_div_3_%i\n", tmp_counter - 1);          //129
-                printf("PUSHS LF@tmp_div_4_%i\n", tmp_counter - 1);          //129
-                printf("JUMPIFEQ label_div_4_%i LF@tmp_type_3_%i string@float\n", tmp_counter - 1, tmp_counter - 1); //129
+                // it checks if the result is float
+                def_var(temp_d_4);
+                printf("POPS LF@tmp_div_4_%i\n", tmp_counter - 1 );
+                def_var(temp_d_3);
+                def_var(temp_t_3);
+                printf("POPS LF@tmp_div_3_%i\n", tmp_counter - 1 );
+                printf("TYPE LF@tmp_type_3_%i LF@tmp_div_3_%i\n", tmp_counter - 1, tmp_counter - 1);
+                printf("PUSHS LF@tmp_div_3_%i\n", tmp_counter - 1);
+                printf("PUSHS LF@tmp_div_4_%i\n", tmp_counter - 1);
+                printf("JUMPIFEQ label_div_4_%i LF@tmp_type_3_%i string@float\n", tmp_counter - 1, tmp_counter - 1);
                 printf("FLOAT2INTS\n");
-                printf("LABEL label_div_4_%i\n", tmp_counter - 1);          //129
+                printf("LABEL label_div_4_%i\n", tmp_counter - 1);
 
                 break;
 
@@ -793,7 +796,7 @@ void generate_code_in_node(ASTNode* node){
                 case AST_PLUS: printf("ADDS\n"); break;
                 case AST_MINUS: printf("SUBS\n"); break;
                 case AST_MUL: printf("MULS\n"); break;
-                case AST_DIV: printf("DIVS\n"); break;  // k tomuto by nemalo nikdy dojst
+                case AST_DIV: printf("DIVS\n"); break;
                 case AST_GREATER: printf("GTS\n"); break;
                 case AST_GREATER_EQU:
                     printf("LTS\n");
@@ -810,16 +813,16 @@ void generate_code_in_node(ASTNode* node){
                     printf("NOTS\n");
                     break;
                 default:
-                    fprintf(stderr, "ERROR: Unknown binary operator type\n");
-                    exit(99);
+                    generator_error_handler(12);
             }
             break;
 
         case AST_WHILE: {
-            int current_while = while_counter++; // Unikátne číslo pre while slučku
+            // Generate code for a while loop.
+            int current_while = while_counter++; // generates unique number for the current while loop
 
 
-            // Definícia element_bind, ak existuje
+            // if statement for element_bind
             if (node->WhileCycle.element_bind != NULL) {
                 if(!(is_it_local(node->WhileCycle.element_bind))){
                     def_var(node->WhileCycle.element_bind);
@@ -828,7 +831,7 @@ void generate_code_in_node(ASTNode* node){
 
             }
 
-            // Label pre začiatok while cyklu
+            // label for the start of the while loop
             char temp_while_cnt[32];
             snprintf(temp_while_cnt, sizeof(temp_while_cnt), "while_cnt_tmp_%d", current_while);
             def_var(temp_while_cnt);
@@ -836,43 +839,41 @@ void generate_code_in_node(ASTNode* node){
             add_while_stack(current_while);
             printf("LABEL while_start_%d\n", current_while);
 
-            // Generovanie výrazu v podmienke
+            // generate code for the expression
             generate_code_in_node(node->WhileCycle.expression);
 
-            // Rozhodovanie podľa typu výrazu
+            // decision based on the type of the expression
             switch (node->WhileCycle.expression->type) {
                 case AST_IDENTIFIER:
                 case AST_INT:
                 case AST_FLOAT:
                 case AST_STRING: {
-                    // Porovnanie s nil
                     printf("PUSHS nil@nil\n");
                     printf("JUMPIFEQS while_end_%d\n", current_while);
                     break;
                 }
                 default: {
-                    // Porovnanie s bool@false
                     printf("PUSHS bool@false\n");
                     printf("JUMPIFEQS while_end_%d\n", current_while);
                     break;
                 }
             }
 
-            // Ak je element_bind definovaný, nastav jeho hodnotu
+            // if element_bind is defined, set its value
             if (node->WhileCycle.element_bind != NULL) {
                 printf("MOVE LF@%s %s%s\n", node->WhileCycle.element_bind,
                        frame_prefix(node->WhileCycle.expression->Identifier.identifier),
                        node->WhileCycle.expression->Identifier.identifier);
             }
 
-            // Generovanie tela while cyklu
+            // generate code for the block
             generate_code_in_node(node->WhileCycle.block);
 
-            // Návrat na začiatok while cyklu
+            // increment the counter
             printf("ADD LF@%s LF@%s int@1\n", temp_while_cnt, temp_while_cnt);
             printf("JUMP while_start_%d\n", current_while);
 
-            // Label pre koniec while cyklu
+            // end of the while loop
             printf("LABEL while_end_%d\n", current_while);
 
             remove_while_stack();
@@ -881,14 +882,17 @@ void generate_code_in_node(ASTNode* node){
 
 
         case AST_INT:
+            // Push an integer value onto the stack.
             printf("PUSHS int@%d\n", node->Integer.number);
             break;
 
         case AST_FLOAT:
+            // Push a float value onto the stack.
             printf("PUSHS float@%a\n", node->Float.number);
             break;
 
         case AST_STRING: {
+            // Push a string value onto the stack.
             char* escaped_string = escape_string(node->String.string);
             printf("PUSHS string@%s\n", escaped_string);
             free(escaped_string);
@@ -896,6 +900,7 @@ void generate_code_in_node(ASTNode* node){
         }
 
         case AST_IDENTIFIER:
+            // Push an identifier's value onto the stack.
             printf("PUSHS %s%s\n", frame_prefix(node->Identifier.identifier), node->Identifier.identifier);
             break;
 
@@ -905,15 +910,29 @@ void generate_code_in_node(ASTNode* node){
     }
 }
 
+/**
+ * @brief Generate code for the given AST root node.
+ * @param root Pointer to the root node of the AST.
+ * @return 0 on success, 51 if the root is NULL.
+ */
 int generate_code(ASTNode* root){
-    if (root == NULL) return 51; // ast root == NULL
+    int err_code = 0; // Error code for error handling
+    if ((err_code = setjmp(error_buf)) != 0) {
+        // This code executes if longjmp is called
+        free_local_frame();
+        free_while_stack();
+        return err_code;
+    }
+
+    if (root == NULL) generator_error_handler(99); // Internal error - root is NULL
     init_local_frame();
-    printf(".IFJcode24\n");
-    printf("JUMP main\n");    print_new_line();
+
+    printf(".IFJcode24\n");  printf("JUMP main\n");   print_new_line();
 
     generate_code_in_node(root);
 
     free_local_frame();
     free_while_stack();
     return 0;
+
 }

@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <error.h>
 #include "symtable.h"
 #include "stack.h"
 
@@ -16,6 +17,7 @@
 
 /* Hash function using djb2 algorithm
    source: https://www.cse.yorku.ca/~oz/hash.html */
+   
 static unsigned int hash(const char *key, int capacity) {
     unsigned long hash = 5381;
     int c;
@@ -92,7 +94,7 @@ void resize(SymbolTable *table) {
 }
 
 /* Add a function symbol to the table */
-void add_function_symbol(SymbolTable *table, const char *name, DataType return_type) {
+void add_function_symbol(SymbolTable *table, const char *name, DataType return_type, bool is_initialized, ASTNode *fn_node, bool is_nullable) {
     // Resize the table if the load factor threshold is reached
     if ((float)table->count / table->capacity >= LOAD_FACTOR) {
         resize(table);
@@ -104,11 +106,29 @@ void add_function_symbol(SymbolTable *table, const char *name, DataType return_t
         index = (index + 1) % table->capacity;
     }
 
-    // Initialize the function symbol
-    FuncSymbol func = {.name = strdup(name), .type = return_type, .has_return = false, .used = false, .is_nullable = false, .scope_stack = init_scope_stack()};
+    // Allocate and initialize the function symbol
+    FuncSymbol *func = malloc(sizeof(FuncSymbol));
+    if (!func) {
+        exit(INTERNAL_ERROR);
+    }
+
+    func->name = strdup(name);
+    func->type = return_type;
+    func->has_return = false;
+    func->used = false;
+    func->is_nullable = is_nullable;
+    func->is_initialized = is_initialized;
+    func->fn_node = fn_node;
+    func->scope_stack = init_scope_stack();
+
+    // Create the Symbol structure
     Symbol *symbol = malloc(sizeof(Symbol));
+    if (!symbol) {
+        exit(INTERNAL_ERROR);
+    }
+
     symbol->type = SYMBOL_FUNC;
-    symbol->func = func;
+    symbol->func = *func; // Assign the initialized FuncSymbol
 
     // Add the symbol to the table
     table->symbols[index] = symbol;
@@ -116,8 +136,9 @@ void add_function_symbol(SymbolTable *table, const char *name, DataType return_t
 }
 
 
+
 /* Add a variable symbol to the table */
-void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant, double value) {
+void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bool is_constant, bool is_nullable, bool has_literal, double value) {
     // Resize the table if the load factor threshold is reached
     if ((float)table->count / table->capacity >= LOAD_FACTOR) {
         resize(table);
@@ -130,12 +151,14 @@ void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bo
     }
 
     // Initialize the variable symbol
-    VarSymbol var = {.name = strdup(name), .type = type, .is_constant = false, .used = false, .is_nullable = false, .redefined = false, .value = 0};
+    VarSymbol var = {.name = strdup(name), .type = type, .is_constant = false, .used = false, .is_nullable = false, .redefined = false, .has_literal = false, .value = 0};
     Symbol *symbol = malloc(sizeof(Symbol));
     symbol->type = SYMBOL_VAR;
     symbol->var = var;
     symbol->var.is_constant = is_constant;
     symbol->var.value = value;
+    symbol->var.is_nullable = is_nullable;
+    symbol->var.has_literal = has_literal;
 
     // Add the symbol to the table
     table->symbols[index] = symbol;
@@ -145,7 +168,6 @@ void add_variable_symbol(SymbolTable *table, const char *name, DataType type, bo
 
 /* Lookup a symbol by name */
 Symbol *lookup_symbol(SymbolTable *table, const char *name) {
-    // printf("name: %s\n", name);
     unsigned int index = hash(name, table->capacity);
     while (table->symbols[index] != NULL) {
         const char *current_name = table->symbols[index]->type == SYMBOL_FUNC
