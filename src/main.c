@@ -13,7 +13,6 @@
 #include "symtable.h"
 #include "stack.h"
 #include "generator.h"
-//#include "ast_utils.h"
 
 FILE* process_file(int argc, char**  argv) {
     FILE *fp = NULL;
@@ -57,9 +56,13 @@ int main(int argc, char** argv) {
     semantic_analysis(root, global_table, local_stack);
     free_symbol_table(global_table);
 
-    //print_ast_node(root, 0);
-
-    generate_code(root);
+    // Generate code from the AST, if generation fails, free the AST and
+    // lexer and exit with an error code.
+    if(generate_code(root) != 0){
+        free_ast_node(root);
+        destroy_lexer(&lexer);
+        exit(INTERNAL_ERROR);
+    }
 
     destroy_lexer(&lexer);
     free_ast_node(root);
