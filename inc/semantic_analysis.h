@@ -136,7 +136,7 @@ DataType evaluate_fn_call_type(ASTNode *expression, SymbolTable *global_table, S
  * @param local_frame Pointer to the current local frame.
  * @return True if the identifier is nullable, false otherwise.
  */
-bool evaluate_nullable_identifier(ASTNode *node, ScopeStack *local_stack, Frame *local_frame);
+bool evaluate_nullable_operand(SymbolTable *global_table, ASTNode *node, ScopeStack *local_stack, Frame *local_frame);
 
 /**
  * @brief Processes the initialization and binding of elements in control statements.

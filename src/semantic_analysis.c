@@ -185,17 +185,41 @@ void check_main_function(SymbolTable *global_table) {
     }
 }
 
-bool evaluate_nullable_identifier(ASTNode *node, ScopeStack *local_stack, Frame *local_frame) {
+DataType deduce_builtin_function_type(const char *fn_name) {
+
+    size_t built_in_count = sizeof(built_in_functions) / sizeof(built_in_functions[0]);
+    for (size_t i = 0; i < built_in_count; i++) {
+        if (strcmp(fn_name, built_in_functions[i].name) == 0) {
+            
+            return built_in_functions[i].return_type;
+        }
+    }
+
+    exit(SEMANTIC_ERROR_UNDEFINED);
+}
+
+bool evaluate_nullable_operand(SymbolTable *global_table, ASTNode *node, ScopeStack *local_stack, Frame *local_frame) {
     
     // Setting flag for nullability which is used in evaluate_operator_type function to set flags when the operand is nullable
     Symbol *symbol = lookup_symbol_in_scope(local_stack, node->Identifier.identifier, local_frame);
     
     // No other node than identifier or function or identifier can get here so no check required
     bool is_nullable = false;
-    if (symbol->type == SYMBOL_VAR) {
+    if (node->type == AST_IDENTIFIER) {
+        Symbol *symbol = lookup_symbol_in_scope(local_stack, node->Identifier.identifier, local_frame);
         is_nullable = symbol->var.is_nullable;
     } else {
-        is_nullable = symbol->func.is_nullable;
+        Symbol *symbol = lookup_symbol(global_table, node->FnCall.fn_name);
+        const char *fn_name = node->FnCall.fn_name;
+        if (!symbol) {
+            for (size_t j = 0; j < sizeof(built_in_functions) / sizeof(built_in_functions[0]); j++) {
+                if (strcmp(fn_name, built_in_functions[j].name) == 0 && built_in_functions[j].is_nullable) {
+                    is_nullable = true;
+                }
+            }
+        } else {
+            is_nullable = symbol->func.is_nullable;
+        }
     }
 
     return is_nullable;
@@ -212,13 +236,13 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
 
     // Evaluate the left and right operand types
     DataType left_type = evaluate_expression_type(node->BinaryOperator.left, global_table, local_stack, local_frame);
-    if (node->BinaryOperator.left->type == AST_IDENTIFIER) {
-        left_is_nullable = evaluate_nullable_identifier(node->BinaryOperator.left, local_stack, local_frame);
+    if (node->BinaryOperator.left->type == AST_IDENTIFIER || node->BinaryOperator.left->type == AST_FN_CALL) {
+        left_is_nullable = evaluate_nullable_operand(global_table, node->BinaryOperator.left, local_stack, local_frame);
     }
 
     DataType right_type = evaluate_expression_type(node->BinaryOperator.right, global_table, local_stack, local_frame);
-    if (node->BinaryOperator.right->type == AST_IDENTIFIER) {
-        right_is_nullable = evaluate_nullable_identifier(node->BinaryOperator.right, local_stack, local_frame);
+    if (node->BinaryOperator.right->type == AST_IDENTIFIER || node->BinaryOperator.right->type == AST_FN_CALL) {
+        right_is_nullable = evaluate_nullable_operand(global_table, node->BinaryOperator.right, local_stack, local_frame);
     }
 
     
@@ -339,20 +363,6 @@ DataType evaluate_operator_type(ASTNode *node, SymbolTable *global_table, ScopeS
             exit(SEMANTIC_ERROR_TYPE_COMPAT);
         }
     }
-}
-
-DataType deduce_builtin_function_type(const char *fn_name) {
-
-    size_t built_in_count = sizeof(built_in_functions) / sizeof(built_in_functions[0]);
-    for (size_t i = 0; i < built_in_count; i++) {
-        if (strcmp(fn_name, built_in_functions[i].name) == 0) {
-            
-            return built_in_functions[i].return_type;
-        }
-    }
-
-    
-    exit(SEMANTIC_ERROR_UNDEFINED);
 }
 
 DataType evaluate_expression_type(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack, Frame *local_frame) {
