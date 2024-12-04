@@ -4,8 +4,11 @@
  * @authors Martin Kandera (xkande00)
 */
 
+#include <setjmp.h>
 #include "generator.h"
 #include "generator_instructions.h"
+
+jmp_buf error_buf;                  // Buffer for error handling
 
 #define MAX_VAR_NAME_LENGTH 128             // Maximum length of a variable name in the global frame (GF)
 #define MAX_GF_VAR_COUNT 1024               // Maximum number of global variables
@@ -16,6 +19,13 @@ static int if_counter = 1420;       // Initial numbering for unique labels used 
 static int while_counter = 1420;    // Initial numbering for unique labels used in while loops
 int tmp_counter = 128;              // Initial numbering for unique temporary variables
 
+/**
+ * @brief Error handler for the generator.
+ */
+void generator_error_handler(int error_code) {
+    printf("debug2 %i\n", error_code);
+    longjmp(error_buf, error_code);
+}
 /**
  * @brief Get the current value of the temporary variable counter.
  * @return Current temporary variable counter value.
@@ -145,8 +155,7 @@ void init_local_frame() {
     local_frame.capacity = 8; // Počiatočná kapacita
     local_frame.variables = malloc(local_frame.capacity * sizeof(char *));
     if (local_frame.variables == NULL) {
-        fprintf(stderr, "ERROR: Memory allocation failed for local frame array\n");
-        exit(99); // Interná chyba programu
+        generator_error_handler(99);
     }
 }
 
@@ -190,8 +199,7 @@ void add_to_local(const char* var_name) {
         local_frame.capacity *= 2; // Double the capacity
         local_frame.variables = realloc(local_frame.variables, local_frame.capacity * sizeof(char *));
         if (local_frame.variables == NULL) {
-            fprintf(stderr, "ERROR: Memory reallocation failed for local frame array\n");
-            exit(99); // Internal error
+            generator_error_handler(99);
         }
     }
 
@@ -199,8 +207,7 @@ void add_to_local(const char* var_name) {
     size_t name_length = strlen(var_name) + 1; // Include null terminator
     local_frame.variables[local_frame.size] = malloc(name_length);
     if (local_frame.variables[local_frame.size] == NULL) {
-        fprintf(stderr, "ERROR: Memory allocation failed for local frame variable\n");
-        exit(99); // Internal error
+        generator_error_handler(99);
     }
     strncpy(local_frame.variables[local_frame.size], var_name, name_length);
     local_frame.size++;
@@ -577,8 +584,7 @@ void generate_code_in_node(ASTNode* node){
                         break;
                     }
                     default:
-                        fprintf(stderr, "ERROR: Unsupported argument type for ifj.write\n");
-                        exit(99);
+                        generator_error_handler(12);
                 }
             } else {
                 // Generate code for function arguments
@@ -724,8 +730,6 @@ void generate_code_in_node(ASTNode* node){
                 const char* return_var = node->Return.expression->Identifier.identifier;
                 if (return_var != NULL) {
                     pushs(return_var);
-                } else {
-                    printf("ERROR: Return expression is NULL\n");
                 }
             } else {
                 generate_code_in_node(node->Return.expression);
@@ -809,8 +813,7 @@ void generate_code_in_node(ASTNode* node){
                     printf("NOTS\n");
                     break;
                 default:
-                    fprintf(stderr, "ERROR: Unknown binary operator type\n");
-                    exit(99);
+                    generator_error_handler(12);
             }
             break;
 
@@ -913,7 +916,15 @@ void generate_code_in_node(ASTNode* node){
  * @return 0 on success, 51 if the root is NULL.
  */
 int generate_code(ASTNode* root){
-    if (root == NULL) return 51;  // AST root is NULL
+    int err_code = 0; // Error code for error handling
+    if ((err_code = setjmp(error_buf)) != 0) {
+        // This code executes if longjmp is called
+        free_local_frame();
+        free_while_stack();
+        return err_code;
+    }
+
+    if (root == NULL) generator_error_handler(99); // Internal error - root is NULL
     init_local_frame();
 
     printf(".IFJcode24\n");  printf("JUMP main\n");   print_new_line();
@@ -923,4 +934,5 @@ int generate_code(ASTNode* root){
     free_local_frame();
     free_while_stack();
     return 0;
+
 }

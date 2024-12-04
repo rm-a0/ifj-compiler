@@ -128,4 +128,9 @@ bool is_it_local(const char* var_name);
  */
 void add_to_local(const char* var_name);
 
+/**
+ * @brief Error handler for the generator.
+ */
+void generator_error_handler();
+
 #endif //IFJ_COMPILER_GENERATOR_H

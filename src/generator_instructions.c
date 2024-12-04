@@ -19,8 +19,7 @@ char* escape_string(const char* input) {
     size_t buffer_size = length * 4 + 1; // Maximum size after escaping.
     char* output = malloc(buffer_size);
     if (output == NULL) {
-        fprintf(stderr, "ERROR: Memory allocation failed\n");
-        exit(99);
+        generator_error_handler(99);
     }
 
     size_t j = 0;
