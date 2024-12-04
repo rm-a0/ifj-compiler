@@ -9,6 +9,8 @@
 \usepackage{tocloft}  % For customizing table of contents
 \usepackage[left=2cm, top=3cm, text={17cm, 24cm}]{geometry}
 \usepackage[backend=bibtex]{biblatex}
+\usepackage{multirow}
+\usepackage{array}
 \addbibresource{references.bib}
 
 % Removed duplicate geometry specification
@@ -116,7 +118,7 @@ To manage errors, we added an external variable, \texttt{error\_tracker}, to tra
 Details on error tracking can be found in \texttt{error.c} and \texttt{error.h}.
 
 % Lexer Chapter
-\section{Lexer\cite{lexer}}
+\section{Lexer\Grammar{lexer}}
 
 \subsection{Overview}
 The lexer (or scanner) is the first compiler stage, converting raw source code into tokens for the parser. It operates in sync with the parser, invoked on-demand to optimize memory use and detect syntax errors faster.
@@ -204,10 +206,59 @@ Our parser uses recursive descent, retrieving tokens with \texttt{advance\_token
 Details are in \texttt{parser.c} and \texttt{parser.h}.
 
 \subsection{Grammar \cite{grammar}}
-The grammar for the language was initially defined in Extended Backus-Naur Form (EBNF), which contains more expressive constructs and is easier to read. The implementation can be found 
+The grammar for the language was initially defined in Extended Backus-Naur Form (EBNF), which contains more expressive constructs and is easier to read. The implementation can be found on the next page or 
 \href{https://github.com/rm-a0/ifj-compiler/blob/main/doc/grammar\_edited.go}{here}.
 
 This form of grammar was used to implement the parser. Later, it was rewritten into standard Backus-Naur Form (BNF) for the purpose of constructing the LL table.
+
+\newpage
+
+\begin{tabbing}
+\hspace{-1cm} \= \hspace{4cm} \= \hspace{1cm} \= \kill
+\> \texttt{<program>} \> ::= \> \texttt{<prolog>} \mid \texttt{<top\_level\_decl>}* \\
+\> \texttt{<top\_level\_decl>} \> ::= \> \texttt{<fn\_decl>} \\
+\> \texttt{<identifier>} \> ::= \> \texttt{[a-zA-Z] [_a-zA-Z0-9]*} \\
+\> \texttt{<integer>} \> ::= \> \texttt{[0-9]+} \\
+\> \texttt{<float>} \> ::= \> \texttt{<integer>} "." \texttt{[("e" | "E") ("+" | "-")]} \texttt{<integer>} \\
+\> \texttt{<string\_literal>} \> ::= \> \texttt{[^]*} \\
+\> \texttt{<data\_type>} \> ::= \> \texttt{["?"] ("void" | "u8" | "i32" | "f64" | "[]u8")} \\
+\> \texttt{<fn\_decl>} \> ::= \> \texttt{"pub"} \texttt{"fn"} \texttt{<identifier>} "(" [\texttt{<param\_list>}]) ")" \\
+\> \> \texttt{<data\_type>} \texttt{<block>} \\
+\> \texttt{<param\_list>} \> ::= \> \texttt{<param>} \texttt{("," <param>)*} \\
+\> \texttt{<param>} \> ::= \> \texttt{<identifier>} ":" \texttt{<data\_type>} \\
+\> \texttt{<const\_decl>} \> ::= \> \texttt{"const"} \texttt{<identifier>} [\texttt{":" <data\_type>}] "=" \texttt{<expression>} ";" \\
+\> \texttt{<var\_decl>} \> ::= \> \texttt{"var"} \texttt{<identifier>} [\texttt{":" <data\_type>}] "=" \texttt{<expression>} ";" \\
+\> \texttt{<expression>} \> ::= \> \texttt{<term>} \texttt{(("+" | "-") <term>)*} \\
+\> \texttt{<term>} \> ::= \> \texttt{<factor>} \texttt{(("*" | "/") <factor>)*} \\
+\> \texttt{<factor>} \> ::= \> \texttt{<number>} | \texttt{<identifier>} | \texttt{<string\_literal>} | "(" \texttt{<expression>} ")" \\
+\> \texttt{<number>} \> ::= \> \texttt{<integer>} | \texttt{<float>} \\
+\> \texttt{<block>} \> ::= \> \texttt{"{" <statement>* "}"} \\
+\> \texttt{<statement>} \> ::= \> \texttt{<identifier> <statement\_suffix>} | \texttt{<const\_decl>} | \texttt{<var\_decl>} \\
+\> \> \texttt{|} \texttt{<if\_statement>} | \texttt{<while\_statement>} | \texttt{<return\_statement>} \\
+\> \texttt{<statement\_suffix>} \> ::= \> \texttt{"=" <expression> ";"} \mid \texttt{"(" [<arg\_list>] ")";} \\
+\> \texttt{<assignment>} \> ::= \> \texttt{<identifier>} "=" \texttt{<expression>} ";" \\
+\> \texttt{<fn\_call>} \> ::= \> \texttt{<fn\_identifier>} "(" [\texttt{<arg\_list>}]) ")" \\
+\> \texttt{<fn\_call\_statement>} \> ::= \> \texttt{<fn\_call>} ";" \\
+\> \texttt{<fn\_identifier>} \> ::= \> \texttt{<built\_in\_fn>} | \texttt{<identifier>} \\
+\> \texttt{<arg\_list>} \> ::= \> \texttt{<expression>} \texttt{("," <expression>)*} \\
+\> \texttt{<built\_in\_fn>} \> ::= \> \texttt{"ifj" "."} \\
+\> \> \texttt{"write" | "readstr" | "readi32" | "readf64" |} \\
+\> \> \texttt{"i2f" | "f2i" | "string" | "length" |} \\
+\> \> \texttt{"concat" | "substring" | "strcmp" | "ord" | "chr"} \\
+\> \texttt{<if\_statement>} \> ::= \> \texttt{"if"} "(" \texttt{<expression>} [\texttt{<bin\_expression>}]) ")" \\
+\> \> \texttt{[<element\_bind>]} \texttt{<block>} \texttt{"else"} \texttt{<block>} \\
+\> \texttt{<while\_statement>} \> ::= \> \texttt{"while"} "(" \texttt{<expression>} [\texttt{<bin\_expression>}]) ")" \\
+\> \> \texttt{[<element\_bind>]} \texttt{<block>} \\
+\> \texttt{<bin\_expression>} \> ::= \> \texttt{<binary\_operator>} \texttt{<expression>} \\
+\> \texttt{<element\_bind>} \> ::= \> \texttt{"|"} \texttt{<identifier>} "|" \\
+\> \texttt{<return\_statement>} \> ::= \> \texttt{"return"} [\texttt{<expression>}] ";" \\
+\> \texttt{<binary\_operator>} \> ::= \> \texttt{"=="} \mid \texttt{"!="} \mid \texttt{"<="} \mid \texttt{">="} \mid \texttt{">"} \mid \texttt{"<"}
+\end{tabbing}
+
+\vspace{1cm}
+\begin{center}
+    \caption{Grammar in Extended Backus-Naur From (EBNF)}
+\end{center}
 
 \newpage
 \section*{LL Parsing Table}
@@ -243,6 +294,41 @@ Complete AST implementation can be found in \texttt{ast.c} and \texttt{ast.h} fi
 The expression parser implementation is inspired by the precedence syntactical analysis. Expressions are parsed based on operator precedence, which is defined in the \texttt{get\_precedence()} function. It uses two stacks: an operator stack, which holds AST \texttt{OperatorType}-s, and an operand stack, which holds \texttt{ASTNode}-s. Additionally, the parser supports both user-defined and built-in function calls as part of expressions.
 
 Implementation of expression parser can be found within \texttt{parser.c} and \texttt{parser.h} files. Stack implementation can be found in \texttt{stack\_exp.h}, \texttt{stack\_exp.c}, \texttt{ast\_node\_stack.h} and \texttt{ast\_node\_stack.c} files.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|>{\raggedright\arraybackslash}p{6cm}|p{3cm}|}
+\hline
+\textbf{Operator} & \textbf{Precedence} \\
+\hline
+TOKEN\_EQU, TOKEN\_NOT\_EQU & 1 \\
+\hline
+TOKEN\_LESS, TOKEN\_LESS\_EQU, TOKEN\_GREATER, TOKEN\_GREATER\_EQU & 2 \\
+\hline
+TOKEN\_PLUS, TOKEN\_MINUS & 3 \\
+\hline
+TOKEN\_MULT, TOKEN\_DIV & 4 \\
+\hline
+\end{tabular}
+\caption{Operator Precedence Table}
+\end{table}
+
+\section{Semantic Analysis\cite{djb2}}
+
+The implementation of semantic analysis in this project employs semi-dynamic allocation of resources, where the symbol table uses predefined values for initial capacities and resizes dynamically as needed. The semantic analyzer relies on a recursive descent approach to traverse the Abstract Syntax Tree (AST) and perform semantic checks on various language constructs.
+
+The \textbf{symbol table (symtable.c)} is central to the semantic analysis. It uses a hash table with the djb2 algorithm for efficient symbol storage and retrieval. Each symbol is stored as either a \texttt{VarSymbol} or a \texttt{FuncSymbol}, depending on whether it represents a variable or a function. Variables are characterized by attributes such as type, nullability, value, and usage flags. Functions include details about parameters, return type, and scope stack. The hash table expands when the load factor reaches a predefined threshold (0.75), ensuring that lookups remain efficient even as the number of entries grows.
+
+To manage scopes, the scope stack (\texttt{stack.c}) is implemented as a dynamic array of frames. Each frame contains a local symbol table that represents a distinct block. The stack provides operations to push and pop frames, facilitating nested scopes, and supports efficient lookups by traversing from the top frame downward until a matching symbol is found.
+
+The semantic analysis process begins by populating the global symbol table with function declarations extracted from \texttt{AST\_PROGRAM}. This step ensures that functions can be used before their declarations are encountered in the AST, aligning with the assignment requirements. The global table allows deferred semantic checks, where actual validation of function bodies occurs only when the function is invoked. This optimization avoids unnecessary evaluation of unused functions, focusing semantic checks on parts of the program that affect its execution.
+
+The analyzer ensures type compatibility, allowing null assignments only for explicitly nullable variables and permitting limited implicit conversions, like integers to floats.
+
+The analysis of expressions involves evaluating operator types, operand compatibility, and nullability. Relational and arithmetic operators require specific type combinations, and implicit conversions are allowed only for literals. The analyzer enforces semantic correctness by raising errors for unsupported operations or mismatched types.
+
+Function calls are validated by checking argument counts, types, and return statements. Built-in functions follow predefined rules, while user-defined functions are analyzed only when invoked, ensuring correctness and flexibility.
+
 
 \newpage
 % Code Generator Chapter
@@ -289,4 +375,3 @@ Errors are limited to:
 \printbibliography
 % [Rest of the code remains the same]
 \end{document}
-
