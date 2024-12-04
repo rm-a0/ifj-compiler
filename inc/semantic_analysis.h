@@ -113,19 +113,6 @@ void check_type_compatibility(
 );
 
 /**
- * @brief Evaluates whether a float value is fractionless (can be converted to int).
- *
- * Determines if the float value is effectively an integer within the valid range for `AST_I32`.
- *
- * @param global_table Pointer to the global symbol table.
- * @param local_stack Pointer to the local scope stack.
- * @param name Name of the variable to evaluate.
- * @param local_frame Pointer to the current local frame.
- * @return True if the float value is fractionless, false otherwise.
- */
-bool evaluate_fractionless_float(ScopeStack *local_stack, const char *name, Frame *local_frame);
-
-/**
  * @brief Evaluates the type of a function call expression.
  *
  * Checks the return type of the function being called and validates the arguments

@@ -67,6 +67,7 @@ bool isRelationalOperator(OperatorType op) {
     return false;
 }
 
+
 unsigned int unused_vars_funcs_frame(SymbolTable *current_table) {
 
     for (int j = 0; j < current_table->capacity; j++) {
@@ -84,57 +85,61 @@ unsigned int unused_vars_funcs_frame(SymbolTable *current_table) {
         
         // Checking whether the function has been used within the flow of the program unless the function is main
         } else if (symbol && symbol->type == SYMBOL_FUNC && !symbol->func.used && !(strcmp(symbol->func.name, "main") == 0)) {
-            
+
             return OTHER_SEMANTIC_ERROR;
         }
     }
 
+    // Return 0 indicates all symbols have been used
     return 0;
-
 }
 
 void process_binding(ASTNode *expression, SymbolTable *global_table, ScopeStack *local_stack, Frame *current_frame, const char *bind_name, DataType condition_type, bool has_literal) {
     OperatorType operator = expression->BinaryOperator.operator;
 
+    // No operator present in the expression should result in error
     if (!operator) {
-        
         exit(SEMANTIC_ERROR_TYPE_COMPAT);
     }
 
-    
-
-
-    // Perform semantic analysis on the identifier
+    // Perform semantic analysis on the identifier / function call
     semantic_analysis(expression, global_table, local_stack);
 
     if (expression->type == AST_IDENTIFIER) {
-        // Look up the symbol in the scopes
+
+        // Look up the symbol in the scope
         const char *name = expression->Identifier.identifier;
         Symbol *identifier = lookup_symbol_in_scope(local_stack, name, current_frame);
 
+        // Identifiers which are not nullable can't be used in binding
         if (!identifier->var.is_nullable) {
-            
             exit(OTHER_SEMANTIC_ERROR);
         }
 
+        // Identifier is added to the appropriate symbol table with temporary variable which behaves as
+        // constant declaration and inherits has_literal, value, nullability and type attributes from the binding variable
         add_variable_symbol(current_frame->symbol_table, bind_name, condition_type, true, false, has_literal, identifier->var.value);
         return;
 
     } else if (expression->type == AST_FN_CALL) {
 
+        // Look up the function in the global table
         const char *fn_name = expression->FnCall.fn_name;
         Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
 
+        // Functions which are not nullable can't be used in binding
         if (fn_symbol && !fn_symbol->func.is_nullable) {
-            
             exit(OTHER_SEMANTIC_ERROR);
         }
 
+        // Function call is added to the appropriate symbol table with temporary variable which behaves as constant declaration 
+        // constant declaration and doesnt inherit value, because there is none, inherits just function type and and constant declaration behaviour
         add_variable_symbol(current_frame->symbol_table, bind_name, fn_symbol->func.type, true, false, false, 0);
         return;
 
     } else if (expression->type == AST_NULL) {
 
+        // Even null can be used as binding operator so we add it too according to the function parameters
         add_variable_symbol(current_frame->symbol_table, bind_name, condition_type, true, false, has_literal, 0);
         return;
         
@@ -147,10 +152,8 @@ void process_binding(ASTNode *expression, SymbolTable *global_table, ScopeStack 
 DataType evaluate_condition(ASTNode *expression, SymbolTable *global_table, ScopeStack *local_stack, Frame *current_frame) {
     DataType condition_type = evaluate_expression_type(expression, global_table, local_stack, current_frame);
 
-    
-
-    if (condition_type != AST_I32) { // Ensures the condition is a boolean-compatible type
-        
+    // Ensures the condition is a boolean-compatible type
+    if (condition_type != AST_I32) { 
         exit(SEMANTIC_ERROR_TYPE_COMPAT);
     }
 
@@ -159,50 +162,35 @@ DataType evaluate_condition(ASTNode *expression, SymbolTable *global_table, Scop
 
 
 void check_main_function(SymbolTable *global_table) {
+
     // Lookup the main() function in the global symbol table
     Symbol *main_symbol = lookup_symbol(global_table, "main");
 
-    // Check if the main function exists
+    // Main function must be present in the code so we check if the main function has been declared
     if (main_symbol == NULL || main_symbol->type != SYMBOL_FUNC) {
-        
         exit(SEMANTIC_ERROR_UNDEFINED);
     }
 
+    // Main function has to be of type void, nothing else
     if (main_symbol->func.type != AST_VOID) {
-        
         exit(SEMANTIC_ERROR_PARAMS);
     }
 
-    // Check if the main function has zero parameters
     ScopeStack *main_scope_stack = main_symbol->func.scope_stack;
 
+    // Check if the main function has zero parameters, as it should according to the assignment
     if (main_scope_stack == NULL || main_scope_stack->frames[0]->symbol_table->count > 0) {
         
         exit(SEMANTIC_ERROR_PARAMS);
     }
 }
 
-bool evaluate_fractionless_float (ScopeStack *local_stack, const char *name, Frame *local_frame) {
-    Symbol *symbol = lookup_symbol_in_scope(local_stack, name, local_frame);
-
-    
-
-    if (fabs(symbol->var.value - (int)symbol->var.value) < 1e-9) {
-        
-        return true; // Flag to adjust the variable type to AST_I32
-    }    
-
-    
-    return false;
-}
-
 bool evaluate_nullable_identifier(ASTNode *node, ScopeStack *local_stack, Frame *local_frame) {
-
     
-    
+    // Setting flag for nullability which is used in evaluate_operator_type function to set flags when the operand is nullable
     Symbol *symbol = lookup_symbol_in_scope(local_stack, node->Identifier.identifier, local_frame);
     
-
+    // No other node than identifier or function or identifier can get here so no check required
     bool is_nullable = false;
     if (symbol->type == SYMBOL_VAR) {
         is_nullable = symbol->var.is_nullable;
