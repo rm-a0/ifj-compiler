@@ -502,7 +502,7 @@ void populate_global_table_with_functions(ASTNode *root, SymbolTable *global_tab
 }
 
 void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *local_stack) {
-    
+
     if (!node) return;
     switch (node->type) {
         case AST_PROGRAM: {
@@ -510,11 +510,11 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             populate_global_table_with_functions(node, global_table);
 
             for (int i = 0; i < node->Program.decl_count; i++) {
-                // "node->Program.declarations[i]" can take a shape of fn, var or const
                 ASTNode *decl = node->Program.declarations[i];
                 Symbol *symbol = lookup_symbol(global_table, decl->FnDecl.fn_name);
 
                 if (!symbol->func.is_initialized) {
+                    // Performing semantic analysis on function declarations
                     semantic_analysis(node->Program.declarations[i], global_table, local_stack);
                 }
             }
@@ -535,33 +535,12 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         }
 
         case AST_FN_DECL: {
-            
             const char *fn_name = node->FnDecl.fn_name;
             bool func_is_nullable = node->FnDecl.nullable;
             DataType return_type = node->FnDecl.return_type;
-            
-
-            // Check if the function is already declared
-            // Symbol *existing_symbol = lookup_symbol(global_table, fn_name);
-
-            // if (existing_symbol != NULL) {
-            //     
-            //     exit(SEMANTIC_ERROR_REDEF);
-            // }
-
-            // Add the function symbol to the global symbol table
-            // add_function_symbol(global_table, fn_name, return_type, is_nullable);
 
             // Retrieve the function symbol to access its scope stack
             Symbol *fn_symbol = lookup_symbol(global_table, fn_name);
-            // if (fn_symbol == NULL || fn_symbol->type != SYMBOL_FUNC) {
-            //     
-            //     exit(SEMANTIC_ERROR_UNDEFINED);
-            // }
-
-            // // Initialize the scope stack for the function
-            // fn_symbol->func.scope_stack = init_scope_stack();
-            
             ScopeStack *function_stack = fn_symbol->func.scope_stack;
 
             // Push a frame for the function parameters
@@ -575,32 +554,29 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 const char *param_name = param_node->Param.identifier;
                 DataType param_type = param_node->Param.data_type;
 
-                // Ensure the parameter node is valid
+                // Ensure the parameter node is of a valid type
                 if (param_node->type != AST_PARAM) {
-                    
                     exit(SEMANTIC_ERROR_PARAMS);
                 }
 
-                
-
                 Symbol *existing_symbol = lookup_symbol_in_scope(function_stack, param_name, base_frame);
 
+                // Check for same parameter name
                 if (existing_symbol) {
-                    
                     exit(SEMANTIC_ERROR_REDEF);
 
                 } else {
+                    // When all passed, the symbol is added to the top of a scope stack frame (0th) with appropriate attributes retrieved from declaration
                     add_variable_symbol(function_stack->frames[function_stack->top]->symbol_table, param_name, param_type, true, param_node->Param.nullable, false, 0);
                 }
             }
 
-            
-
+            // When the declared function is nullable, we assign it a true flag in appropriate entry of fn_symbol in fn_scope_stack
             if (func_is_nullable) {
-                
                 fn_symbol->func.is_nullable = true;
             }
 
+            // This is checked in AST_FN_CALL, so when the function has already been analyzed, it won't perform semantic analysis again
             fn_symbol->func.is_initialized = true;
 
             // Push a new frame for the function body
@@ -614,7 +590,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             // Ensure non-void functions have a return statement
             if (return_type != AST_VOID && fn_symbol && fn_symbol->type == SYMBOL_FUNC && !fn_symbol->func.has_return) {
                 if (!(strcmp(fn_symbol->func.name, "main") == 0)) {
-                    
                     exit(SEMANTIC_ERROR_RETURN);
                 }
             }
@@ -629,13 +604,10 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             // Retrieve parameter details
             const char *param_name = node->Param.identifier;
             DataType param_type = node->Param.data_type;
-            // bool nullable = node->Param.nullable;
-
             Symbol *symbol = lookup_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name);
             
             // Check if the parameter already exists in the current scope
             if (!symbol) {
-                
                 exit(SEMANTIC_ERROR_PARAMS);
             }
 
