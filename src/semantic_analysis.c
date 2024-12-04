@@ -676,27 +676,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             // Process function parameters
             for (int i = 0; i < node->FnDecl.param_count; i++) {
-                ASTNode *param_node = node->FnDecl.params[i];
-                const char *param_name = param_node->Param.identifier;
-                DataType param_type = param_node->Param.data_type;
-
-                // Ensure the parameter node is valid
-                if (param_node->type != AST_PARAM) {
-                    fprintf(stderr, "Semantic Error: Invalid parameter in function '%s'.\n", fn_name);
-                    exit(SEMANTIC_ERROR_PARAMS);
-                }
-
-                printf("param_node->type: %u\n", param_node->type);
-
-                Symbol *existing_symbol = lookup_symbol_in_scope(function_stack, param_name, base_frame);
-
-                if (existing_symbol) {
-                    fprintf(stderr, "Semantic Error: Duplicate parameter name '%s' in function '%s'.\n", param_name, fn_name);
-                    exit(SEMANTIC_ERROR_REDEF);
-
-                } else {
-                    add_variable_symbol(function_stack->frames[function_stack->top]->symbol_table, param_name, param_type, true, param_node->Param.nullable, false, 0);
-                }
+                semantic_analysis(node->FnDecl.params[i], global_table, function_stack);
             }
 
             printf("done with params\n");
@@ -731,21 +711,27 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
     
 
         case AST_PARAM: {
-            // Retrieve parameter details
             const char *param_name = node->Param.identifier;
             DataType param_type = node->Param.data_type;
-            // bool nullable = node->Param.nullable;
 
-            Symbol *symbol = lookup_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name);
-            
-            // Check if the parameter already exists in the current scope
-            if (!symbol) {
-                fprintf(stderr, "Semantic Error: Duplicate parameter '%s' in the function scope.\n", param_name);
+            // Ensure the parameter node is valid
+            if (node->type != AST_PARAM) {
+                fprintf(stderr, "Semantic Error: Invalid parameter in function .\n");
                 exit(SEMANTIC_ERROR_PARAMS);
             }
 
-            // Add the parameter to the local symbol table
-            add_variable_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name, param_type, true, symbol->var.is_nullable, symbol->var.has_literal, symbol->var.value);            
+            printf("param_node->type: %u\n", node->type);
+
+            Frame *frame = top_frame(local_stack);
+            Symbol *existing_symbol = lookup_symbol_in_scope(local_stack, param_name, frame);
+
+            if (existing_symbol) {
+                fprintf(stderr, "Semantic Error: Duplicate parameter name.\n");
+                exit(SEMANTIC_ERROR_REDEF);
+
+            } else {
+                add_variable_symbol(local_stack->frames[local_stack->top]->symbol_table, param_name, param_type, true, node->Param.nullable, false, 0);
+            }
             break;
         }
 
