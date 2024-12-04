@@ -893,17 +893,14 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             Frame *current_frame = top_frame(local_stack);
 
             if (!node->Argument.expression) {
-                
                 exit(SEMANTIC_ERROR_UNDEFINED);
             }
 
             // Evaluate the type of the expression
             DataType arg_type = evaluate_expression_type(node->Argument.expression, global_table, local_stack, current_frame);
             
-
             // Ensure the expression is valid (further checks can be added here if needed)
             if (arg_type == AST_UNSPECIFIED) {
-                
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
             }
 
@@ -913,14 +910,12 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
         case AST_RETURN: {
             // Ensure the function context is valid (local stack must not be NULL)
             if (local_stack == NULL || local_stack->top == -1) {
-                
                 exit(SEMANTIC_ERROR_RETURN);
             }
 
             // Retrieve the first frame in the local stack (function scope)
             Frame *current_frame = local_stack->frames[0];
             if (!current_frame || !current_frame->symbol_table) {
-                
                 exit(INTERNAL_ERROR);
             }
 
@@ -934,22 +929,14 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 }
             }
 
-            if (!function_symbol) {
-                
-                exit(INTERNAL_ERROR);
-            }
-
             DataType expected_return_type = function_symbol->func.type;
-            
-
 
             if (expected_return_type != AST_VOID) {
-                
                 // We check if expression is null because if its not it does mean that there is error in return statement
 
                 if (node->Return.expression) {
-                    // Evaluate the type of the return expression
 
+                    // Evaluate the type of the return expression
                     DataType return_type = evaluate_expression_type(node->Return.expression, global_table, local_stack, current_frame);
                     
 
@@ -967,10 +954,8 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
                 }
                 
             } else if (node->Return.expression) {
-                // If return expression is not null and it is supposed to return ast void
-                // it should be flagged as mismatch between return type and declaration type
+                // If return expression is not null and it is supposed to return ast void it should be flagged as mismatch between return type and declaration type
                 exit(SEMANTIC_ERROR_RETURN);
-
             }
 
             break;
@@ -1027,18 +1012,16 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             if (!symbol) {
                 // If the identifier is not found, it's an undeclared variable.
-                
                 exit(SEMANTIC_ERROR_UNDEFINED);
             }
 
-            
-            
             // Mark the symbol as used.
             if (symbol->type == SYMBOL_VAR) {
                 symbol->var.used = true;
+
             } else if (symbol->type == SYMBOL_FUNC) {
+
                 // Ensure that identifiers aren't functions in invalid contexts.
-                
                 exit(SEMANTIC_ERROR_TYPE_COMPAT);
             }
 
@@ -1051,6 +1034,7 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             const char *identifier = node->Assignment.identifier;
             DataType expression_type = 0;
 
+            // We call expression type even though it is of discard type assignment to flag usage of variables and correct usage of binary operands
             if (strcmp(identifier, "_") == 0) {
                 expression_type = evaluate_expression_type(node->Assignment.expression, global_table, local_stack, current_frame);
                 break;
@@ -1067,13 +1051,13 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
 
             // Check if the symbol is a constant
             if (symbol->type == SYMBOL_VAR) {
+
                 // Constants cannot be modified
                 if (symbol->var.is_constant) {
-                    
                     exit(SEMANTIC_ERROR_REDEF);
                 } else {
+
                     // If it's a variable, mark it as redefined
-                    
                     symbol->var.redefined = true;
                     symbol->var.used = true;
                 }
@@ -1082,9 +1066,6 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             // Evaluate the expression type for the right side of the assignment
             expression_type = evaluate_expression_type(node->Assignment.expression, global_table, local_stack, current_frame);
 
-            
-            
-
             bool expression_is_literal = false;
 
             if (node->Assignment.expression->type == AST_INT || node->Assignment.expression->type == AST_FLOAT) {
@@ -1092,37 +1073,33 @@ void semantic_analysis(ASTNode *node, SymbolTable *global_table, ScopeStack *loc
             }
 
             check_type_compatibility(symbol->var.type, expression_type, symbol->var.is_nullable, symbol->var.value, expression_is_literal);
-
-
-
             break;
         }
 
         default: {
-            
             exit(OTHER_SEMANTIC_ERROR);
         }
     }
 }
 
+//  Function for modifying the variable's nullable param if the Data type hasnt been specified
 bool process_expression_content(ASTNode *expression, DataType data_type_declared) {
-
-    
 
     switch (expression->type) {
         case AST_FN_CALL: {
             const char *fn_name = expression->FnCall.fn_name;
             
-
+            // Iterating over functions and if function call's name corresponds to one of the builtin, we return it's nullability state
             size_t built_in_count = sizeof(built_in_functions) / sizeof(built_in_functions[0]);
             for (size_t i = 0; i < built_in_count; i++) {
                 if (strcmp(fn_name, built_in_functions[i].name) == 0) {
-                    
                     return built_in_functions[i].is_nullable;
                 }
             }
+
         }
 
+        // If the expression is bin operator and the data was undeclared we assume it is nullable (according to assignment)
         case AST_BIN_OP: {
             if (data_type_declared == AST_UNSPECIFIED) {
                 return true;
@@ -1149,9 +1126,7 @@ void process_declaration(
     double value
 ) {
     
-    
-    
-
+    // We dont perform anything regarding variable or constant declaration when the name is of discard token
     if (strcmp(name, "_") == 0) {
         return;
     }
@@ -1173,16 +1148,14 @@ void process_declaration(
         exit(SEMANTIC_ERROR_TYPE_DERIVATION);
     }
 
+    // If the nullable param is null we may want to check its expression nullability
     if (!is_nullable) {
-        
-        
         is_nullable = process_expression_content(expression, data_type_declared);
     }
 
     bool has_literal = false;
 
-    // || expression->type == AST_SLICE || expression->type NLLL ???
-
+    // If the expression is of type AST_INT or AST_FLOAT, we flag it that it has literal
     if (expression->type == AST_INT || expression->type == AST_FLOAT) {
         has_literal = true;
     }
@@ -1190,7 +1163,6 @@ void process_declaration(
     // Deduce data type
     DataType data_type_stored = evaluate_expression_type(expression, global_table, local_stack, current_frame);
     
-
     // Data type wasnt specified in decleration
     if (data_type_declared == AST_UNSPECIFIED) {
 
@@ -1208,8 +1180,7 @@ void process_declaration(
     if (local_stack && local_stack->top >= 0) {
         if (current_frame && current_frame->symbol_table) {
             
-            
-            
+            // We store the declaration unless it is discard token
             if (!(strcmp(name, "_") == 0)) {
                 add_variable_symbol(current_frame->symbol_table, name, data_type_declared, is_constant, is_nullable, has_literal, value);
             }
