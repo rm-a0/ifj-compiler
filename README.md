@@ -21,7 +21,7 @@ This project is an implementation of a compiler for the IFJ24 imperative program
 ## Build & Run
 1. Clone the repository:
    ```sh
-   git clone https://github.com/your-repo/ifj24-compiler.git
+   git clone https://github.com/rm-a0/ifj-compiler
    cd ifj24-compiler
    ```
 2. Compile the project:
