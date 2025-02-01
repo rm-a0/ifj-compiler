@@ -24,7 +24,14 @@ This project is an implementation of a compiler for the IFJ24 imperative program
    git clone https://github.com/your-repo/ifj24-compiler.git
    cd ifj24-compiler
    ```
-
+2. Compile the project:
+   ```sh
+   make
+   ```  
+3. Run:
+   ```sh
+   make run < src.ifj24
+   ```
 ## Documentation
 For more detailed documentation, use the documentation in the `doc` folder.  
 Refer to `doc/documentation.tex` for in-depth details.
