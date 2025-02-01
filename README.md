@@ -5,6 +5,7 @@ Custom compiler written in C for a subset of the Zig programming language.
 ## Overview
 This project is an implementation of a compiler for the IFJ24 imperative programming language. It includes lexical analysis, parsing, semantic analysis, and code generation. The compiler follows an LL(1) parsing approach and generates target code with optimizations.
 
+
 ## Features
 - **Lexical Analysis**: FSM-based lexer for tokenizing source code
 - **Parsing**: Recursive descent parser
@@ -24,7 +25,11 @@ This project is an implementation of a compiler for the IFJ24 imperative program
    cd ifj24-compiler
    ```
 
-### Final Evaluation
+## Documentation
+For more detailed documentation, use the documentation in the `doc` folder.  
+Refer to `doc/documentation.tex` for in-depth details.
+
+## Final Evaluation
 - Lexical Analysis - 85%
 - Syntax Analysis - 95%
 - Semantic Analysis - 81%
