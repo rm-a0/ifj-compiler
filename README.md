@@ -10,4 +10,4 @@ Custom compiler written in C for a subset of the Zig programming language.
 - Code Generation (advanced tests) - 42%
 - Code Generation (complex tests) - 22%
 - FUNEXP extension - 90%
-- __Total__ : 65%
+- __Total__ - 65%
